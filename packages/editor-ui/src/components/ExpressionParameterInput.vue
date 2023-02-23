@@ -201,7 +201,7 @@ export default Vue.extend({
 	position: absolute;
 	right: 0;
 	bottom: 0;
-	background-color: white;
+	background-color: var(--color-background-light);
 	padding: 3px;
 	line-height: 9px;
 	border: var(--border-base);
@@ -232,7 +232,7 @@ export default Vue.extend({
 .focused > .expression-editor-modal-opener {
 	border-color: var(--color-secondary);
 	border-bottom-right-radius: 0;
-	background-color: white;
+	background-color: var(--color-background-light);
 }
 
 .hidden {

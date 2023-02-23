@@ -18,11 +18,11 @@ export const titleChange = Vue.extend({
 				icon = '▶️';
 			}
 
-			window.document.title = `n8n - ${icon} ${workflow}`;
+			window.document.title = `Video CMS - ${icon} ${workflow}`;
 		},
 
 		$titleReset() {
-			document.title = 'n8n - Workflow Automation';
+			document.title = 'Video CMS - Workflow Automation';
 		},
 	},
 });

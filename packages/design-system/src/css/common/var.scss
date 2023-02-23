@@ -384,7 +384,7 @@ $select-close-hover-color: var(--color-text-light);
 $select-input-color: var(--color-text-lighter);
 $select-multiple-input-color: var(--color-text-base);
 /// color||Color|0
-$select-input-focus-border-color: var(--color-secondary);
+$select-input-focus-border-color: var(--color-primary);
 /// fontSize||Font|1
 $select-input-font-size: 14px;
 
@@ -402,7 +402,7 @@ $select-group-color: var(--color-info);
 $select-group-height: 30px;
 $select-group-font-size: 12px;
 
-$select-dropdown-background: $color-white;
+$select-dropdown-background: var(--color-background-light);
 $select-dropdown-shadow: $box-shadow-light;
 $select-dropdown-empty-color: var(--color-text-light);
 /// height||Other|4
@@ -497,16 +497,16 @@ $notification-group-margin-right: 8px;
 /// fontSize||Font|1
 $notification-content-font-size: $font-size-base;
 /// color||Color|0
-$notification-content-color: var(--color-text-dark);
+$notification-content-color: var(--color-background-light);
 /// fontSize||Font|1
 $notification-title-font-size: 16px;
 /// color||Color|0
-$notification-title-color: var(--color-text-dark);
+$notification-title-color: var(--color-background-light);
 
 /// color||Color|0
 $notification-close-color: var(--color-text-light);
 /// color||Color|0
-$notification-close-hover-color: var(--color-text-dark);
+$notification-close-hover-color: var(--color-background-light);
 
 /// color||Color|0
 $notification-success-icon-color: var(--color-success);
@@ -520,7 +520,7 @@ $notification-danger-icon-color: var(--color-danger);
 /* Input
 -------------------------- */
 $input-placeholder-color: var(--input-placeholder-color, var(--color-text-light));
-$input-focus-border: var(--input-focus-border-color, var(--color-secondary));
+$input-focus-border: var(--input-focus-border-color, var(--color-primary));
 $input-border-color: var(--input-border-color, var(--border-color-base));
 $input-border-style: var(--input-border-style, var(--border-style-base));
 $input-border-width: var(--border-width-base);
@@ -537,7 +537,7 @@ $input-height: 40px;
 $input-border-radius: var(--input-border-radius, var(--border-radius-base));
 $input-border-color-hover: $border-color-hover;
 /// color||Color|0
-$input-background-color: var(--input-background-color, var(--color-foreground-xlight));
+$input-background-color: var(--input-background-color, var(--color-background-light));
 $input-fill-disabled: $disabled-fill-base;
 $input-color-disabled: $font-color-disabled-base;
 /// color||Color|0
@@ -644,10 +644,7 @@ $button-background-color: var(--button-background-color, var(--color-primary));
 
 $button-active-color: var(--button-active-color, var(--color-text-xlight));
 $button-active-border-color: var(--button-active-border-color, var(--color-primary-shade-1));
-$button-active-background-color: var(
-	--button-active-background-color,
-	var(--color-primary-shade-1)
-);
+$button-active-background-color: var(--color-background-light);
 
 $button-focus-outline-color: var(--button-focus-outline-color, var(--color-primary-tint-1));
 
@@ -726,7 +723,7 @@ $switch-button-size: 16px;
 
 /* Dialog
 -------------------------- */
-$dialog-background-color: $color-white;
+$dialog-background-color: var(--color-background-lighter);
 $dialog-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 /// fontSize||Font|1
 $dialog-content-font-size: 14px;
@@ -782,11 +779,11 @@ $popup-modal-opacity: 0.65;
 /* Popover
 -------------------------- */
 /// color||Color|0
-$popover-background-color: $color-white;
+$popover-background-color: var(--color-background-light);
 /// fontSize||Font|1
 $popover-font-size: $font-size-base;
 /// color||Color|0
-$popover-border-color: var(--border-color-light);
+$popover-border-color: var(--color-foreground-light);
 $popover-arrow-size: 6px;
 /// padding||Spacing|3
 $popover-padding: var(--spacing-s);
@@ -801,7 +798,7 @@ $popover-title-font-color: var(--color-text-dark);
 /// color|1|Color|0
 $tooltip-fill: var(--color-text-dark);
 /// color|1|Color|0
-$tooltip-color: $color-white;
+$tooltip-color: var(--color-background-light);
 /// fontSize||Font|1
 $tooltip-font-size: 12px;
 /// color||Color|0
@@ -839,8 +836,8 @@ $tree-expand-icon-color: var(--color-text-lighter);
 /* Dropdown
 -------------------------- */
 $dropdown-menu-box-shadow: $box-shadow-light;
-$dropdown-menuItem-hover-fill: $color-primary-light-9;
-$dropdown-menuItem-hover-color: $link-color;
+$dropdown-menuItem-hover-fill: var(--color-background-xlight);
+$dropdown-menuItem-hover-color: var(--color-text-dark);
 
 /* Badge
 -------------------------- */
@@ -894,7 +891,7 @@ $steps-padding: 20px;
 /* Menu
 --------------------------*/
 /// fontSize||Font|1
-$menu-item-font-size: $font-size-base;
+$menu-item-font-size: $font-size-medium;
 $menu-item-font-weight: var(--menu-item-font-weight, var(--font-weight-regular));
 /// color||Color|0
 $menu-item-font-color: var(--menu-font-color, var(--color-text-dark));

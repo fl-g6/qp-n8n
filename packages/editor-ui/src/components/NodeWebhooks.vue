@@ -212,7 +212,7 @@ export default mixins(copyPaste, showMessage, workflowHelpers).extend({
 	line-height: 1.5;
 	position: relative;
 	margin-top: var(--spacing-xs);
-	background-color: var(--color-foreground-xlight);
+	background-color: var(--color-background-base);
 	border-radius: 3px;
 }
 </style>

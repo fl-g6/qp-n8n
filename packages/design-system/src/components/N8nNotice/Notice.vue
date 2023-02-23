@@ -112,22 +112,22 @@ export default Vue.extend({
 
 .warning {
 	--border-color: var(--color-warning-tint-1);
-	--background-color: var(--color-warning-tint-2);
+	--background-color: var(--color-background-lighter);
 }
 
 .danger {
 	--border-color: var(--color-danger-tint-1);
-	--background-color: var(--color-danger-tint-2);
+	--background-color: var(--color-background-lighter);
 }
 
 .success {
 	--border-color: var(--color-success-tint-1);
-	--background-color: var(--color-success-tint-2);
+	--background-color: var(--color-background-lighter);
 }
 
 .info {
 	--border-color: var(--color-info-tint-1);
-	--background-color: var(--color-info-tint-2);
+	--background-color: var(--color-background-lighter);
 }
 
 .expanded {

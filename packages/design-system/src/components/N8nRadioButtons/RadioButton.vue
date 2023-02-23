@@ -104,7 +104,7 @@ export default Vue.extend({
 }
 
 .active {
-	background-color: var(--color-foreground-xlight);
-	color: var(--color-text-dark);
+	background-color: var(--color-background-xlight);
+	color: var(--color-primary);
 }
 </style>

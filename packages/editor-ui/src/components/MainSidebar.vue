@@ -26,7 +26,7 @@
 					/>
 				</div>
 			</template>
-			<template #menuSuffix v-if="hasVersionUpdates">
+			<!-- <template #menuSuffix v-if="hasVersionUpdates">
 				<div :class="$style.updates" @click="openUpdatesPanel">
 					<div :class="$style.giftContainer">
 						<GiftNotificationIcon />
@@ -40,7 +40,7 @@
 						}}
 					</n8n-text>
 				</div>
-			</template>
+			</template> -->
 			<template #footer v-if="showUserArea">
 				<div :class="$style.userArea">
 					<div class="ml-3xs" data-test-id="main-sidebar-user-menu">
@@ -218,14 +218,14 @@ export default mixins(
 					available: this.settingsStore.isTemplatesEnabled,
 					activateOnRouteNames: [VIEWS.TEMPLATES],
 				},
-				{
-					id: 'credentials',
-					icon: 'key',
-					label: this.$locale.baseText('mainSidebar.credentials'),
-					customIconSize: 'medium',
-					position: 'top',
-					activateOnRouteNames: [VIEWS.CREDENTIALS],
-				},
+				// {
+				// 	id: 'credentials',
+				// 	icon: 'key',
+				// 	label: this.$locale.baseText('mainSidebar.credentials'),
+				// 	customIconSize: 'medium',
+				// 	position: 'top',
+				// 	activateOnRouteNames: [VIEWS.CREDENTIALS],
+				// },
 				{
 					id: 'executions',
 					icon: 'tasks',
@@ -233,68 +233,68 @@ export default mixins(
 					position: 'top',
 					activateOnRouteNames: [VIEWS.EXECUTIONS],
 				},
-				{
-					id: 'settings',
-					icon: 'cog',
-					label: this.$locale.baseText('settings'),
-					position: 'bottom',
-					available: this.canUserAccessSettings && this.usersStore.currentUser !== null,
-					activateOnRouteNames: [VIEWS.USERS_SETTINGS, VIEWS.API_SETTINGS, VIEWS.PERSONAL_SETTINGS],
-				},
-				{
-					id: 'help',
-					icon: 'question',
-					label: 'Help',
-					position: 'bottom',
-					children: [
-						{
-							id: 'quickstart',
-							icon: 'video',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.quickstart'),
-							type: 'link',
-							properties: {
-								href: 'https://www.youtube.com/watch?v=1MwSoB0gnM4',
-								newWindow: true,
-							},
-						},
-						{
-							id: 'docs',
-							icon: 'book',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.documentation'),
-							type: 'link',
-							properties: {
-								href: 'https://docs.n8n.io',
-								newWindow: true,
-							},
-						},
-						{
-							id: 'forum',
-							icon: 'users',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.forum'),
-							type: 'link',
-							properties: {
-								href: 'https://community.n8n.io',
-								newWindow: true,
-							},
-						},
-						{
-							id: 'examples',
-							icon: 'graduation-cap',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.course'),
-							type: 'link',
-							properties: {
-								href: 'https://www.youtube.com/watch?v=1MwSoB0gnM4',
-								newWindow: true,
-							},
-						},
-						{
-							id: 'about',
-							icon: 'info',
-							label: this.$locale.baseText('mainSidebar.aboutN8n'),
-							position: 'bottom',
-						},
-					],
-				},
+				// {
+				// 	id: 'settings',
+				// 	icon: 'cog',
+				// 	label: this.$locale.baseText('settings'),
+				// 	position: 'bottom',
+				// 	available: this.canUserAccessSettings && this.usersStore.currentUser !== null,
+				// 	activateOnRouteNames: [VIEWS.USERS_SETTINGS, VIEWS.API_SETTINGS, VIEWS.PERSONAL_SETTINGS],
+				// },
+				// {
+				// 	id: 'help',
+				// 	icon: 'question',
+				// 	label: 'Help',
+				// 	position: 'bottom',
+				// 	children: [
+				// 		{
+				// 			id: 'quickstart',
+				// 			icon: 'video',
+				// 			label: this.$locale.baseText('mainSidebar.helpMenuItems.quickstart'),
+				// 			type: 'link',
+				// 			properties: {
+				// 				href: 'https://www.youtube.com/watch?v=1MwSoB0gnM4',
+				// 				newWindow: true,
+				// 			},
+				// 		},
+				// 		{
+				// 			id: 'docs',
+				// 			icon: 'book',
+				// 			label: this.$locale.baseText('mainSidebar.helpMenuItems.documentation'),
+				// 			type: 'link',
+				// 			properties: {
+				// 				href: 'https://docs.n8n.io',
+				// 				newWindow: true,
+				// 			},
+				// 		},
+				// 		{
+				// 			id: 'forum',
+				// 			icon: 'users',
+				// 			label: this.$locale.baseText('mainSidebar.helpMenuItems.forum'),
+				// 			type: 'link',
+				// 			properties: {
+				// 				href: 'https://community.n8n.io',
+				// 				newWindow: true,
+				// 			},
+				// 		},
+				// 		{
+				// 			id: 'examples',
+				// 			icon: 'graduation-cap',
+				// 			label: this.$locale.baseText('mainSidebar.helpMenuItems.course'),
+				// 			type: 'link',
+				// 			properties: {
+				// 				href: 'https://www.youtube.com/watch?v=1MwSoB0gnM4',
+				// 				newWindow: true,
+				// 			},
+				// 		},
+				// 		{
+				// 			id: 'about',
+				// 			icon: 'info',
+				// 			label: this.$locale.baseText('mainSidebar.aboutN8n'),
+				// 			position: 'bottom',
+				// 		},
+				// 	],
+				// },
 			];
 			return [...items, ...regularItems];
 		},
@@ -468,7 +468,7 @@ export default mixins(
 		img {
 			position: relative;
 			left: 1px;
-			height: 20px;
+			height: 35px;
 		}
 	}
 
@@ -490,7 +490,7 @@ export default mixins(
 	justify-content: center;
 	align-items: flex-end;
 	color: var(--color-text-base);
-	background-color: var(--color-foreground-xlight);
+	background-color: var(--color-background-xlight);
 	width: 20px;
 	height: 20px;
 	border: var(--border-width-base) var(--border-style-base) var(--color-foreground-base);

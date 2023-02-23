@@ -34,7 +34,7 @@ export default Vue.extend({
 	display: flex;
 	height: 100%;
 	width: 100%;
-	max-width: 1280px;
+	// max-width: 1280px;
 	justify-content: center;
 	box-sizing: border-box;
 	background: var(--color-gray-light);

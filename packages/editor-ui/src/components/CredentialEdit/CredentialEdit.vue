@@ -447,11 +447,11 @@ export default mixins(showMessage, nodeHelpers).extend({
 					label: this.$locale.baseText('credentialEdit.credentialEdit.connection'),
 					position: 'top',
 				},
-				{
-					id: 'sharing',
-					label: this.$locale.baseText('credentialEdit.credentialEdit.sharing'),
-					position: 'top',
-				},
+				// {
+				// 	id: 'sharing',
+				// 	label: this.$locale.baseText('credentialEdit.credentialEdit.sharing'),
+				// 	position: 'top',
+				// },
 				{
 					id: 'details',
 					label: this.$locale.baseText('credentialEdit.credentialEdit.details'),
