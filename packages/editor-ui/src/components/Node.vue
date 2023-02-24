@@ -682,8 +682,9 @@ export default mixins(
 			height: 100%;
 			border: 2px solid var(--color-foreground-xdark);
 			border-radius: var(--border-radius-large);
-			background-color: var(--color-background-xlight);
-			&.executing {
+			background-color: var(--color-text-dark);
+
+      &.executing {
 				background-color: var(--color-primary-tint-3) !important;
 
 				.node-executing-info {

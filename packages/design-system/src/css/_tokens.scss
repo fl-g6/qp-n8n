@@ -1,9 +1,9 @@
 @use 'sass:math';
 
 @mixin theme {
-	--color-primary-h: 6.9;
-	--color-primary-s: 100%;
-	--color-primary-l: 67.6%;
+	--color-primary-h: 18;
+	--color-primary-s: 75%;
+	--color-primary-l: 58%;
 	--color-primary: hsl(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l));
 
 	--color-primary-tint-1-l: 88%;
@@ -196,25 +196,25 @@
 
 	--color-text-dark-h: 0;
 	--color-text-dark-s: 0%;
-	--color-text-dark-l: 33.3%;
+	--color-text-dark-l: 80%;
 	--color-text-dark: hsl(
 		var(--color-text-dark-h),
 		var(--color-text-dark-s),
 		var(--color-text-dark-l)
 	);
 
-	--color-text-base-h: 240;
-	--color-text-base-s: 4%;
-	--color-text-base-l: 51%;
+	--color-text-base-h: 0;
+	--color-text-base-s: 0%;
+	--color-text-base-l: 90%;
 	--color-text-base: hsl(
 		var(--color-text-base-h),
 		var(--color-text-base-s),
 		var(--color-text-base-l)
 	);
 
-	--color-text-light-h: 220;
-	--color-text-light-s: 4.2%;
-	--color-text-light-l: 58.2%;
+	--color-text-light-h: 0;
+	--color-text-light-s: 0%;
+	--color-text-light-l: 60%;
 	--color-text-light: hsl(
 		var(--color-text-light-h),
 		var(--color-text-light-s),
@@ -293,27 +293,27 @@
 		var(--color-background-dark-l)
 	);
 
-	--color-background-base-h: 220;
-	--color-background-base-s: 30%;
-	--color-background-base-l: 96.1%;
+	--color-background-base-h: 0;
+	--color-background-base-s: 0%;
+	--color-background-base-l: 21.2%;
 	--color-background-base: hsl(
 		var(--color-background-base-h),
 		var(--color-background-base-s),
 		var(--color-background-base-l)
 	);
 
-	--color-background-light-h: 220;
-	--color-background-light-s: 60%;
-	--color-background-light-l: 99%;
+	--color-background-light-h: 0;
+	--color-background-light-s: 0%;
+	--color-background-light-l: 16.9%;
 	--color-background-light: hsl(
 		var(--color-background-light-h),
 		var(--color-background-light-s),
 		var(--color-background-light-l)
 	);
 
-	--color-background-lighter-h: 252;
-	--color-background-lighter-s: 71.4%;
-	--color-background-lighter-l: 98.6%;
+	--color-background-lighter-h: 0;
+	--color-background-lighter-s: 0%;
+	--color-background-lighter-l: 13.3%;
 	--color-background-lighter: hsl(
 		var(--color-background-lighter-h),
 		var(--color-background-lighter-s),
@@ -322,25 +322,25 @@
 
 	--color-background-xlight-h: 0;
 	--color-background-xlight-s: 0%;
-	--color-background-xlight-l: 100%;
+	--color-background-xlight-l: 10.3%;
 	--color-background-xlight: hsl(
 		var(--color-background-xlight-h),
 		var(--color-background-xlight-s),
 		var(--color-background-xlight-l)
 	);
 
-	--color-canvas-dot-h: 204;
-	--color-canvas-dot-s: 15.6%;
-	--color-canvas-dot-l: 87.5%;
+	--color-canvas-dot-h: 0;
+	--color-canvas-dot-s: 0%;
+	--color-canvas-dot-l: 13.3%;
 	--color-canvas-dot: hsl(
 		var(--color-canvas-dot-h),
 		var(--color-canvas-dot-s),
 		var(--color-canvas-dot-l)
 	);
 
-	--color-canvas-background-h: 260;
-	--color-canvas-background-s: 100%;
-	--color-canvas-background-l: 99.4%;
+	--color-canvas-background-h: 0;
+	--color-canvas-background-s: 0%;
+	--color-canvas-background-l: 10.3%;
 	--color-canvas-background: hsl(
 		var(--color-canvas-background-h),
 		var(--color-canvas-background-s),
@@ -391,7 +391,7 @@
 	--color-code-tags-variable: #c82829;
 	--color-code-tags-definition: #4271ae;
 
-	--color-expression-editor-background: #fff;
+	--color-expression-editor-background: #222222;
 	--color-valid-resolvable-foreground: #29a568;
 	--color-valid-resolvable-background: #e1f3d8;
 	--color-invalid-resolvable-foreground: #f45959;

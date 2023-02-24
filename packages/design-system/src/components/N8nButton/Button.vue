@@ -180,7 +180,7 @@ $loading-overlay-background-color: rgba(255, 255, 255, 0);
 .secondary {
 	--button-color: var(--color-primary);
 	--button-border-color: var(--color-primary);
-	--button-background-color: var(--color-background-xlight);
+	--button-background-color: var(--color-background-light);
 
 	--button-active-background-color: var(--color-primary-tint-2);
 	--button-active-color: var(--color-primary);
@@ -196,24 +196,19 @@ $loading-overlay-background-color: rgba(255, 255, 255, 0);
 .tertiary {
 	font-weight: var(--font-weight-regular) !important;
 
-	--button-background-color: var(--color-background-xlight);
+	--button-background-color: var(--color-background-light);
 	--button-color: var(--color-text-dark);
 	--button-border-color: var(--color-neutral-850);
 
-	--button-active-background-color: var(--color-primary-tint-2);
+	--button-active-background-color: var(--color-primary);
 	--button-active-color: var(--color-primary);
 	--button-active-border-color: var(--color-primary);
 
-	--button-hover-background-color: var(--color-neutral-950);
+	--button-hover-background-color: var(--color-background-light);
 	--button-hover-color: var(--color-text-dark);
-	--button-hover-border-color: var(--color-neutral-800);
+	--button-hover-border-color: var(--color-primary);
 
-	--button-focus-outline-color: hsla(
-		var(--color-neutral-h),
-		var(--color-neutral-s),
-		var(--color-neutral-l),
-		0.2
-	);
+	--button-focus-outline-color: hvar(--color-primary);
 }
 
 .success {

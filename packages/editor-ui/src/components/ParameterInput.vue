@@ -1304,7 +1304,7 @@ export default mixins(
 	position: absolute;
 	right: 0;
 	bottom: 0;
-	background-color: white;
+	background-color: var(--color-background-light);
 	padding: 3px;
 	line-height: 9px;
 	border: var(--border-base);

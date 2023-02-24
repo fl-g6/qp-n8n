@@ -371,7 +371,7 @@ export default mixins(genericHelpers, debounceHelper).extend({
 		next();
 	},
 	async mounted() {
-		setPageTitle('n8n - Templates');
+		setPageTitle('Video CMS - Templates');
 		this.loadCategories();
 		this.loadWorkflowsAndCollections(true);
 		this.usersStore.showPersonalizationSurvey();

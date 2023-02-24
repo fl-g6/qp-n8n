@@ -167,10 +167,10 @@ export default Vue.extend({
 :global(.el-menu-item),
 :global(.el-submenu__title) {
 	--menu-font-color: var(--color-text-base);
-	--menu-item-active-background-color: var(--color-foreground-base);
-	--menu-item-active-font-color: var(--color-text-dark);
-	--menu-item-hover-fill: var(--color-foreground-base);
-	--menu-item-hover-font-color: var(--color-text-dark);
+	--menu-item-active-background-color: transparent;
+	--menu-item-active-font-color: var(--color-primary);
+	--menu-item-hover-fill: transparent;
+	--menu-item-hover-font-color: var(--color-primary);
 	--menu-item-height: 35px;
 	--submenu-item-height: 27px;
 }
@@ -229,7 +229,7 @@ export default Vue.extend({
 	}
 
 	&:hover {
-		background-color: var(--color-foreground-base) !important;
+		background-color: transparent !important;
 		svg {
 			color: var(--color-text-dark) !important;
 		}
@@ -242,7 +242,7 @@ export default Vue.extend({
 .active {
 	&,
 	& :global(.el-submenu__title) {
-		background-color: var(--color-foreground-base);
+		background-color: transparent;
 		border-radius: var(--border-radius-base);
 		.icon {
 			color: var(--color-text-dark);
