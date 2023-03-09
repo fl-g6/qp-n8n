@@ -237,7 +237,7 @@ export class Start extends BaseCommand {
 		// Load settings from database and set them to config.
 		const databaseSettings = await Db.collections.Settings.findBy({ loadOnStartup: true });
 		databaseSettings.forEach((setting) => {
-			config.set(setting.key, jsonParse(setting.value));
+			config.set(setting.key, jsonParse(setting.value, { fallbackValue: setting.value }));
 		});
 
 		config.set('nodes.packagesMissing', '');
@@ -326,12 +326,12 @@ export class Start extends BaseCommand {
 			);
 		}
 
+		await handleLdapInit();
+
 		await Server.start();
 
 		// Start to get active workflows and run their triggers
 		await this.activeWorkflowRunner.init();
-
-		await handleLdapInit();
 
 		const editorUrl = GenericHelpers.getBaseUrl();
 		this.log(`\nEditor is now accessible via:\n${editorUrl}`);
