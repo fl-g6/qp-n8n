@@ -32,7 +32,11 @@ steps:
   #   secretEnv:
   #     - IAP_API_KEY
 
-timeout: 3600s
+timeout: 600s
+
+options:
+  pool:
+    name: 'projects/gen6-management-347018/locations/us-central1/workerPools/qp-heavy'
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/flm-gen6-docker-repo/video-cloud/automator-base:${SHORT_SHA}'
