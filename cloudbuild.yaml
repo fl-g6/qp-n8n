@@ -32,7 +32,7 @@ steps:
   #   secretEnv:
   #     - IAP_API_KEY
 
-timeout: 600s
+timeout: 1800s
 
 options:
   pool:
