@@ -1113,7 +1113,7 @@ export default mixins(externalHooks, genericHelpers, executionHelpers, restApi, 
 		}
 
 		&:hover td {
-			background: var(--color-primary-tint-3);
+			background: #000000;
 		}
 
 		&.crashed td:first-child::before,
