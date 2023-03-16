@@ -152,6 +152,8 @@
 .el-notification__content {
 	text-align: left;
 	word-break: break-word;
+	max-height: 60vh;
+	overflow-y: auto;
 }
 
 .tags-container {
