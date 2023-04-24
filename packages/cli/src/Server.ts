@@ -156,6 +156,7 @@ import {
 import { getSamlLoginLabel, isSamlLoginEnabled, isSamlLicensed } from './sso/saml/samlHelpers';
 import { SamlController } from './sso/saml/routes/saml.controller.ee';
 import { SamlService } from './sso/saml/saml.service.ee';
+<<<<<<< HEAD
 import { variablesController } from './environments/variables/variables.controller';
 import { LdapManager } from './Ldap/LdapManager.ee';
 import { getVariablesLimit, isVariablesEnabled } from '@/environments/variables/enviromentHelpers';
@@ -163,6 +164,9 @@ import { getCurrentAuthenticationMethod } from './sso/ssoHelpers';
 import { isVersionControlLicensed } from '@/environments/versionControl/versionControlHelper';
 import { VersionControlService } from '@/environments/versionControl/versionControl.service.ee';
 import { VersionControlController } from '@/environments/versionControl/versionControl.controller.ee';
+=======
+import { LdapManager } from './Ldap/LdapManager.ee';
+>>>>>>> master
 
 const exec = promisify(callbackExec);
 
@@ -320,10 +324,15 @@ class Server extends AbstractServer {
 				sharing: false,
 				ldap: false,
 				saml: false,
+<<<<<<< HEAD
 				logStreaming: false,
 				advancedExecutionFilters: false,
 				variables: false,
 				versionControl: false,
+=======
+				logStreaming: config.getEnv('enterprise.features.logStreaming'),
+				advancedExecutionFilters: config.getEnv('enterprise.features.advancedExecutionFilters'),
+>>>>>>> master
 			},
 			hideUsagePage: config.getEnv('hideUsagePage'),
 			license: {
@@ -357,8 +366,11 @@ class Server extends AbstractServer {
 			ldap: isLdapEnabled(),
 			saml: isSamlLicensed(),
 			advancedExecutionFilters: isAdvancedExecutionFiltersEnabled(),
+<<<<<<< HEAD
 			variables: isVariablesEnabled(),
 			versionControl: isVersionControlLicensed(),
+=======
+>>>>>>> master
 		});
 
 		if (isLdapEnabled()) {
@@ -375,10 +387,13 @@ class Server extends AbstractServer {
 			});
 		}
 
+<<<<<<< HEAD
 		if (isVariablesEnabled()) {
 			this.frontendSettings.variables.limit = getVariablesLimit();
 		}
 
+=======
+>>>>>>> master
 		if (config.get('nodes.packagesMissing').length > 0) {
 			this.frontendSettings.missingPackages = true;
 		}
@@ -394,15 +409,22 @@ class Server extends AbstractServer {
 		const internalHooks = Container.get(InternalHooks);
 		const mailer = Container.get(UserManagementMailer);
 		const postHog = this.postHog;
+<<<<<<< HEAD
 		const samlService = Container.get(SamlService);
 		const versionControlService = Container.get(VersionControlService);
 
 		const controllers: object[] = [
 			new EventBusController(),
+=======
+		const samlService = SamlService.getInstance();
+
+		const controllers: object[] = [
+>>>>>>> master
 			new AuthController({ config, internalHooks, repositories, logger, postHog }),
 			new OwnerController({ config, internalHooks, repositories, logger }),
 			new MeController({ externalHooks, internalHooks, repositories, logger }),
 			new NodeTypesController({ config, nodeTypes }),
+<<<<<<< HEAD
 			new PasswordResetController({
 				config,
 				externalHooks,
@@ -411,6 +433,9 @@ class Server extends AbstractServer {
 				repositories,
 				logger,
 			}),
+=======
+			new PasswordResetController({ config, externalHooks, internalHooks, repositories, logger }),
+>>>>>>> master
 			new TagsController({ config, repositories, externalHooks }),
 			new TranslationController(config, this.credentialTypes),
 			new UsersController({
@@ -424,7 +449,10 @@ class Server extends AbstractServer {
 				postHog,
 			}),
 			new SamlController(samlService),
+<<<<<<< HEAD
 			new VersionControlController(versionControlService),
+=======
+>>>>>>> master
 		];
 
 		if (isLdapEnabled()) {
@@ -520,10 +548,13 @@ class Server extends AbstractServer {
 			}),
 		);
 
+<<<<<<< HEAD
 		if (config.getEnv('executions.mode') === 'queue') {
 			await Container.get(Queue).init();
 		}
 
+=======
+>>>>>>> master
 		await handleLdapInit();
 
 		this.registerControllers(ignoredEndpoints);
@@ -548,6 +579,7 @@ class Server extends AbstractServer {
 		// ----------------------------------------
 		// SAML
 		// ----------------------------------------
+<<<<<<< HEAD
 
 		// initialize SamlService if it is licensed, even if not enabled, to
 		// set up the initial environment
@@ -577,6 +609,20 @@ class Server extends AbstractServer {
 
 		// ----------------------------------------
 
+=======
+
+		// initialize SamlService if it is licensed, even if not enabled, to
+		// set up the initial environment
+		if (isSamlLicensed()) {
+			try {
+				await SamlService.getInstance().init();
+			} catch (error) {
+				LoggerProxy.error(`SAML initialization failed: ${error.message}`);
+			}
+		}
+
+		// ----------------------------------------
+>>>>>>> master
 		// Returns parameter values which normally get loaded from an external API or
 		// get generated dynamically
 		this.app.get(

@@ -1,6 +1,10 @@
 {
   "name": "n8n",
+<<<<<<< HEAD
   "version": "0.225.0",
+=======
+  "version": "0.219.1",
+>>>>>>> master
   "description": "n8n Workflow Automation Tool",
   "license": "SEE LICENSE IN LICENSE.md",
   "homepage": "https://n8n.io",

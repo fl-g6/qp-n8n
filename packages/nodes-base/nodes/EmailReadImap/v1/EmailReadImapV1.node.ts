@@ -581,9 +581,13 @@ export class EmailReadImapV1 implements INodeType {
 				conn.on('error', async (error) => {
 					const errorCode = error.code.toUpperCase();
 					if (['ECONNRESET', 'EPIPE'].includes(errorCode as string)) {
+<<<<<<< HEAD
 						this.logger.verbose(`IMAP connection was reset (${errorCode}) - reconnecting.`, {
 							error,
 						});
+=======
+						Logger.verbose(`IMAP connection was reset (${errorCode}) - reconnecting.`, { error });
+>>>>>>> master
 						try {
 							connection = await establishConnection();
 							await connection.openBox(mailbox);
@@ -593,7 +597,11 @@ export class EmailReadImapV1 implements INodeType {
 							// If something goes wrong we want to run emitError
 						}
 					} else {
+<<<<<<< HEAD
 						this.logger.error('Email Read Imap node encountered a connection error', { error });
+=======
+						Logger.error('Email Read Imap node encountered a connection error', { error });
+>>>>>>> master
 						this.emitError(error as Error);
 					}
 				});

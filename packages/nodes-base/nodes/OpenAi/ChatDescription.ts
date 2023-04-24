@@ -35,13 +35,18 @@ const completeOperations: INodeProperties[] = [
 		name: 'model',
 		type: 'options',
 		description:
+<<<<<<< HEAD
 			'The model which will generate the completion. <a href="https://beta.openai.com/docs/models/overview">Learn more</a>.',
+=======
+			'The model to use. Currently, only gpt-3.5-turbo and gpt-3.5-turbo-0301 are supported.',
+>>>>>>> master
 		displayOptions: {
 			show: {
 				operation: ['complete'],
 				resource: ['chat'],
 			},
 		},
+<<<<<<< HEAD
 		typeOptions: {
 			loadOptions: {
 				routing: {
@@ -82,6 +87,18 @@ const completeOperations: INodeProperties[] = [
 				},
 			},
 		},
+=======
+		options: [
+			{
+				name: 'gpt-3.5-turbo',
+				value: 'gpt-3.5-turbo',
+			},
+			{
+				name: 'gpt-3.5-turbo-0301',
+				value: 'gpt-3.5-turbo-0301',
+			},
+		],
+>>>>>>> master
 		routing: {
 			send: {
 				type: 'body',

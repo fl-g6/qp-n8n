@@ -10,8 +10,20 @@ import type { AuthenticatedRequest } from '@/requests';
 import config from '@/config';
 import { AUTH_COOKIE_NAME, EDITOR_UI_DIST_DIR } from '@/constants';
 import { issueCookie, resolveJwtContent } from '@/auth/jwt';
+<<<<<<< HEAD
 import { isUserManagementEnabled } from '@/UserManagement/UserManagementHelper';
 import type { UserRepository } from '@db/repositories';
+=======
+import {
+	isAuthenticatedRequest,
+	isAuthExcluded,
+	isPostUsersId,
+	isUserManagementEnabled,
+} from '@/UserManagement/UserManagementHelper';
+import type { Repository } from 'typeorm';
+import type { User } from '@db/entities/User';
+import { SamlUrls } from '@/sso/saml/constants';
+>>>>>>> master
 
 const jwtFromRequest = (req: Request) => {
 	// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -99,7 +111,15 @@ export const setupAuthMiddlewares = (
 			req.url.startsWith(`/${restEndpoint}/resolve-password-token`) ||
 			req.url.startsWith(`/${restEndpoint}/change-password`) ||
 			req.url.startsWith(`/${restEndpoint}/oauth2-credential/callback`) ||
+<<<<<<< HEAD
 			req.url.startsWith(`/${restEndpoint}/oauth1-credential/callback`)
+=======
+			req.url.startsWith(`/${restEndpoint}/oauth1-credential/callback`) ||
+			req.url.startsWith(`/${restEndpoint}/sso/saml${SamlUrls.metadata}`) ||
+			req.url.startsWith(`/${restEndpoint}/sso/saml${SamlUrls.initSSO}`) ||
+			req.url.startsWith(`/${restEndpoint}/sso/saml${SamlUrls.acs}`) ||
+			isAuthExcluded(req.url, ignoredEndpoints)
+>>>>>>> master
 		) {
 			return next();
 		}

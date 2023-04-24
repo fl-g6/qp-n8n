@@ -1,6 +1,10 @@
 {
   "name": "n8n-core",
+<<<<<<< HEAD
   "version": "0.164.0",
+=======
+  "version": "0.158.0",
+>>>>>>> master
   "description": "Core functionality of n8n",
   "license": "SEE LICENSE IN LICENSE.md",
   "homepage": "https://n8n.io",

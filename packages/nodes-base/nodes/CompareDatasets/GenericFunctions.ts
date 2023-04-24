@@ -5,8 +5,11 @@ import get from 'lodash.get';
 import intersection from 'lodash.intersection';
 import isEmpty from 'lodash.isempty';
 import omit from 'lodash.omit';
+<<<<<<< HEAD
 import unset from 'lodash.unset';
 import { cloneDeep } from 'lodash';
+=======
+>>>>>>> master
 import set from 'lodash.set';
 import union from 'lodash.union';
 import { fuzzyCompare } from '../../utils/utilities';

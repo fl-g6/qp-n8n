@@ -143,6 +143,11 @@ describe('PUT /workflows/:id', () => {
 
 describe('GET /workflows', () => {
 	test('should return workflows without nodes, sharing and credential usage details', async () => {
+<<<<<<< HEAD
+=======
+		const owner = await testDb.createUser({ globalRole: globalOwnerRole });
+		const member = await testDb.createUser({ globalRole: globalMemberRole });
+>>>>>>> master
 		const tag = await testDb.createTag({ name: 'test' });
 
 		const savedCredential = await saveCredential(randomCredentialPayload(), { user: owner });
@@ -181,17 +186,30 @@ describe('GET /workflows', () => {
 			id: owner.id,
 		});
 
+<<<<<<< HEAD
 		expect(fetchedWorkflow.sharedWith).not.toBeDefined();
 		expect(fetchedWorkflow.usedCredentials).not.toBeDefined();
 		expect(fetchedWorkflow.nodes).not.toBeDefined();
+=======
+		expect(fetchedWorkflow.sharedWith).not.toBeDefined()
+		expect(fetchedWorkflow.usedCredentials).not.toBeDefined()
+		expect(fetchedWorkflow.nodes).not.toBeDefined()
+>>>>>>> master
 		expect(fetchedWorkflow.tags).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({
 					id: expect.any(String),
+<<<<<<< HEAD
 					name: expect.any(String),
 				}),
 			]),
 		);
+=======
+					name: expect.any(String)
+				})
+			])
+		)
+>>>>>>> master
 	});
 });
 

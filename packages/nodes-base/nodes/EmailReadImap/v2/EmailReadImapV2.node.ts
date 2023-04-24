@@ -568,7 +568,11 @@ export class EmailReadImapV2 implements INodeType {
 					}
 				},
 				onupdate: async (seqno: number, info) => {
+<<<<<<< HEAD
 					this.logger.verbose(`Email Read Imap:update ${seqno}`, info as IDataObject);
+=======
+					Logger.verbose(`Email Read Imap:update ${seqno}`, info as IDataObject);
+>>>>>>> master
 				},
 			};
 
@@ -626,7 +630,11 @@ export class EmailReadImapV2 implements INodeType {
 					connection = await establishConnection();
 					await connection.openBox(mailbox);
 				} catch (error) {
+<<<<<<< HEAD
 					this.logger.error(error as string);
+=======
+					Logger.error(error as string);
+>>>>>>> master
 				} finally {
 					isCurrentlyReconnecting = false;
 				}

@@ -1,4 +1,5 @@
 import config from '@/config';
+<<<<<<< HEAD
 import * as Db from '@/Db';
 import type { AuthProviderType } from '@db/entities/AuthIdentity';
 
@@ -33,6 +34,16 @@ export function isLdapCurrentAuthenticationMethod(): boolean {
 
 export function isEmailCurrentAuthenticationMethod(): boolean {
 	return getCurrentAuthenticationMethod() === 'email';
+=======
+import type { AuthProviderType } from '@/databases/entities/AuthIdentity';
+
+export function isSamlCurrentAuthenticationMethod(): boolean {
+	return config.getEnv('userManagement.authenticationMethod') === 'saml';
+}
+
+export function isEmailCurrentAuthenticationMethod(): boolean {
+	return config.getEnv('userManagement.authenticationMethod') === 'email';
+>>>>>>> master
 }
 
 export function isSsoJustInTimeProvisioningEnabled(): boolean {
@@ -42,3 +53,10 @@ export function isSsoJustInTimeProvisioningEnabled(): boolean {
 export function doRedirectUsersFromLoginToSsoFlow(): boolean {
 	return config.getEnv('sso.redirectLoginToSso');
 }
+<<<<<<< HEAD
+=======
+
+export function setCurrentAuthenticationMethod(authenticationMethod: AuthProviderType): void {
+	config.set('userManagement.authenticationMethod', authenticationMethod);
+}
+>>>>>>> master

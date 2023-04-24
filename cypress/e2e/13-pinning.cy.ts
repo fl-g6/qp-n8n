@@ -50,7 +50,11 @@ describe('Data pinning', () => {
 			});
 	});
 
+<<<<<<< HEAD
 	it('Should be able to set pinned data', () => {
+=======
+	it('Should be be able to set pinned data', () => {
+>>>>>>> master
 		workflowPage.actions.addInitialNodeToCanvas('Schedule Trigger', { keepNdvOpen: true });
 		ndv.getters.container().should('be.visible');
 		ndv.getters.pinDataButton().should('not.exist');

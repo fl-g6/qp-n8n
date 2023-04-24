@@ -78,7 +78,11 @@ export class Code implements INodeType {
 
 			const context = getSandboxContext.call(this);
 			context.items = context.$input.all();
+<<<<<<< HEAD
 			const sandbox = new Sandbox(context, jsCodeAllItems, workflowMode, this.helpers);
+=======
+			const sandbox = new Sandbox(context, workflowMode, nodeMode, this.helpers);
+>>>>>>> master
 
 			if (workflowMode === 'manual') {
 				sandbox.on('console.log', this.sendMessageToUI);
@@ -112,7 +116,11 @@ export class Code implements INodeType {
 
 			const context = getSandboxContext.call(this, index);
 			context.item = context.$input.item;
+<<<<<<< HEAD
 			const sandbox = new Sandbox(context, jsCodeEachItem, workflowMode, this.helpers);
+=======
+			const sandbox = new Sandbox(context, workflowMode, nodeMode, this.helpers);
+>>>>>>> master
 
 			if (workflowMode === 'manual') {
 				sandbox.on('console.log', this.sendMessageToUI);

@@ -8,6 +8,7 @@ describe('Data transformation expressions', () => {
 		cy.resetAll();
 		cy.skipSetup();
 	});
+<<<<<<< HEAD
 
 	beforeEach(() => {
 		wf.actions.visit();
@@ -18,6 +19,17 @@ describe('Data transformation expressions', () => {
 				win.preventNodeViewBeforeUnload = true;
 			},
 		);
+=======
+
+	beforeEach(() => {
+		wf.actions.visit();
+
+		cy.window()
+			// @ts-ignore
+			.then(
+				(win) => win.onBeforeUnloadNodeView && win.removeEventListener('beforeunload', win.onBeforeUnloadNodeView),
+			);
+>>>>>>> master
 	});
 
 	it('$json + native string methods', () => {

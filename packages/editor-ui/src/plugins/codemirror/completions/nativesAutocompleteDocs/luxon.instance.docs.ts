@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import type { NativeDoc } from 'n8n-workflow/src/Extensions/Extensions';
+=======
+import { NativeDoc } from 'n8n-workflow/src/Extensions/Extensions';
+>>>>>>> master
 
 // Autocomplete documentation definition for DateTime instance props and methods
 // Descriptions are added dynamically so they can be localized

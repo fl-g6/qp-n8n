@@ -1,5 +1,8 @@
 import type {
+<<<<<<< HEAD
 	IDataObject,
+=======
+>>>>>>> master
 	IExecuteFunctions,
 	ILoadOptionsFunctions,
 	INodeExecutionData,

@@ -39,10 +39,15 @@ Cypress.Commands.add('createFixtureWorkflow', (fixtureKey, workflowName) => {
 	workflowPage.getters
 		.workflowImportInput()
 		.selectFile(`cypress/fixtures/${fixtureKey}`, { force: true });
+<<<<<<< HEAD
 
 	cy.waitForLoad(false);
 	workflowPage.actions.setWorkflowName(workflowName);
 
+=======
+	workflowPage.actions.setWorkflowName(workflowName);
+
+>>>>>>> master
 	workflowPage.getters.saveButton().should('contain', 'Saved');
 });
 
@@ -54,6 +59,7 @@ Cypress.Commands.add(
 	},
 );
 
+<<<<<<< HEAD
 Cypress.Commands.add('waitForLoad', (waitForIntercepts = true) => {
 	// These aliases are set-up before each test in cypress/support/e2e.ts
 	// we can't set them up here because at this point it would be too late
@@ -61,6 +67,13 @@ Cypress.Commands.add('waitForLoad', (waitForIntercepts = true) => {
 	if(waitForIntercepts) {
 		cy.wait(['@loadSettings', '@loadLogin'])
 	}
+=======
+Cypress.Commands.add('waitForLoad', () => {
+	// These aliases are set-up before each test in cypress/support/e2e.ts
+	// we can't set them up here because at this point it would be too late
+	// and the requests would already have been made
+	cy.wait(['@loadSettings', '@loadLogin'])
+>>>>>>> master
 	cy.getByTestId('node-view-loader', { timeout: 20000 }).should('not.exist');
 	cy.get('.el-loading-mask', { timeout: 20000 }).should('not.exist');
 });

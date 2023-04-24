@@ -113,12 +113,15 @@ import { extractValue } from './ExtractValue';
 import { getClientCredentialsToken } from './OAuth2Helper';
 import { PLACEHOLDER_EMPTY_EXECUTION_ID } from './Constants';
 import { binaryToBuffer } from './BinaryDataManager/utils';
+<<<<<<< HEAD
 import {
 	getAllWorkflowExecutionMetadata,
 	getWorkflowExecutionMetadata,
 	setAllWorkflowExecutionMetadata,
 	setWorkflowExecutionMetadata,
 } from './WorkflowExecutionMetadata';
+=======
+>>>>>>> master
 
 axios.defaults.timeout = 300000;
 // Prevent axios from adding x-form-www-urlencoded headers by default
@@ -682,6 +685,7 @@ export async function proxyRequestToAxios(
 		// Axios hydrates the original error with more data. We extract them.
 		// https://github.com/axios/axios/blob/master/lib/core/enhanceError.js
 		// Note: `code` is ignored as it's an expected part of the errorData.
+<<<<<<< HEAD
 		if (error.isAxiosError) {
 			if (response) {
 				Logger.debug('Request proxied to Axios failed', { status: response.status });
@@ -720,6 +724,16 @@ export async function proxyRequestToAxios(
 				throw Object.assign(error, {
 					options: pick(config ?? {}, ['url', 'method', 'data', 'headers']),
 				});
+=======
+		if (response) {
+			Logger.debug('Request proxied to Axios failed', { status: response.status });
+			let responseData = response.data;
+
+			if (Buffer.isBuffer(responseData) || responseData instanceof Readable) {
+				responseData = await binaryToBuffer(responseData).then((buffer) =>
+					buffer.toString('utf-8'),
+				);
+>>>>>>> master
 			}
 		}
 

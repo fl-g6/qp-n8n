@@ -118,8 +118,52 @@ export default mergeConfig(
 			...(NODE_ENV === 'development' ? { process: { env: {} } } : {}),
 			BASE_PATH: `'${publicPath}'`,
 		},
+<<<<<<< HEAD
 		plugins,
 		resolve: { alias },
+=======
+		plugins: [
+			vue(),
+			legacy({
+				targets: ['defaults', 'not IE 11'],
+			}),
+			monacoEditorPlugin({
+				publicPath: 'assets/monaco-editor',
+				customDistPath: (root: string, buildOutDir: string, base: string) =>
+					`${root}/${buildOutDir}/assets/monaco-editor`,
+			}),
+		],
+		resolve: {
+			alias: [
+				{ find: '@', replacement: resolve(__dirname, 'src') },
+				{ find: 'stream', replacement: 'stream-browserify' },
+				{
+					find: /^n8n-design-system\//,
+					replacement: resolve(__dirname, '..', 'design-system', 'src') + '/',
+				},
+				...['orderBy', 'camelCase', 'cloneDeep', 'isEqual', 'startCase'].map((name) => ({
+					find: new RegExp(`^lodash.${name}$`, 'i'),
+					replacement: require.resolve(`lodash-es/${name}`),
+				})),
+				{
+					find: /^lodash\.(.+)$/,
+					replacement: 'lodash-es/$1',
+				},
+				{
+					find: 'vue2-boring-avatars',
+					replacement: require.resolve('vue2-boring-avatars'),
+				},
+				{
+					find: /element-ui\/(packages|lib)\/button$/,
+					replacement: path.resolve(
+						__dirname,
+						'..',
+						'design-system/src/components/N8nButton/overrides/ElButton.ts',
+					),
+				},
+			],
+		},
+>>>>>>> master
 		base: publicPath,
 		envPrefix: 'VUE_APP',
 		css: {

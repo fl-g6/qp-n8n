@@ -44,11 +44,18 @@ import { useUsersStore } from './stores/users';
 import { useRootStore } from './stores/n8nRootStore';
 import { useTemplatesStore } from './stores/templates';
 import { useNodeTypesStore } from './stores/nodeTypes';
+<<<<<<< HEAD
 import { useHistoryHelper } from '@/composables/useHistoryHelper';
 import { newVersions } from '@/mixins/newVersions';
 import { useRoute } from 'vue-router/composables';
 
 export default mixins(newVersions, showMessage, userHelpers).extend({
+=======
+import { historyHelper } from '@/mixins/history';
+import { newVersions } from '@/mixins/newVersions';
+
+export default mixins(newVersions, showMessage, userHelpers, restApi, historyHelper).extend({
+>>>>>>> master
 	name: 'App',
 	components: {
 		LoadingView,

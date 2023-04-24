@@ -73,7 +73,11 @@
 import type { PropType } from 'vue';
 import mixins from 'vue-typed-mixins';
 import VueJsonPretty from 'vue-json-pretty';
+<<<<<<< HEAD
 import type { IDataObject, INodeExecutionData } from 'n8n-workflow';
+=======
+import { IDataObject, INodeExecutionData } from 'n8n-workflow';
+>>>>>>> master
 import Draggable from '@/components/Draggable.vue';
 import { executionDataToJson, isString, shorten } from '@/utils';
 import type { INodeUi } from '@/Interface';

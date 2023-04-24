@@ -95,6 +95,7 @@ describe('Webhook Trigger node', async () => {
 		cy.resetAll();
 		cy.skipSetup();
 	});
+<<<<<<< HEAD
 
 	beforeEach(() => {
 		workflowPage.actions.visit();
@@ -105,6 +106,17 @@ describe('Webhook Trigger node', async () => {
 				win.preventNodeViewBeforeUnload = true;
 			},
 		);
+=======
+
+	beforeEach(() => {
+		workflowPage.actions.visit();
+
+		cy.window()
+			// @ts-ignore
+			.then(
+				(win) => win.onBeforeUnloadNodeView && win.removeEventListener('beforeunload', win.onBeforeUnloadNodeView),
+			);
+>>>>>>> master
 	});
 
 	it('should listen for a GET request', () => {

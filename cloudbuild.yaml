@@ -1,0 +1,49 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/flm-gen6-docker-repo/video-cloud/automator-base:${SHORT_SHA}',
+        '-f',
+        'docker/images/n8n-custom/Dockerfile',
+        '.',
+      ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/flm-gen6-docker-repo/video-cloud/automator-base:${SHORT_SHA}',
+      ]
+
+  #plugin creation via deployer API
+  # - name: >-
+  #     us-central1-docker.pkg.dev/gen6-management-347018/flm-gen6-docker-repo/deployer/utils
+  #   args:
+  #     - deployer_util
+  #     - "--tenant-id=${_TENANT_ID}"
+  #     - "--client-id=${_CLIENT_ID}"
+  #     - "--service-account-email=${_SA_EMAIL}"
+  #     - "--plugin-conf-path=./deploy/plugin-config.json"
+  #     - "--api-domain=${_API_DOMAIN}"
+  #     - "--version=${SHORT_SHA}"
+  #     - create_plugin
+  #   secretEnv:
+  #     - IAP_API_KEY
+
+timeout: 1800s
+
+options:
+  pool:
+    name: 'projects/gen6-management-347018/locations/us-central1/workerPools/qp-heavy'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/flm-gen6-docker-repo/video-cloud/automator-base:${SHORT_SHA}'
+# options:
+#   logging: CLOUD_LOGGING_ONLY
+
+# availableSecrets:
+#   secretManager:
+#     - versionName: "projects/${PROJECT_ID}/secrets/iap-api-key/versions/latest"
+#       env: IAP_API_KEY

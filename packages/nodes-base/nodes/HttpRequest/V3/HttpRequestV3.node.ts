@@ -10,7 +10,10 @@ import type {
 	INodeTypeDescription,
 	JsonObject,
 } from 'n8n-workflow';
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 import { BINARY_ENCODING, jsonParse, NodeApiError, NodeOperationError, sleep } from 'n8n-workflow';
 
 import type { OptionsWithUri } from 'request-promise-native';
@@ -1160,12 +1163,16 @@ export class HttpRequestV3 implements INodeType {
 			// Get parameters defined in the UI
 			if (sendBody && bodyParameters) {
 				if (specifyBody === 'keypair' || bodyContentType === 'multipart-form-data') {
+<<<<<<< HEAD
 					requestOptions.body = prepareRequestBody(
 						bodyParameters,
 						bodyContentType,
 						nodeVersion,
 						parametersToKeyValue,
 					);
+=======
+					requestOptions.body = bodyParameters.reduce(parametersToKeyValue, {});
+>>>>>>> master
 				} else if (specifyBody === 'json') {
 					// body is specified using JSON
 					if (typeof jsonBodyParameter !== 'object' && jsonBodyParameter !== null) {
@@ -1381,7 +1388,11 @@ export class HttpRequestV3 implements INodeType {
 					if (autoDetectResponseFormat && response.reason.error instanceof Buffer) {
 						response.reason.error = Buffer.from(response.reason.error as Buffer).toString();
 					}
+<<<<<<< HEAD
 					throw new NodeApiError(this.getNode(), response as JsonObject, { itemIndex });
+=======
+					throw new NodeApiError(this.getNode(), response as JsonObject);
+>>>>>>> master
 				} else {
 					// Return the actual reason as error
 					returnItems.push({

@@ -57,8 +57,11 @@ export class SamlPreferences {
 			action: 'after',
 		},
 	};
+<<<<<<< HEAD
 
 	@IsString()
 	@IsOptional()
 	relayState?: string = '';
+=======
+>>>>>>> master
 }

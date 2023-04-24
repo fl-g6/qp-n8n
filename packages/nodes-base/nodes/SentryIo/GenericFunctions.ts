@@ -122,8 +122,12 @@ export async function sentryApiRequestAllItems(
 		link = responseData.headers.link;
 		uri = getNext(link as string);
 		returnData.push.apply(returnData, responseData.body as IDataObject[]);
+<<<<<<< HEAD
 		const limit = query.limit as number | undefined;
 		if (limit && limit >= returnData.length) {
+=======
+		if (query.limit && query.limit >= returnData.length) {
+>>>>>>> master
 			return;
 		}
 	} while (hasMore(link as string));

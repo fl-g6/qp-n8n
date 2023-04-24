@@ -9,7 +9,10 @@ import type {
 	IExecuteFunctions,
 	IExecuteSingleFunctions,
 	ILoadOptionsFunctions,
+<<<<<<< HEAD
 	INode,
+=======
+>>>>>>> master
 	INodeExecutionData,
 	IPollFunctions,
 	JsonObject,

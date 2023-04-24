@@ -22,6 +22,10 @@ module.exports = {
 		'@typescript-eslint/naming-convention': ['error', { selector: 'memberLike', format: null }],
 		'@typescript-eslint/no-explicit-any': 'off', //812 warnings, better to fix in separate PR
 		'@typescript-eslint/no-non-null-assertion': 'off', //665 errors, better to fix in separate PR
+<<<<<<< HEAD
+=======
+		// '@typescript-eslint/no-unsafe-argument': 'off', //1538 errors, better to fix in separate PR
+>>>>>>> master
 		'@typescript-eslint/no-unsafe-assignment': 'off', //7084 problems, better to fix in separate PR
 		'@typescript-eslint/no-unsafe-call': 'off', //541 errors, better to fix in separate PR
 		'@typescript-eslint/no-unsafe-member-access': 'off', //4591 errors, better to fix in separate PR

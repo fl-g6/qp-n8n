@@ -137,6 +137,7 @@ export class LinkedIn implements INodeType {
 							const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i);
 							this.helpers.assertBinaryData(i, binaryPropertyName);
 
+<<<<<<< HEAD
 							const buffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
 							const { uploadUrl, image } = registerObject.value;
 							await linkedInApiRequest.call(this, 'POST', uploadUrl as string, buffer, true);
@@ -147,6 +148,37 @@ export class LinkedIn implements INodeType {
 										title,
 										id: image,
 										description,
+=======
+							const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i);
+							this.helpers.assertBinaryData(i, binaryPropertyName);
+
+							// Buffer binary data
+							const buffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
+							// Upload image
+							await linkedInApiRequest.call(this, 'POST', uploadUrl, buffer, true);
+
+							body = {
+								author: authorUrn,
+								lifecycleState: 'PUBLISHED',
+								specificContent: {
+									'com.linkedin.ugc.ShareContent': {
+										shareCommentary: {
+											text,
+										},
+										shareMediaCategory: 'IMAGE',
+										media: [
+											{
+												status: 'READY',
+												description: {
+													text: description,
+												},
+												media: asset,
+												title: {
+													text: title,
+												},
+											},
+										],
+>>>>>>> master
 									},
 								},
 								commentary: text,

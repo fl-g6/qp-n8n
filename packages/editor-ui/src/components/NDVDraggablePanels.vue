@@ -37,8 +37,12 @@
 </template>
 
 <script lang="ts">
+<<<<<<< HEAD
 import type { PropType } from 'vue';
 import Vue from 'vue';
+=======
+import Vue, { PropType } from 'vue';
+>>>>>>> master
 import { get } from 'lodash-es';
 
 import type { INodeTypeDescription } from 'n8n-workflow';

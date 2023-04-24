@@ -4,6 +4,11 @@ export const LDAP_FEATURE_NAME = 'features.ldap';
 
 export const LDAP_LOGIN_LABEL = 'sso.ldap.loginLabel';
 
+<<<<<<< HEAD
+=======
+export const LDAP_LOGIN_LABEL = 'sso.ldap.loginLabel';
+
+>>>>>>> master
 export const LDAP_LOGIN_ENABLED = 'sso.ldap.loginEnabled';
 
 export const BINARY_AD_ATTRIBUTES = ['objectGUID', 'objectSid'];

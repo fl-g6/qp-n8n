@@ -249,7 +249,53 @@ export class LoadNodesAndCredentials implements INodesAndCredentials {
 		packageName: string,
 		installedPackage: InstalledPackages,
 	): Promise<InstalledPackages> {
+<<<<<<< HEAD
 		return this.installOrUpdateNpmModule(packageName, { installedPackage });
+=======
+		const downloadFolder = UserSettings.getUserN8nFolderDownloadedNodesPath();
+
+		const command = `npm i ${packageName}@latest`;
+
+		try {
+			await executeCommand(command);
+		} catch (error) {
+			if (error instanceof Error && error.message === RESPONSE_ERROR_MESSAGES.PACKAGE_NOT_FOUND) {
+				throw new Error(`The npm package "${packageName}" could not be found.`);
+			}
+			throw error;
+		}
+
+		const finalNodeUnpackedPath = path.join(downloadFolder, 'node_modules', packageName);
+
+		const loader = await this.runDirectoryLoader(PackageDirectoryLoader, finalNodeUnpackedPath);
+
+		if (loader.loadedNodes.length > 0) {
+			// Save info to DB
+			try {
+				const { persistInstalledPackageData, removePackageFromDatabase } = await import(
+					'@/CommunityNodes/packageModel'
+				);
+				await removePackageFromDatabase(installedPackage);
+				const newlyInstalledPackage = await persistInstalledPackageData(loader);
+				await this.postProcessLoaders();
+				await this.generateTypesForFrontend();
+				return newlyInstalledPackage;
+			} catch (error) {
+				LoggerProxy.error('Failed to save installed packages and nodes', {
+					error: error as Error,
+					packageName,
+				});
+				throw error;
+			}
+		} else {
+			// Remove this package since it contains no loadable nodes
+			const removeCommand = `npm remove ${packageName}`;
+			try {
+				await executeCommand(removeCommand);
+			} catch {}
+			throw new Error(RESPONSE_ERROR_MESSAGES.PACKAGE_DOES_NOT_CONTAIN_NODES);
+		}
+>>>>>>> master
 	}
 
 	/**
@@ -362,4 +408,30 @@ export class LoadNodesAndCredentials implements INodesAndCredentials {
 			}
 		}
 	}
+<<<<<<< HEAD
+=======
+
+	private async getNodeModulesPath(): Promise<string> {
+		// Get the path to the node-modules folder to be later able
+		// to load the credentials and nodes
+		const checkPaths = [
+			// In case "n8n" package is in same node_modules folder.
+			path.join(CLI_DIR, '..', 'n8n-workflow'),
+			// In case "n8n" package is the root and the packages are
+			// in the "node_modules" folder underneath it.
+			path.join(CLI_DIR, 'node_modules', 'n8n-workflow'),
+			// In case "n8n" package is installed using npm/yarn workspaces
+			// the node_modules folder is in the root of the workspace.
+			path.join(CLI_DIR, '..', '..', 'node_modules', 'n8n-workflow'),
+		];
+		for (const checkPath of checkPaths) {
+			try {
+				await fsAccess(checkPath);
+				// Folder exists, so use it.
+				return path.dirname(checkPath);
+			} catch {} // Folder does not exist so get next one
+		}
+		throw new Error('Could not find "node_modules" folder!');
+	}
+>>>>>>> master
 }

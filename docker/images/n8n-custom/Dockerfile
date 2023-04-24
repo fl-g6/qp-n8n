@@ -3,10 +3,17 @@ ARG NODE_VERSION=16
 # 1. Create an image to build n8n
 FROM n8nio/base:${NODE_VERSION} as builder
 
+<<<<<<< HEAD
 COPY --chown=node:node turbo.json package.json .npmrc pnpm-lock.yaml pnpm-workspace.yaml jest.config.js tsconfig.json ./
 COPY --chown=node:node scripts ./scripts
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node patches ./patches
+=======
+COPY turbo.json package.json .npmrc pnpm-lock.yaml pnpm-workspace.yaml jest.config.js tsconfig.json ./
+COPY scripts ./scripts
+COPY packages ./packages
+COPY patches ./patches
+>>>>>>> master
 
 RUN apk add --update libc6-compat jq
 RUN corepack enable && corepack prepare --activate

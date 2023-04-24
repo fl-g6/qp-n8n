@@ -158,7 +158,7 @@ export default mixins(executionHelpers, showMessage).extend({
 	&:hover,
 	&.active {
 		.executionLink {
-			background-color: var(--color-foreground-light);
+			background-color: #000000;
 		}
 	}
 

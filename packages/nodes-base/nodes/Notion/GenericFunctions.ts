@@ -106,8 +106,12 @@ export async function notionApiRequestAllItems(
 			body.start_cursor = next_cursor;
 		}
 		returnData.push.apply(returnData, responseData[propertyName] as IDataObject[]);
+<<<<<<< HEAD
 		const limit = query.limit as number | undefined;
 		if (limit && limit <= returnData.length) {
+=======
+		if (query.limit && query.limit <= returnData.length) {
+>>>>>>> master
 			return returnData;
 		}
 	} while (responseData.has_more !== false);

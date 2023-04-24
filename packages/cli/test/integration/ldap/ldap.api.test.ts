@@ -59,8 +59,11 @@ beforeAll(async () => {
 	);
 
 	utils.initConfigFile();
+<<<<<<< HEAD
 
 	await setCurrentAuthenticationMethod('email');
+=======
+>>>>>>> master
 });
 
 beforeEach(async () => {

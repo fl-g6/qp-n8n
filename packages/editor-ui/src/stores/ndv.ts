@@ -1,4 +1,5 @@
 import { LOCAL_STORAGE_MAPPING_IS_ONBOARDED, STORES } from '@/constants';
+<<<<<<< HEAD
 import type {
 	INodeUi,
 	IRunDataDisplayMode,
@@ -7,6 +8,10 @@ import type {
 	XYPosition,
 } from '@/Interface';
 import type { IRunData } from 'n8n-workflow';
+=======
+import { INodeUi, IRunDataDisplayMode, NDVState, NodePanelType, XYPosition } from '@/Interface';
+import { IRunData } from 'n8n-workflow';
+>>>>>>> master
 import { defineStore } from 'pinia';
 import Vue from 'vue';
 import { useWorkflowsStore } from './workflows';

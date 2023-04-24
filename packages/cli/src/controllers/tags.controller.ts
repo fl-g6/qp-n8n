@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+<<<<<<< HEAD
 import type { Config } from '@/config';
 import { Authorized, Delete, Get, Middleware, Patch, Post, RestController } from '@/decorators';
 import type { IDatabaseCollections, IExternalHooksClass, ITagWithCountDb } from '@/Interfaces';
@@ -9,13 +10,29 @@ import { BadRequestError } from '@/ResponseHelper';
 import { TagsRequest } from '@/requests';
 
 @Authorized()
+=======
+import type { Repository } from 'typeorm';
+import type { Config } from '@/config';
+import { Delete, Get, Middleware, Patch, Post, RestController } from '@/decorators';
+import type { IDatabaseCollections, IExternalHooksClass, ITagWithCountDb } from '@/Interfaces';
+import { TagEntity } from '@db/entities/TagEntity';
+import { getTagsWithCountDb } from '@/TagHelpers';
+import { validateEntity } from '@/GenericHelpers';
+import { BadRequestError, UnauthorizedError } from '@/ResponseHelper';
+import { TagsRequest } from '@/requests';
+
+>>>>>>> master
 @RestController('/tags')
 export class TagsController {
 	private config: Config;
 
 	private externalHooks: IExternalHooksClass;
 
+<<<<<<< HEAD
 	private tagsRepository: TagRepository;
+=======
+	private tagsRepository: Repository<TagEntity>;
+>>>>>>> master
 
 	constructor({
 		config,
@@ -44,6 +61,7 @@ export class TagsController {
 	async getAll(req: TagsRequest.GetAll): Promise<TagEntity[] | ITagWithCountDb[]> {
 		const { withUsageCount } = req.query;
 		if (withUsageCount === 'true') {
+<<<<<<< HEAD
 			return this.tagsRepository
 				.find({
 					select: ['id', 'name', 'createdAt', 'updatedAt'],
@@ -55,6 +73,10 @@ export class TagsController {
 						usageCount: workflowMappings.length,
 					})),
 				);
+=======
+			const tablePrefix = this.config.getEnv('database.tablePrefix');
+			return getTagsWithCountDb(tablePrefix);
+>>>>>>> master
 		}
 
 		return this.tagsRepository.find({ select: ['id', 'name', 'createdAt', 'updatedAt'] });
@@ -92,9 +114,21 @@ export class TagsController {
 		return tag;
 	}
 
+<<<<<<< HEAD
 	@Authorized(['global', 'owner'])
 	@Delete('/:id(\\d+)')
 	async deleteTag(req: TagsRequest.Delete) {
+=======
+	@Delete('/:id(\\d+)')
+	async deleteTag(req: TagsRequest.Delete) {
+		const isInstanceOwnerSetUp = this.config.getEnv('userManagement.isInstanceOwnerSetUp');
+		if (isInstanceOwnerSetUp && req.user.globalRole.name !== 'owner') {
+			throw new UnauthorizedError(
+				'You are not allowed to perform this action',
+				'Only owners can remove tags',
+			);
+		}
+>>>>>>> master
 		const { id } = req.params;
 		await this.externalHooks.run('tag.beforeDelete', [id]);
 

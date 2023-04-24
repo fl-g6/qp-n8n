@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 import { useUsersStore } from '@/stores/users';
 import { useRootStore } from '@/stores/n8nRootStore';
 import { useSettingsStore } from '@/stores/settings';
+<<<<<<< HEAD
 import type { FeatureFlags } from 'n8n-workflow';
 import {
 	EXPERIMENTS_TO_TRACK,
@@ -11,6 +12,12 @@ import {
 	TEMPLATE_EXPERIMENT,
 } from '@/constants';
 import { useTelemetryStore } from './telemetry';
+=======
+import { FeatureFlags } from 'n8n-workflow';
+import { EXPERIMENTS_TO_TRACK, ONBOARDING_EXPERIMENT } from '@/constants';
+import { useTelemetryStore } from './telemetry';
+import { useSegment } from './segment';
+>>>>>>> master
 import { debounce } from 'lodash-es';
 
 const EVENTS = {
@@ -22,6 +29,7 @@ export const usePostHog = defineStore('posthog', () => {
 	const settingsStore = useSettingsStore();
 	const telemetryStore = useTelemetryStore();
 	const rootStore = useRootStore();
+	const segmentStore = useSegment();
 
 	const featureFlags: Ref<FeatureFlags | null> = ref(null);
 	const trackedDemoExp: Ref<FeatureFlags> = ref({});
@@ -127,24 +135,33 @@ export const usePostHog = defineStore('posthog', () => {
 				distinctId,
 				featureFlags: evaluatedFeatureFlags,
 			};
+<<<<<<< HEAD
 
 			// does not need to be debounced really, but tracking does not fire without delay on page load
 			addExperimentOverrides();
 			trackExperimentsDebounced(featureFlags.value);
 			evaluateExperiments(featureFlags.value);
+=======
+			trackExperiments(evaluatedFeatureFlags);
+>>>>>>> master
 		} else {
 			// depend on client side evaluation if serverside evaluation fails
 			window.posthog?.onFeatureFlags?.((keys: string[], map: FeatureFlags) => {
 				featureFlags.value = map;
+<<<<<<< HEAD
 				addExperimentOverrides();
 
 				// must be debounced because it is called multiple times by posthog
 				trackExperimentsDebounced(featureFlags.value);
 				evaluateExperimentsDebounced(featureFlags.value);
+=======
+				trackExperiments(map);
+>>>>>>> master
 			});
 		}
 	};
 
+<<<<<<< HEAD
 	const evaluateExperiments = (featureFlags: FeatureFlags) => {
 		Object.keys(featureFlags).forEach((name) => {
 			const variant = featureFlags[name];
@@ -166,14 +183,31 @@ export const usePostHog = defineStore('posthog', () => {
 			return;
 		}
 
+=======
+	const trackExperiments = debounce((featureFlags: FeatureFlags) => {
+		EXPERIMENTS_TO_TRACK.forEach((name) => trackExperiment(featureFlags, name));
+	}, 2000);
+
+	const trackExperiment = (featureFlags: FeatureFlags, name: string) => {
+		const variant = featureFlags[name];
+>>>>>>> master
 		telemetryStore.track(EVENTS.IS_PART_OF_EXPERIMENT, {
 			name,
 			variant,
 		});
 
 		trackedDemoExp.value[name] = variant;
+<<<<<<< HEAD
 	};
 
+=======
+
+		if (name === ONBOARDING_EXPERIMENT.name && variant === ONBOARDING_EXPERIMENT.variant) {
+			segmentStore.showAppCuesChecklist();
+		}
+	};
+
+>>>>>>> master
 	return {
 		init,
 		isVariantEnabled,

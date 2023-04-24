@@ -124,6 +124,7 @@ export class License {
 		return this.isFeatureEnabled(LICENSE_FEATURES.ADVANCED_EXECUTION_FILTERS);
 	}
 
+<<<<<<< HEAD
 	isVariablesEnabled() {
 		return this.isFeatureEnabled(LICENSE_FEATURES.VARIABLES);
 	}
@@ -132,6 +133,8 @@ export class License {
 		return this.isFeatureEnabled(LICENSE_FEATURES.VERSION_CONTROL);
 	}
 
+=======
+>>>>>>> master
 	getCurrentEntitlements() {
 		return this.manager?.getCurrentEntitlements() ?? [];
 	}

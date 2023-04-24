@@ -467,6 +467,91 @@ export interface IVersionNotificationSettings {
 	infoUrl: string;
 }
 
+<<<<<<< HEAD
+=======
+export interface IN8nUISettings {
+	endpointWebhook: string;
+	endpointWebhookTest: string;
+	saveDataErrorExecution: 'all' | 'none';
+	saveDataSuccessExecution: 'all' | 'none';
+	saveManualExecutions: boolean;
+	executionTimeout: number;
+	maxExecutionTimeout: number;
+	workflowCallerPolicyDefaultOption:
+		| 'any'
+		| 'none'
+		| 'workflowsFromAList'
+		| 'workflowsFromSameOwner';
+	oauthCallbackUrls: {
+		oauth1: string;
+		oauth2: string;
+	};
+	timezone: string;
+	urlBaseWebhook: string;
+	urlBaseEditor: string;
+	versionCli: string;
+	n8nMetadata?: {
+		[key: string]: string | number | undefined;
+	};
+	versionNotifications: IVersionNotificationSettings;
+	instanceId: string;
+	telemetry: ITelemetrySettings;
+	posthog: {
+		enabled: boolean;
+		apiHost: string;
+		apiKey: string;
+		autocapture: boolean;
+		disableSessionRecording: boolean;
+		debug: boolean;
+	};
+	personalizationSurveyEnabled: boolean;
+	defaultLocale: string;
+	userManagement: IUserManagementSettings;
+	sso: {
+		saml: {
+			loginLabel: string;
+			loginEnabled: boolean;
+		};
+		ldap: {
+			loginLabel: string;
+			loginEnabled: boolean;
+		};
+	};
+	publicApi: IPublicApiSettings;
+	workflowTagsDisabled: boolean;
+	logLevel: 'info' | 'debug' | 'warn' | 'error' | 'verbose' | 'silent';
+	hiringBannerEnabled: boolean;
+	templates: {
+		enabled: boolean;
+		host: string;
+	};
+	onboardingCallPromptEnabled: boolean;
+	missingPackages?: boolean;
+	executionMode: 'regular' | 'queue';
+	pushBackend: 'sse' | 'websocket';
+	communityNodesEnabled: boolean;
+	deployment: {
+		type: string;
+	};
+	isNpmAvailable: boolean;
+	allowedModules: {
+		builtIn?: string;
+		external?: string;
+	};
+	enterprise: {
+		sharing: boolean;
+		ldap: boolean;
+		saml: boolean;
+		logStreaming: boolean;
+		advancedExecutionFilters: boolean;
+	};
+	hideUsagePage: boolean;
+	license: {
+		environment: 'production' | 'staging';
+	};
+}
+
+>>>>>>> master
 export interface IPersonalizationSurveyAnswers {
 	email: string | null;
 	codingSkill: string | null;

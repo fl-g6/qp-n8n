@@ -10,8 +10,11 @@ export function setupServer() {
 		seeds(server) {
 			server.createList('credentialType', 8);
 			server.create('user', {
+<<<<<<< HEAD
 				firstName: 'Nathan',
 				lastName: 'Doe',
+=======
+>>>>>>> master
 				isDefaultUser: true,
 			});
 		},

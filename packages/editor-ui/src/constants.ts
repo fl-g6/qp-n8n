@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import type { NodeCreatorOpenSource } from './Interface';
+=======
+import { NodeCreatorOpenSource } from './Interface';
+>>>>>>> master
 
 export const MAX_WORKFLOW_SIZE = 16777216; // Workflow size limit in bytes
 export const MAX_WORKFLOW_PINNED_DATA_SIZE = 12582912; // Workflow pinned data size limit in bytes

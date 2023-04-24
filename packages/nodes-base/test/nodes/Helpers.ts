@@ -1,5 +1,9 @@
 import { readFileSync, readdirSync, mkdtempSync } from 'fs';
+<<<<<<< HEAD
 import { BinaryDataManager, Credentials, constructExecutionMetaData } from 'n8n-core';
+=======
+import { BinaryDataManager, Credentials } from 'n8n-core';
+>>>>>>> master
 import {
 	ICredentialDataDecryptedObject,
 	ICredentialsHelper,

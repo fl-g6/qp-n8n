@@ -1,5 +1,9 @@
 import { debounce } from 'lodash-es';
+<<<<<<< HEAD
 import { defineComponent } from 'vue';
+=======
+import Vue from 'vue';
+>>>>>>> master
 
 export const debounceHelper = defineComponent({
 	data() {

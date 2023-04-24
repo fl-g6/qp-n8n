@@ -1,5 +1,19 @@
+<<<<<<< HEAD
 import type { INodeTypeBaseDescription, IVersionedNodeType } from 'n8n-workflow';
 import { VersionedNodeType } from 'n8n-workflow';
+=======
+import type {
+	IExecuteFunctions,
+	ICredentialsDecrypted,
+	ICredentialTestFunctions,
+	IDataObject,
+	INodeCredentialTestResult,
+	INodeExecutionData,
+	INodeType,
+	INodeTypeDescription,
+} from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
+>>>>>>> master
 
 import { PostgresV1 } from './v1/PostgresV1.node';
 import { PostgresV2 } from './v2/PostgresV2.node';

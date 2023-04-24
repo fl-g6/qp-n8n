@@ -48,6 +48,21 @@
 						{{ $locale.baseText('workflows.empty.startFromScratch') }}
 					</n8n-text>
 				</n8n-card>
+<<<<<<< HEAD
+=======
+				<n8n-card
+					v-if="isDemoTest"
+					:class="$style.emptyStateCard"
+					hoverable
+					@click="goToTemplates"
+					data-test-id="new-workflow-template-card"
+				>
+					<n8n-icon :class="$style.emptyStateCardIcon" icon="graduation-cap" />
+					<n8n-text size="large" class="mt-xs" color="text-base">
+						{{ $locale.baseText('workflows.empty.viewDemo') }}
+					</n8n-text>
+				</n8n-card>
+>>>>>>> master
 			</div>
 		</template>
 		<template #filters="{ setKeyValue }">
@@ -161,6 +176,12 @@ const WorkflowsView = mixins(showMessage, debounceHelper).extend({
 		hasActiveWorkflows(): boolean {
 			return !!this.workflowsStore.activeWorkflows.length;
 		},
+<<<<<<< HEAD
+=======
+		isDemoTest(): boolean {
+			return usePostHog().isVariantEnabled(ASSUMPTION_EXPERIMENT.name, ASSUMPTION_EXPERIMENT.demo);
+		},
+>>>>>>> master
 		statusFilterOptions(): Array<{ label: string; value: string | boolean }> {
 			return [
 				{

@@ -80,8 +80,12 @@ export async function zendeskApiRequestAllItems(
 		responseData = await zendeskApiRequest.call(this, method, resource, body, query, uri);
 		uri = responseData.next_page;
 		returnData.push.apply(returnData, responseData[propertyName] as IDataObject[]);
+<<<<<<< HEAD
 		const limit = query.limit as number | undefined;
 		if (limit && limit <= returnData.length) {
+=======
+		if (query.limit && query.limit <= returnData.length) {
+>>>>>>> master
 			return returnData;
 		}
 	} while (responseData.next_page !== undefined && responseData.next_page !== null);

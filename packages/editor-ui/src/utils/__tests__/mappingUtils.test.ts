@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import type { INodeProperties } from 'n8n-workflow';
 import { getMappedResult, getMappedExpression } from '../mappingUtils';
+=======
+import { INodeProperties } from 'n8n-workflow';
+import { getMappedResult } from '../mappingUtils';
+>>>>>>> master
 
 const RLC_PARAM: INodeProperties = {
 	displayName: 'Base',
@@ -199,6 +204,7 @@ describe('Mapping Utils', () => {
 			expect(getMappedResult(RLC_PARAM, '{{ test }}', '=test')).toEqual('=test {{ test }}');
 		});
 	});
+<<<<<<< HEAD
 	describe('getMappedExpression', () => {
 		it('should generate a mapped expression with simple array path', () => {
 			const input = {
@@ -277,4 +283,6 @@ describe('Mapping Utils', () => {
 			);
 		});
 	});
+=======
+>>>>>>> master
 });

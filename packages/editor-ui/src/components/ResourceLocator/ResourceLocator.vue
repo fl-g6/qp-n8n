@@ -449,7 +449,11 @@ export default mixins(debounceHelper, workflowHelpers, nodeHelpers).extend({
 	},
 	methods: {
 		setWidth() {
+<<<<<<< HEAD
 			const containerRef = this.$refs.container as HTMLElement | undefined;
+=======
+			const containerRef = this.$refs.container as HTMLElement;
+>>>>>>> master
 			if (containerRef) {
 				this.width = containerRef?.offsetWidth;
 			}

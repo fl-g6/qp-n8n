@@ -55,11 +55,18 @@ export async function sendGridApiRequestAllItems(
 
 	do {
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+<<<<<<< HEAD
 		responseData = await sendGridApiRequest.call(this, endpoint, method, body, query, uri); // possible bug, as function does not have uri parameter
 		uri = responseData._metadata.next;
 		returnData.push.apply(returnData, responseData[propertyName] as IDataObject[]);
 		const limit = query.limit as number | undefined;
 		if (limit && returnData.length >= limit) {
+=======
+		responseData = await sendGridApiRequest.call(this, endpoint, method, body, query, uri); // posible bug, as function does not have uri parameter
+		uri = responseData._metadata.next;
+		returnData.push.apply(returnData, responseData[propertyName] as IDataObject[]);
+		if (query.limit && returnData.length >= query.limit) {
+>>>>>>> master
 			return returnData;
 		}
 	} while (responseData._metadata.next !== undefined);

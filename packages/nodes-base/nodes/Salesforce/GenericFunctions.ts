@@ -8,7 +8,11 @@ import type {
 	INodePropertyOptions,
 	JsonObject,
 } from 'n8n-workflow';
+<<<<<<< HEAD
 import { NodeApiError } from 'n8n-workflow';
+=======
+import { LoggerProxy as Logger, NodeApiError } from 'n8n-workflow';
+>>>>>>> master
 
 import moment from 'moment-timezone';
 

@@ -73,6 +73,7 @@ import { v4 as uuid } from 'uuid';
 import { InternalHooks } from '@/InternalHooks';
 import { LoadNodesAndCredentials } from '@/LoadNodesAndCredentials';
 import { PostHogClient } from '@/posthog';
+<<<<<<< HEAD
 import { variablesController } from '@/environments/variables/variables.controller';
 import { LdapManager } from '@/Ldap/LdapManager.ee';
 import { handleLdapInit } from '@/Ldap/helpers';
@@ -84,6 +85,12 @@ import { EventBusController } from '@/eventbus/eventBus.controller';
 import { License } from '@/License';
 import { VersionControlService } from '@/environments/versionControl/versionControl.service.ee';
 import { VersionControlController } from '@/environments/versionControl/versionControl.controller.ee';
+=======
+import { LdapManager } from '@/Ldap/LdapManager.ee';
+import { LDAP_ENABLED } from '@/Ldap/constants';
+import { handleLdapInit } from '@/Ldap/helpers';
+import { Push } from '@/push';
+>>>>>>> master
 
 export const mockInstance = <T>(
 	ctor: new (...args: any[]) => T,
@@ -154,7 +161,11 @@ export async function initTestServer({
 			credentials: { controller: credentialsController, path: 'credentials' },
 			workflows: { controller: workflowsController, path: 'workflows' },
 			license: { controller: licenseController, path: 'license' },
+<<<<<<< HEAD
 			variables: { controller: variablesController, path: 'variables' },
+=======
+			eventBus: { controller: eventBusRouter, path: 'eventbus' },
+>>>>>>> master
 		};
 
 		if (enablePublicAPI) {
@@ -190,7 +201,11 @@ export async function initTestServer({
 					);
 					break;
 				case 'ldap':
+<<<<<<< HEAD
 					Container.get(License).isLdapEnabled = () => true;
+=======
+					config.set(LDAP_ENABLED, true);
+>>>>>>> master
 					await handleLdapInit();
 					const { service, sync } = LdapManager.getInstance();
 					registerController(
@@ -199,6 +214,7 @@ export async function initTestServer({
 						new LdapController(service, sync, internalHooks),
 					);
 					break;
+<<<<<<< HEAD
 				case 'saml':
 					await setSamlLoginEnabled(true);
 					const samlService = Container.get(SamlService);
@@ -212,6 +228,8 @@ export async function initTestServer({
 						new VersionControlController(versionControlService),
 					);
 					break;
+=======
+>>>>>>> master
 				case 'nodes':
 					registerController(
 						testServer.app,
@@ -280,7 +298,11 @@ const classifyEndpointGroups = (endpointGroups: EndpointGroup[]) => {
 	const routerEndpoints: EndpointGroup[] = [];
 	const functionEndpoints: EndpointGroup[] = [];
 
+<<<<<<< HEAD
 	const ROUTER_GROUP = ['credentials', 'workflows', 'publicApi', 'license', 'variables'];
+=======
+	const ROUTER_GROUP = ['credentials', 'workflows', 'publicApi', 'eventBus', 'license'];
+>>>>>>> master
 
 	endpointGroups.forEach((group) =>
 		(ROUTER_GROUP.includes(group) ? routerEndpoints : functionEndpoints).push(group),

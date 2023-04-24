@@ -34,6 +34,12 @@ import type {
 
 import { get } from 'lodash-es';
 
+<<<<<<< HEAD
+=======
+import { get } from 'lodash-es';
+
+import mixins from 'vue-typed-mixins';
+>>>>>>> master
 import { isObjectLiteral } from '@/utils';
 import { getCredentialPermissions } from '@/permissions';
 import { mapStores } from 'pinia';

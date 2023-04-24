@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import type { Application, Request, Response, RequestHandler } from 'express';
 import type { Config } from '@/config';
+<<<<<<< HEAD
 import type { AuthenticatedRequest } from '@/requests';
 import { send } from '@/ResponseHelper'; // TODO: move `ResponseHelper.send` to this file
 import {
@@ -31,6 +32,12 @@ export const createAuthMiddleware =
 
 		res.status(403).json({ status: 'error', message: 'Unauthorized' });
 	};
+=======
+import { CONTROLLER_BASE_PATH, CONTROLLER_MIDDLEWARES, CONTROLLER_ROUTES } from './constants';
+import { send } from '@/ResponseHelper'; // TODO: move `ResponseHelper.send` to this file
+import type { Application, Request, Response, RequestHandler } from 'express';
+import type { Controller, MiddlewareMetadata, RouteMetadata } from './types';
+>>>>>>> master
 
 export const registerController = (app: Application, config: Config, controller: object) => {
 	const controllerClass = controller.constructor;
@@ -59,10 +66,15 @@ export const registerController = (app: Application, config: Config, controller:
 		);
 
 		routes.forEach(({ method, path, middlewares: routeMiddlewares, handlerName }) => {
+<<<<<<< HEAD
 			const authRole = authRoles && (authRoles[handlerName] ?? authRoles['*']);
 			router[method](
 				path,
 				...(authRole ? [createAuthMiddleware(authRole)] : []),
+=======
+			router[method](
+				path,
+>>>>>>> master
 				...controllerMiddlewares,
 				...routeMiddlewares,
 				send(async (req: Request, res: Response) =>

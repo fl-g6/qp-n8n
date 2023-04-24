@@ -17,6 +17,7 @@ import type {
 	IN8nValueSurveyData,
 	ISettingsState,
 } from '@/Interface';
+<<<<<<< HEAD
 import { UserManagementAuthenticationMethod } from '@/Interface';
 import type {
 	IDataObject,
@@ -25,6 +26,9 @@ import type {
 	ITelemetrySettings,
 	WorkflowSettings,
 } from 'n8n-workflow';
+=======
+import { IDataObject, ITelemetrySettings } from 'n8n-workflow';
+>>>>>>> master
 import { defineStore } from 'pinia';
 import Vue from 'vue';
 import { useRootStore } from './n8nRootStore';
@@ -191,6 +195,7 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, {
 			}
 			this.api = settings.publicApi;
 			this.onboardingCallPromptEnabled = settings.onboardingCallPromptEnabled;
+<<<<<<< HEAD
 			if (settings.sso?.ldap) {
 				this.ldap.loginEnabled = settings.sso.ldap.loginEnabled;
 				this.ldap.loginLabel = settings.sso.ldap.loginLabel;
@@ -199,6 +204,12 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, {
 				this.saml.loginEnabled = settings.sso.saml.loginEnabled;
 				this.saml.loginLabel = settings.sso.saml.loginLabel;
 			}
+=======
+			this.ldap.loginEnabled = settings.sso.ldap.loginEnabled;
+			this.ldap.loginLabel = settings.sso.ldap.loginLabel;
+			this.saml.loginEnabled = settings.sso.saml.loginEnabled;
+			this.saml.loginLabel = settings.sso.saml.loginLabel;
+>>>>>>> master
 		},
 		async getSettings(): Promise<void> {
 			const rootStore = useRootStore();

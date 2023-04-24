@@ -2,12 +2,19 @@ import { readFile } from 'fs/promises';
 import get from 'lodash.get';
 import { Request } from 'express';
 import type { INodeTypeDescription, INodeTypeNameVersion } from 'n8n-workflow';
+<<<<<<< HEAD
 import { Authorized, Post, RestController } from '@/decorators';
+=======
+import { Post, RestController } from '@/decorators';
+>>>>>>> master
 import { getNodeTranslationPath } from '@/TranslationHelpers';
 import type { Config } from '@/config';
 import type { NodeTypes } from '@/NodeTypes';
 
+<<<<<<< HEAD
 @Authorized()
+=======
+>>>>>>> master
 @RestController('/node-types')
 export class NodeTypesController {
 	private readonly config: Config;

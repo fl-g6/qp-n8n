@@ -210,7 +210,11 @@ import { moveNodeWorkflow } from '@/mixins/moveNodeWorkflow';
 import useGlobalLinkActions from '@/composables/useGlobalLinkActions';
 import useCanvasMouseSelect from '@/composables/useCanvasMouseSelect';
 import { showMessage } from '@/mixins/showMessage';
+<<<<<<< HEAD
 import { useTitleChange } from '@/composables/useTitleChange';
+=======
+import { titleChange } from '@/mixins/titleChange';
+>>>>>>> master
 
 import { workflowHelpers } from '@/mixins/workflowHelpers';
 import { workflowRun } from '@/mixins/workflowRun';
@@ -306,6 +310,10 @@ import {
 	N8nPlusEndpointType,
 	EVENT_PLUS_ENDPOINT_CLICK,
 } from '@/plugins/endpoints/N8nPlusEndpointType';
+<<<<<<< HEAD
+=======
+import { usePostHog } from '@/stores/posthog';
+>>>>>>> master
 
 interface AddNodeOptions {
 	position?: XYPosition;
@@ -2544,7 +2552,39 @@ export default mixins(
 		},
 		async tryToAddWelcomeSticky(): Promise<void> {
 			const newWorkflow = this.workflowData;
+<<<<<<< HEAD
 			this.canvasStore.zoomToFit();
+=======
+			if (usePostHog().isVariantEnabled(ASSUMPTION_EXPERIMENT.name, ASSUMPTION_EXPERIMENT.video)) {
+				// For novice users (onboardingFlowEnabled == true)
+				// Inject welcome sticky note and zoom to fit
+
+				if (newWorkflow?.onboardingFlowEnabled && !this.isReadOnly) {
+					// Position the welcome sticky left to the added trigger node
+					const position: XYPosition = [50, 250];
+
+					await this.addNodes([
+						{
+							id: uuid(),
+							...NodeViewUtils.WELCOME_STICKY_NODE,
+							parameters: {
+								// Use parameters from the template but add translated content
+								...NodeViewUtils.WELCOME_STICKY_NODE.parameters,
+								content: this.$locale.baseText('onboardingWorkflow.stickyContent'),
+							},
+							position,
+						},
+					]);
+					setTimeout(() => {
+						this.canvasStore.zoomToFit();
+						this.canvasStore.canvasAddButtonPosition = [500, 350];
+						this.$telemetry.track('welcome note inserted');
+					}, 0);
+				}
+			} else {
+				this.canvasStore.zoomToFit();
+			}
+>>>>>>> master
 		},
 		async initView(): Promise<void> {
 			if (this.$route.params.action === 'workflowSave') {
@@ -2608,7 +2648,27 @@ export default mixins(
 			document.addEventListener('keydown', this.keyDown);
 			document.addEventListener('keyup', this.keyUp);
 
+<<<<<<< HEAD
 			window.addEventListener('beforeunload', this.onBeforeUnload);
+=======
+			// allow to be overriden in e2e tests
+			// @ts-ignore
+			window.onBeforeUnloadNodeView = (e) => {
+				if (this.isDemo) {
+					return;
+				} else if (this.uiStore.stateIsDirty) {
+					const confirmationMessage = this.$locale.baseText(
+						'nodeView.itLooksLikeYouHaveBeenEditingSomething',
+					);
+					(e || window.event).returnValue = confirmationMessage; //Gecko + IE
+					return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
+				} else {
+					this.startLoading(this.$locale.baseText('nodeView.redirecting'));
+					return;
+				}
+			};
+			window.addEventListener('beforeunload', window.onBeforeUnloadNodeView);
+>>>>>>> master
 		},
 		getOutputEndpointUUID(nodeName: string, index: number): string | null {
 			const node = this.workflowsStore.getNodeByName(nodeName);

@@ -13,13 +13,20 @@ import AuthView from './AuthView.vue';
 import { showMessage } from '@/mixins/showMessage';
 
 import mixins from 'vue-typed-mixins';
+<<<<<<< HEAD
 import type { IFormBoxConfig } from '@/Interface';
 import { VIEWS } from '@/constants';
+=======
+import { IFormBoxConfig } from '@/Interface';
+import { VIEWS, ASSUMPTION_EXPERIMENT } from '@/constants';
+import { restApi } from '@/mixins/restApi';
+>>>>>>> master
 import { mapStores } from 'pinia';
 import { useUIStore } from '@/stores/ui';
 import { useSettingsStore } from '@/stores/settings';
 import { useUsersStore } from '@/stores/users';
 import { useCredentialsStore } from '@/stores/credentials';
+import { usePostHog } from '@/stores/posthog';
 
 export default mixins(showMessage).extend({
 	name: 'SetupView',
@@ -99,6 +106,9 @@ export default mixins(showMessage).extend({
 	},
 	computed: {
 		...mapStores(useCredentialsStore, useSettingsStore, useUIStore, useUsersStore),
+		isDemoTest(): boolean {
+			return usePostHog().isVariantEnabled(ASSUMPTION_EXPERIMENT.name, ASSUMPTION_EXPERIMENT.demo);
+		},
 	},
 	methods: {
 		async confirmSetupOrGoBack(): Promise<boolean> {
@@ -158,7 +168,11 @@ export default mixins(showMessage).extend({
 				}
 
 				if (forceRedirectedHere) {
+<<<<<<< HEAD
 					await this.$router.push({ name: VIEWS.NEW_WORKFLOW });
+=======
+					await this.$router.push({ name: this.isDemoTest ? VIEWS.HOMEPAGE : VIEWS.NEW_WORKFLOW });
+>>>>>>> master
 				} else {
 					await this.$router.push({ name: VIEWS.USERS_SETTINGS });
 				}
@@ -182,7 +196,11 @@ export default mixins(showMessage).extend({
 		onSkip() {
 			this.usersStore.skipOwnerSetup();
 			this.$router.push({
+<<<<<<< HEAD
 				name: VIEWS.NEW_WORKFLOW,
+=======
+				name: this.isDemoTest ? VIEWS.HOMEPAGE : VIEWS.NEW_WORKFLOW,
+>>>>>>> master
 			});
 		},
 	},

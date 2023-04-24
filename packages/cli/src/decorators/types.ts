@@ -1,4 +1,5 @@
 import type { Request, Response, RequestHandler } from 'express';
+<<<<<<< HEAD
 import type { RoleNames, RoleScopes } from '@db/entities/Role';
 
 export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
@@ -6,6 +7,11 @@ export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 export type AuthRole = [RoleScopes, RoleNames] | 'any' | 'none';
 export type AuthRoleMetadata = Record<string, AuthRole>;
 
+=======
+
+export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
+
+>>>>>>> master
 export interface MiddlewareMetadata {
 	handlerName: string;
 }

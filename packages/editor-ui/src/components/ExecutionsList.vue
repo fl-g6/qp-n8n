@@ -282,7 +282,11 @@ import type {
 	ExecutionFilterType,
 	ExecutionsQueryFilter,
 } from '@/Interface';
+<<<<<<< HEAD
 import type { IExecutionsSummary, ExecutionStatus } from 'n8n-workflow';
+=======
+import type { ExecutionStatus, IDataObject } from 'n8n-workflow';
+>>>>>>> master
 import { range as _range } from 'lodash-es';
 import mixins from 'vue-typed-mixins';
 import { mapStores } from 'pinia';
@@ -1082,7 +1086,7 @@ export default mixins(externalHooks, genericHelpers, executionHelpers, showMessa
 		}
 
 		&:hover td {
-			background: var(--color-primary-tint-3);
+			background: #000000;
 		}
 
 		&.crashed td:first-child::before,

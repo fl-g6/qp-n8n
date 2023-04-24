@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+import type { NodeVMOptions } from 'vm2';
+>>>>>>> master
 import { NodeVM } from 'vm2';
 import { ValidationError } from './ValidationError';
 import { ExecutionError } from './ExecutionError';
@@ -10,6 +14,7 @@ import type {
 	IWorkflowDataProxyData,
 	WorkflowExecuteMode,
 } from 'n8n-workflow';
+<<<<<<< HEAD
 
 interface SandboxContext extends IWorkflowDataProxyData {
 	$getNodeParameter: IExecuteFunctions['getNodeParameter'];
@@ -19,6 +24,8 @@ interface SandboxContext extends IWorkflowDataProxyData {
 
 const { NODE_FUNCTION_ALLOW_BUILTIN: builtIn, NODE_FUNCTION_ALLOW_EXTERNAL: external } =
 	process.env;
+=======
+>>>>>>> master
 
 export class Sandbox extends NodeVM {
 	private itemIndex: number | undefined = undefined;
@@ -27,6 +34,10 @@ export class Sandbox extends NodeVM {
 		context: SandboxContext,
 		private jsCode: string,
 		workflowMode: WorkflowExecuteMode,
+<<<<<<< HEAD
+=======
+		private nodeMode: CodeNodeMode,
+>>>>>>> master
 		private helpers: IExecuteFunctions['helpers'],
 	) {
 		super({
@@ -82,14 +93,29 @@ export class Sandbox extends NodeVM {
 
 			for (const item of executionResult) {
 				if (mustHaveTopLevelN8nKey) {
+<<<<<<< HEAD
 					this.validateTopLevelKeys(item);
+=======
+					Object.keys(item as IDataObject).forEach((key) => {
+						if (REQUIRED_N8N_ITEM_KEYS.has(key)) return;
+						throw new ValidationError({
+							message: `Unknown top-level item key: ${key}`,
+							description: 'Access the properties of an item under `.json`, e.g. `item.json`',
+							itemIndex: this.itemIndex,
+						});
+					});
+>>>>>>> master
 				}
 			}
 		}
 
+<<<<<<< HEAD
 		const returnData = this.helpers.normalizeItems(executionResult);
 		returnData.forEach((item) => this.validateResult(item));
 		return returnData;
+=======
+		return this.helpers.normalizeItems(executionResult as INodeExecutionData[]);
+>>>>>>> master
 	}
 
 	async runCodeEachItem(itemIndex: number): Promise<INodeExecutionData | undefined> {
@@ -143,6 +169,39 @@ export class Sandbox extends NodeVM {
 			});
 		}
 
+<<<<<<< HEAD
+=======
+		if (executionResult.json !== undefined && !isObject(executionResult.json)) {
+			throw new ValidationError({
+				message: "A 'json' property isn't an object",
+				description: "In the returned data, every key named 'json' must point to an object",
+				itemIndex: this.itemIndex,
+			});
+		}
+
+		if (executionResult.binary !== undefined && !isObject(executionResult.binary)) {
+			throw new ValidationError({
+				message: "A 'binary' property isn't an object",
+				description: "In the returned data, every key named 'binary’ must point to an object.",
+				itemIndex: this.itemIndex,
+			});
+		}
+
+		// If at least one top-level key is a supported item key (`json`, `binary`, etc.),
+		// and another top-level key is unrecognized, then the user mis-added a property
+		// directly on the item, when they intended to add it on the `json` property
+
+		Object.keys(executionResult as IDataObject).forEach((key) => {
+			if (REQUIRED_N8N_ITEM_KEYS.has(key)) return;
+
+			throw new ValidationError({
+				message: `Unknown top-level item key: ${key}`,
+				description: 'Access the properties of an item under `.json`, e.g. `item.json`',
+				itemIndex: this.itemIndex,
+			});
+		});
+
+>>>>>>> master
 		if (Array.isArray(executionResult)) {
 			const firstSentence =
 				executionResult.length > 0

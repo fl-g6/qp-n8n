@@ -2,7 +2,11 @@
  * Captures any pasted data and sends it to method "receivedCopyPasteData" which has to be
  * defined on the component which uses this mixin
  */
+<<<<<<< HEAD
 import { defineComponent } from 'vue';
+=======
+import Vue from 'vue';
+>>>>>>> master
 import { debounce } from 'lodash-es';
 
 export const copyPaste = defineComponent({
