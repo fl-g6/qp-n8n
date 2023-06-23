@@ -147,7 +147,7 @@
 	--color-button-primary-font: var(--prim-gray-0);
 	--color-button-primary-border: var(--prim-color-primary);
 	--color-button-primary-background: var(--prim-color-primary);
-	--color-button-primary-hover-active-border: var(--prim-color-primary-shade-100);
+	--color-button-primary-hover-active-border: var(--prim-color-primary-shade-33.3);
 	--color-button-primary-hover-active-background: var(--prim-color-primary-shade-100);
 	--color-button-primary-focus-outline: var(--prim-color-primary-tint-200);
 	--color-button-primary-disabled-font: var(--prim-gray-0-alpha-075);
@@ -350,8 +350,6 @@
 	--spacing-5xl: 16rem;
 }
 
-@media (prefers-color-scheme: dark) {
-	body.theme-dark-beta {
-		@include theme;
-	}
+:root {
+	@include theme;
 }
