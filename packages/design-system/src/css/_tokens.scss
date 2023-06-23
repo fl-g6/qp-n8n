@@ -350,6 +350,8 @@
 	--spacing-5xl: 16rem;
 }
 
-:root {
-	@include theme;
+@media (prefers-color-scheme: dark) {
+	body.theme-dark-beta {
+		@include theme;
+	}
 }
