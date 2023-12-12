@@ -17,8 +17,12 @@
 		</div>
 		<n8n-menu :items="mainMenuItems" :collapsed="isCollapsed" @select="handleSelect">
 			<template #header>
-				<div :class="$style.logo">
-					<img :src="logoPath" data-test-id="n8n-logo" :class="$style.icon" alt="n8n" />
+				<div v-if="false" :class="$style.logo">
+					<img
+						:src="basePath + (isCollapsed ? 'n8n-logo-collapsed.svg' : 'n8n-logo-expanded.svg')"
+						:class="$style.icon"
+						alt="n8n"
+					/>
 				</div>
 			</template>
 
@@ -158,16 +162,11 @@ export default defineComponent({
 			useCloudPlanStore,
 			useSourceControlStore,
 		),
-		logoPath(): string {
-			if (this.isCollapsed) return this.basePath + 'n8n-logo-collapsed.svg';
-
-			return this.basePath + this.uiStore.logo;
+		isOwner(): boolean {
+			return this.usersStore.globalRoleName === 'owner';
 		},
 		hasVersionUpdates(): boolean {
-			return (
-				this.settingsStore.settings.releaseChannel === 'stable' &&
-				this.versionsStore.hasVersionUpdates
-			);
+			return this.versionsStore.hasVersionUpdates && this.isOwner;
 		},
 		nextVersions(): IVersion[] {
 			return this.versionsStore.nextVersions;
