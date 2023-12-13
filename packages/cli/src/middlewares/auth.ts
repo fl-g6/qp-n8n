@@ -12,6 +12,30 @@ import { canSkipAuth } from '@/decorators/registerController';
 import { Logger } from '@/Logger';
 import { JwtService } from '@/services/jwt.service';
 
+export interface QpJwt {
+	gcip: {
+		x_qp_entitlements: {
+			allowed_products: Array<{
+				datastudio: string;
+				product_id: string;
+				storefront: string;
+				workflow: string; // n8n User
+			}>;
+			is_super_admin: boolean;
+			is_service_admin: boolean;
+		};
+	};
+}
+
+export interface QpJwtRequest<
+	RouteParams = {},
+	ResponseBody = {},
+	RequestBody = {},
+	RequestQuery = {},
+> extends Request<RouteParams, ResponseBody, RequestBody, RequestQuery> {
+	jwt: QpJwt;
+}
+
 const jwtFromRequest = (req: Request) => {
 	// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 	return (req.cookies?.[AUTH_COOKIE_NAME] as string | undefined) ?? null;

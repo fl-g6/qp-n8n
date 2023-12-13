@@ -122,7 +122,7 @@ import { BadRequestError } from './errors/response-errors/bad-request.error';
 import { NotFoundError } from './errors/response-errors/not-found.error';
 import { MultiMainSetup } from './services/orchestration/main/MultiMainSetup.ee';
 import { PasswordUtility } from './services/password.utility';
-import { QuickplayController } from './controllers/quickplay.controller';
+//import { QuickplayController } from './controllers/quickplay.controller';
 
 const exec = promisify(callbackExec);
 
@@ -307,7 +307,7 @@ export class Server extends AbstractServer {
 			),
 			Container.get(VariablesController),
 			Container.get(RoleController),
-			new QuickplayController({ config, internalHooks, repositories, logger, postHog }),
+			//new QuickplayController({repositories, postHog }),
 		];
 
 		if (Container.get(MultiMainSetup).isEnabled) {
