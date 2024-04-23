@@ -11,14 +11,19 @@ function jwtAuthAuthorizationError(resp: Response, message?: string) {
 interface QpJwt {
 	gcip: {
 		x_qp_entitlements: {
-			allowed_products: Array<{
-				datastudio: string;
-				product_id: string;
-				storefront: string;
-				workflow: string; // n8n User
-			}>;
-			is_super_admin: boolean;
-			is_service_admin: boolean;
+			api_roles: string[];
+			is_workflow_user_per_service: boolean;
+			workflow: string; // n8n User once per tenant
+			qp_user_id: string;
+			service_id: string;
+			// allowed_products: Array<{
+			// 	datastudio: string;
+			// 	product_id: string;
+			// 	storefront: string;
+			// 	workflow: string; // n8n User
+			// }>;
+			//is_super_admin: boolean;
+			//is_service_admin: boolean;
 		};
 	};
 }

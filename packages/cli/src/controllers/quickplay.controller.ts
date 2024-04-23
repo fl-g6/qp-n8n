@@ -20,7 +20,8 @@ export type TenantRequest = QpJwtRequest<
 	{},
 	{},
 	{
-		product_id: string;
+		//product_id: string;
+		service_id: string;
 	}
 >;
 
@@ -59,14 +60,17 @@ export class QuickplayController {
 	async tenant(req: TenantRequest, res: Response): Promise<PublicUser> {
 		if (!req.jwt) throw new AuthError('Token not found');
 
-		const { product_id } = req.body;
-		if (!product_id) throw new Error('product_id is required');
+		const { service_id } = req.body;
+		if (!service_id) throw new Error('service_id is required');
+		const service_id_jwt = req.jwt.gcip.x_qp_entitlements.service_id;
+		if (service_id_jwt != service_id) throw new Error('ServiceId selected doesnt match!');
 
-		const products = req.jwt.gcip.x_qp_entitlements.allowed_products;
-		const product = products.find((i) => i.product_id === product_id);
-		if (!product) throw new Error('Product not found among allowed by JWT');
+		//const product = products.find((i) => i.product_id === product_id);
+		const workflow = req.jwt.gcip.x_qp_entitlements.workflow;
 
-		const email = `${product.workflow}@qp.qp`;
+		if (!workflow) throw new Error('workflow is not found in JWT');
+
+		const email = `${workflow}@qp.qp`;
 		const user = await this.userRepository.findOne({
 			relations: ['globalRole'],
 			where: { email },
@@ -80,8 +84,13 @@ export class QuickplayController {
 	@Post('/login-as-owner')
 	async loginAsOwner(req: TenantRequest, res: Response): Promise<PublicUser> {
 		if (!req.jwt) throw new AuthError('Token not found');
-		if (!req.jwt.gcip.x_qp_entitlements.is_service_admin)
-			throw new AuthError('Infufficient permissions');
+
+		//Validate the role for admin privileges
+		const api_roles = req.jwt.gcip.x_qp_entitlements.api_roles;
+		const adminSupportedRoles: string[] = ['cms_admin', 'admin'];
+		const isAdmin: string[] = api_roles.filter((item) => adminSupportedRoles.includes(item));
+
+		if (isAdmin.length == 0) throw new AuthError('Infufficient permissions');
 
 		const ownerGlobalRole = await this.roleRepository.findRole('global', 'owner');
 
@@ -90,7 +99,8 @@ export class QuickplayController {
 		}
 
 		const owner =
-			ownerGlobalRole && (await this.userRepository.findOneBy({ globalRoleId: ownerGlobalRole.id }));
+			ownerGlobalRole &&
+			(await this.userRepository.findOneBy({ globalRoleId: ownerGlobalRole.id }));
 
 		if (!owner) {
 			throw new Error(`Failed to find owner. ${UM_FIX_INSTRUCTION}`);
