@@ -58,8 +58,6 @@ export const setupExternalJWTAuth = (app: Application, authIgnoreRegex: RegExp) 
 	const jwtAllowedTenantKey = config.getEnv('security.jwtAuth.jwtAllowedTenantKey');
 	const jwtAllowedTenant = config.getEnv('security.jwtAuth.jwtAllowedTenant');
 
-	const JWKS = jose.createRemoteJWKSet(new URL(jwksUri));
-
 	// eslint-disable-next-line no-inner-declarations
 	function isTenantAllowed(decodedToken: object): boolean {
 		if (jwtNamespace === '' || jwtAllowedTenantKey === '' || jwtAllowedTenant === '') {
