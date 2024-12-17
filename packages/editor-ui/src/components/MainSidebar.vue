@@ -170,7 +170,8 @@ export default defineComponent({
 		hasVersionUpdates(): boolean {
 			return (
 				this.settingsStore.settings.releaseChannel === 'stable' &&
-				this.versionsStore.hasVersionUpdates && this.isOwner
+				this.versionsStore.hasVersionUpdates &&
+				this.isOwner
 			);
 		},
 		nextVersions(): IVersion[] {
@@ -242,14 +243,6 @@ export default defineComponent({
 					route: { to: { name: VIEWS.CREDENTIALS } },
 				},
 				{
-					id: 'variables',
-					icon: 'variable',
-					label: this.$locale.baseText('mainSidebar.variables'),
-					customIconSize: 'medium',
-					position: 'top',
-					route: { to: { name: VIEWS.VARIABLES } },
-				},
-				{
 					id: 'executions',
 					icon: 'tasks',
 					label: this.$locale.baseText('mainSidebar.executions'),
@@ -262,65 +255,6 @@ export default defineComponent({
 					label: 'Admin Panel',
 					icon: 'home',
 					available: this.settingsStore.isCloudDeployment && hasPermission(['instanceOwner']),
-				},
-				{
-					id: 'settings',
-					icon: 'cog',
-					label: this.$locale.baseText('settings'),
-					position: 'bottom',
-					available: this.canUserAccessSettings && this.usersStore.currentUser !== null,
-					activateOnRouteNames: [VIEWS.USERS_SETTINGS, VIEWS.API_SETTINGS, VIEWS.PERSONAL_SETTINGS],
-					route: { to: defaultSettingsRoute },
-				},
-				{
-					id: 'help',
-					icon: 'question',
-					label: 'Help',
-					position: 'bottom',
-					children: [
-						{
-							id: 'quickstart',
-							icon: 'video',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.quickstart'),
-							link: {
-								href: 'https://www.youtube.com/watch?v=1MwSoB0gnM4',
-								target: '_blank',
-							},
-						},
-						{
-							id: 'docs',
-							icon: 'book',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.documentation'),
-							link: {
-								href: 'https://docs.n8n.io?utm_source=n8n_app&utm_medium=app_sidebar',
-								target: '_blank',
-							},
-						},
-						{
-							id: 'forum',
-							icon: 'users',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.forum'),
-							link: {
-								href: 'https://community.n8n.io?utm_source=n8n_app&utm_medium=app_sidebar',
-								target: '_blank',
-							},
-						},
-						{
-							id: 'examples',
-							icon: 'graduation-cap',
-							label: this.$locale.baseText('mainSidebar.helpMenuItems.course'),
-							link: {
-								href: 'https://www.youtube.com/watch?v=1MwSoB0gnM4',
-								target: '_blank',
-							},
-						},
-						{
-							id: 'about',
-							icon: 'info',
-							label: this.$locale.baseText('mainSidebar.aboutN8n'),
-							position: 'bottom',
-						},
-					],
 				},
 			];
 			return [...items, ...regularItems];
