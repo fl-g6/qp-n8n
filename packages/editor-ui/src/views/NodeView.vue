@@ -23,11 +23,6 @@ import {
 	MAIN_HEADER_TABS,
 	MODAL_CANCEL,
 	MODAL_CONFIRM,
-<<<<<<< HEAD
-	ONBOARDING_CALL_SIGNUP_MODAL_KEY,
-	ONBOARDING_PROMPT_TIMEBOX,
-=======
->>>>>>> tags/n8n@1.74.1
 	PLACEHOLDER_EMPTY_WORKFLOW_ID,
 	START_NODE_TYPE,
 	STICKY_NODE_TYPE,
@@ -3505,133 +3500,6 @@ export default defineComponent({
 			// waiting in the store and display them
 			this.showNotificationForViews([VIEWS.WORKFLOW, VIEWS.NEW_WORKFLOW]);
 		},
-<<<<<<< HEAD
-		getOutputEndpointUUID(
-			nodeName: string,
-			connectionType: ConnectionTypes,
-			index: number,
-		): string | null {
-			const node = this.workflowsStore.getNodeByName(nodeName);
-			if (!node) {
-				return null;
-			}
-
-			return NodeViewUtils.getOutputEndpointUUID(node.id, connectionType, index);
-		},
-		getInputEndpointUUID(nodeName: string, connectionType: ConnectionTypes, index: number) {
-			const node = this.workflowsStore.getNodeByName(nodeName);
-			if (!node) {
-				return null;
-			}
-
-			return NodeViewUtils.getInputEndpointUUID(node.id, connectionType, index);
-		},
-		__addConnection(connection: [IConnection, IConnection]) {
-			const outputUuid = this.getOutputEndpointUUID(
-				connection[0].node,
-				connection[0].type as ConnectionTypes,
-				connection[0].index,
-			);
-			const inputUuid = this.getInputEndpointUUID(
-				connection[1].node,
-				connection[1].type as ConnectionTypes,
-				connection[1].index,
-			);
-			if (!outputUuid || !inputUuid) {
-				return;
-			}
-
-			const uuid: [string, string] = [outputUuid, inputUuid];
-			// Create connections in DOM
-			this.instance?.connect({
-				uuids: uuid,
-				detachable: !this.isReadOnlyRoute && !this.readOnlyEnv,
-			});
-
-			setTimeout(() => {
-				this.addPinDataConnections(this.workflowsStore.pinnedWorkflowData || ({} as IPinData));
-			});
-		},
-		__removeConnection(connection: [IConnection, IConnection], removeVisualConnection = false) {
-			if (removeVisualConnection) {
-				const sourceNode = this.workflowsStore.getNodeByName(connection[0].node);
-				const targetNode = this.workflowsStore.getNodeByName(connection[1].node);
-
-				if (!sourceNode || !targetNode) {
-					return;
-				}
-
-				const sourceNodeType = this.nodeTypesStore.getNodeType(
-					sourceNode.type,
-					sourceNode.typeVersion,
-				);
-				const sourceNodeOutput =
-					sourceNodeType?.outputs?.[connection[0].index] || NodeConnectionType.Main;
-				const sourceNodeOutputName =
-					typeof sourceNodeOutput === 'string' ? sourceNodeOutput : sourceNodeOutput.name;
-				const scope = NodeViewUtils.getEndpointScope(sourceNodeOutputName);
-
-				const connections = this.instance?.getConnections({
-					scope,
-					source: sourceNode.id,
-					target: targetNode.id,
-				});
-
-				connections.forEach((connectionInstance: Connection) => {
-					if (connectionInstance.__meta) {
-						// Only delete connections from specific indexes (if it can be determined by meta)
-						if (
-							connectionInstance.__meta.sourceOutputIndex === connection[0].index &&
-							connectionInstance.__meta.targetOutputIndex === connection[1].index
-						) {
-							this.__deleteJSPlumbConnection(connectionInstance);
-						}
-					} else {
-						this.__deleteJSPlumbConnection(connectionInstance);
-					}
-				});
-			}
-
-			this.workflowsStore.removeConnection({ connection });
-		},
-		__deleteJSPlumbConnection(connection: Connection, trackHistory = false) {
-			// Make sure to remove the overlay else after the second move
-			// it visibly stays behind free floating without a connection.
-			connection.removeOverlays();
-
-			this.pullConnActiveNodeName = null; // prevent new connections when connectionDetached is triggered
-			this.instance?.deleteConnection(connection); // on delete, triggers connectionDetached event which applies mutation to store
-			if (trackHistory && connection.__meta) {
-				const connectionData: [IConnection, IConnection] = [
-					{
-						index: connection.__meta?.sourceOutputIndex,
-						node: connection.__meta.sourceNodeName,
-						type: NodeConnectionType.Main,
-					},
-					{
-						index: connection.__meta?.targetOutputIndex,
-						node: connection.__meta.targetNodeName,
-						type: NodeConnectionType.Main,
-					},
-				];
-				const removeCommand = new RemoveConnectionCommand(connectionData, this);
-				this.historyStore.pushCommandToUndo(removeCommand);
-			}
-		},
-		__removeConnectionByConnectionInfo(info, removeVisualConnection = false, trackHistory = false) {
-			const connectionInfo: [IConnection, IConnection] | null = getConnectionInfo(info);
-
-			if (connectionInfo) {
-				if (removeVisualConnection) {
-					this.__deleteJSPlumbConnection(info.connection, trackHistory);
-				} else if (trackHistory) {
-					this.historyStore.pushCommandToUndo(new RemoveConnectionCommand(connectionInfo));
-				}
-				this.workflowsStore.removeConnection({ connection: connectionInfo });
-			}
-		},
-=======
->>>>>>> tags/n8n@1.74.1
 		async duplicateNodes(nodes: INode[]): Promise<void> {
 			if (!this.editAllowedCheck()) {
 				return;
@@ -3715,15 +3583,12 @@ export default defineComponent({
 				const outgoing = this.instance?.getConnections({
 					source: sourceElement,
 				});
-<<<<<<< HEAD
-=======
 
 				(Array.isArray(outgoing) ? outgoing : Object.values(outgoing)).forEach(
 					(connection: Connection) => {
 						NodeViewUtils.resetConnection(connection);
 					},
 				);
->>>>>>> tags/n8n@1.74.1
 				const endpoints = NodeViewUtils.getJSPlumbEndpoints(sourceNode, this.instance);
 				endpoints.forEach((endpoint: Endpoint) => {
 					if (endpoint.endpoint.type === 'N8nPlus') {
@@ -4377,54 +4242,6 @@ export default defineComponent({
 				await this.importWorkflowData(workflowData, 'url');
 			}
 		},
-<<<<<<< HEAD
-		addPinDataConnections(pinData: IPinData) {
-			Object.keys(pinData).forEach((nodeName) => {
-				const node = this.workflowsStore.getNodeByName(nodeName);
-				if (!node) {
-					return;
-				}
-
-				const hasRun = this.workflowsStore.getWorkflowResultDataByNodeName(nodeName) !== null;
-				const classNames = ['pinned'];
-
-				if (hasRun) {
-					classNames.push('has-run');
-				}
-
-				// @ts-ignore
-				const connections = this.instance?.getConnections({
-					source: node.id,
-				}) as Connection[];
-
-				connections.forEach((connection) => {
-					NodeViewUtils.addConnectionOutputSuccess(connection, {
-						total: pinData[nodeName].length,
-						iterations: 0,
-						classNames,
-					});
-				});
-			});
-		},
-		removePinDataConnections(pinData: IPinData) {
-			Object.keys(pinData).forEach((nodeName) => {
-				const node = this.workflowsStore.getNodeByName(nodeName);
-				if (!node) {
-					return;
-				}
-
-				// @ts-ignore
-				const connections = this.instance?.getConnections({
-					source: node.id,
-				}) as Connection[];
-
-				this.instance.setSuspendDrawing(true);
-				connections.forEach(NodeViewUtils.resetConnection);
-				this.instance.setSuspendDrawing(false, true);
-			});
-		},
-=======
->>>>>>> tags/n8n@1.74.1
 		onToggleNodeCreator({ source, createNodeActive, nodeCreatorView }: ToggleNodeCreatorOptions) {
 			if (createNodeActive === this.createNodeActive) return;
 
@@ -4518,9 +4335,6 @@ export default defineComponent({
 				});
 			}
 
-<<<<<<< HEAD
-			this.addPinDataConnections(this.workflowsStore.pinnedWorkflowData || ({} as IPinData));
-=======
 			const lastNodeType = this.nodeTypesStore.getNodeType(lastAddedNode.type);
 			const isSubNode = NodeHelpers.isSubNodeType(lastNodeType);
 
@@ -4538,7 +4352,6 @@ export default defineComponent({
 			}
 
 			this.nodeHelpers.addPinDataConnections(this.workflowsStore.pinnedWorkflowData);
->>>>>>> tags/n8n@1.74.1
 		},
 
 		async saveCurrentWorkflowExternal(callback: () => void) {

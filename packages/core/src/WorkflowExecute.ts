@@ -1514,24 +1514,8 @@ export class WorkflowExecute {
 								if (nodeSuccessData instanceof NodeExecutionOutput) {
 									const hints = (nodeSuccessData as NodeExecutionOutput).getHints();
 
-<<<<<<< HEAD
-											let errorData: GenericValue | undefined;
-											if (item.error) {
-												errorData = item.error;
-												item.error = undefined;
-											} else if (item.json.error && Object.keys(item.json).length === 1) {
-												errorData = item.json.error;
-											} else if (
-												item.json.error &&
-												item.json.message &&
-												Object.keys(item.json).length === 2
-											) {
-												errorData = item.json.error;
-											}
-=======
 									executionHints.push(...hints);
 								}
->>>>>>> tags/n8n@1.74.1
 
 								if (nodeSuccessData && executionData.node.onError === 'continueErrorOutput') {
 									this.handleNodeErrorOutput(workflow, executionData, nodeSuccessData, runIndex);

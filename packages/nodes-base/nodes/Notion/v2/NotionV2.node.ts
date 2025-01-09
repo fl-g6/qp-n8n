@@ -518,50 +518,6 @@ export class NotionV2 implements INodeType {
 							throw prepareNotionError(this.getNode(), error, i);
 						}
 					}
-<<<<<<< HEAD
-
-					if (!Object.keys(body.filter as IDataObject).length) {
-						delete body.filter;
-					}
-					if (sort) {
-						body.sorts = mapSorting(sort as SortData[]);
-					}
-					if (returnAll) {
-						responseData = await notionApiRequestAllItems.call(
-							this,
-							'results',
-							'POST',
-							`/databases/${databaseId}/query`,
-							body,
-							{},
-						);
-					} else {
-						body.page_size = this.getNodeParameter('limit', i);
-						responseData = await notionApiRequest.call(
-							this,
-							'POST',
-							`/databases/${databaseId}/query`,
-							body,
-							qs,
-						);
-						responseData = responseData.results;
-					}
-					if (download) {
-						responseData = await downloadFiles.call(this, responseData as FileRecord[], [
-							{ item: i },
-						]);
-					}
-					if (simple) {
-						responseData = simplifyObjects(responseData, download);
-					}
-
-					const executionData = this.helpers.constructExecutionMetaData(
-						this.helpers.returnJsonArray(responseData as IDataObject),
-						{ itemData: { item: i } },
-					);
-					returnData.push(...executionData);
-=======
->>>>>>> tags/n8n@1.74.1
 				}
 			}
 

@@ -15,10 +15,7 @@ vi.mock('vue-router', () => {
 			push,
 		}),
 		RouterLink: vi.fn(),
-<<<<<<< HEAD:packages/editor-ui/src/views/__tests__/SamlOnboarding.test.ts
-=======
 		useRoute: vi.fn(),
->>>>>>> tags/n8n@1.74.1:packages/editor-ui/src/views/SamlOnboarding.test.ts
 	};
 });
 

@@ -125,11 +125,7 @@ export class FrontendService {
 				apiKey: this.globalConfig.diagnostics.posthogConfig.apiKey,
 				autocapture: false,
 				disableSessionRecording: config.getEnv('deployment.type') !== 'cloud',
-<<<<<<< HEAD
-				debug: config.getEnv('logs.level') === 'debug',
-=======
 				debug: this.globalConfig.logging.level === 'debug',
->>>>>>> tags/n8n@1.74.1
 			},
 			personalizationSurveyEnabled:
 				config.getEnv('personalization.enabled') && this.globalConfig.diagnostics.enabled,

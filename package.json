@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
-  "name": "n8n",
-  "version": "1.25.1",
-=======
   "name": "n8n-monorepo",
   "version": "1.74.1",
->>>>>>> tags/n8n@1.74.1
   "private": true,
   "engines": {
     "node": ">=20.15",
@@ -44,17 +39,10 @@
     "start:tunnel": "./packages/cli/bin/n8n start --tunnel",
     "start:windows": "cd packages/cli/bin && n8n",
     "test": "turbo run test",
-<<<<<<< HEAD
-    "test:nodes": "pnpm --filter=n8n-nodes-base test",
-    "test:backend": "pnpm --filter=!@n8n/chat --filter=!n8n-design-system --filter=!n8n-editor-ui  --filter=!n8n-nodes-base test",
-    "test:frontend": "pnpm --filter=@n8n/chat --filter=n8n-design-system --filter=n8n-editor-ui test",
-    "watch": "turbo run watch",
-=======
     "test:backend": "turbo run test:backend --concurrency=1",
     "test:frontend": "turbo run test:frontend --concurrency=1",
     "test:nodes": "turbo run test:nodes --concurrency=1",
     "watch": "turbo run watch --parallel",
->>>>>>> tags/n8n@1.74.1
     "webhook": "./packages/cli/bin/n8n webhook",
     "worker": "./packages/cli/bin/n8n worker"
   },

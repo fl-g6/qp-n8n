@@ -6,11 +6,8 @@ import type {
 	ILoadOptionsFunctions,
 	INodeExecutionData,
 	IPairedItemData,
-<<<<<<< HEAD
-=======
 	IRequestOptions,
 	IHttpRequestMethods,
->>>>>>> tags/n8n@1.74.1
 } from 'n8n-workflow';
 
 interface IAttachment {

@@ -38,12 +38,6 @@ import {
 	COMMUNITY_PLUS_ENROLLMENT_MODAL,
 } from '@/constants';
 import type {
-<<<<<<< HEAD
-	CloudUpdateLinkSourceType,
-	CurlToJSONResponse,
-	IFakeDoorLocation,
-=======
->>>>>>> tags/n8n@1.74.1
 	INodeUi,
 	XYPosition,
 	Modals,
@@ -406,36 +400,8 @@ export const useUIStore = defineStore(STORES.UI, () => {
 			data: '',
 			canDrop: false,
 			stickyPosition: null,
-<<<<<<< HEAD
-		},
-		stateIsDirty: false,
-		lastSelectedNode: null,
-		lastSelectedNodeOutputIndex: null,
-		nodeViewOffsetPosition: [0, 0],
-		nodeViewMoveInProgress: false,
-		selectedNodes: [],
-		nodeViewInitialized: false,
-		addFirstStepOnLoad: false,
-		executionSidebarAutoRefresh: true,
-		bannersHeight: 0,
-		bannerStack: [],
-		suggestedTemplates: undefined,
-		// Notifications that should show when a view is initialized
-		// This enables us to set a queue of notifications form outside (another component)
-		// and then show them when the view is initialized
-		pendingNotificationsForViews: {},
-	}),
-	getters: {
-		appliedTheme(): AppliedThemeOption {
-			return this.theme === 'system' ? getPreferredTheme() : this.theme;
-		},
-		logo(): string {
-			const { releaseChannel } = useSettingsStore().settings;
-			const type = this.appliedTheme === 'dark' ? '-dark-mode.svg' : '.svg';
-=======
 		};
 	};
->>>>>>> tags/n8n@1.74.1
 
 	const setDraggableStickyPos = (position: XYPosition) => {
 		draggable.value = {
@@ -581,207 +547,9 @@ export const useUIStore = defineStore(STORES.UI, () => {
 		bannerStack.value = [];
 	};
 
-<<<<<<< HEAD
-				if (source) {
-					searchParams.set('source', source);
-				}
-				return `${linkUrl}?${searchParams.toString()}`;
-			};
-		},
-		headerHeight() {
-			const style = getComputedStyle(document.body);
-			return Number(style.getPropertyValue('--header-height'));
-		},
-		isAnyModalOpen(): boolean {
-			return this.modalStack.length > 0;
-		},
-	},
-	actions: {
-		setTheme(theme: ThemeOption): void {
-			this.theme = theme;
-			updateTheme(theme);
-		},
-		setMode(name: keyof Modals, mode: string): void {
-			this.modals[name] = {
-				...this.modals[name],
-				mode,
-			};
-		},
-		setActiveId(name: keyof Modals, activeId: string): void {
-			this.modals[name] = {
-				...this.modals[name],
-				activeId,
-			};
-		},
-		setShowAuthSelector(name: keyof Modals, showAuthSelector: boolean) {
-			this.modals[name] = {
-				...this.modals[name],
-				showAuthSelector,
-			} as NewCredentialsModal;
-		},
-		setModalData(payload: { name: keyof Modals; data: Record<string, unknown> }) {
-			this.modals[payload.name] = {
-				...this.modals[payload.name],
-				data: payload.data,
-			};
-		},
-		openModal(name: keyof Modals): void {
-			this.modals[name] = {
-				...this.modals[name],
-				open: true,
-			};
-			this.modalStack = [name].concat(this.modalStack) as string[];
-		},
-		openModalWithData(payload: { name: keyof Modals; data: Record<string, unknown> }): void {
-			this.setModalData(payload);
-			this.openModal(payload.name);
-		},
-		closeModal(name: keyof Modals): void {
-			this.modals[name] = {
-				...this.modals[name],
-				open: false,
-			};
-			this.modalStack = this.modalStack.filter((openModalName: string) => {
-				return name !== openModalName;
-			});
-		},
-		draggableStartDragging(type: string, data: string): void {
-			this.draggable = {
-				isDragging: true,
-				type,
-				data,
-				canDrop: false,
-				stickyPosition: null,
-			};
-		},
-		draggableStopDragging(): void {
-			this.draggable = {
-				isDragging: false,
-				type: '',
-				data: '',
-				canDrop: false,
-				stickyPosition: null,
-			};
-		},
-		setDraggableStickyPos(position: XYPosition): void {
-			this.draggable = {
-				...this.draggable,
-				stickyPosition: position,
-			};
-		},
-		setDraggableCanDrop(canDrop: boolean): void {
-			this.draggable = {
-				...this.draggable,
-				canDrop,
-			};
-		},
-		openDeleteUserModal(id: string): void {
-			this.setActiveId(DELETE_USER_MODAL_KEY, id);
-			this.openModal(DELETE_USER_MODAL_KEY);
-		},
-		openExistingCredential(id: string): void {
-			this.setActiveId(CREDENTIAL_EDIT_MODAL_KEY, id);
-			this.setMode(CREDENTIAL_EDIT_MODAL_KEY, 'edit');
-			this.openModal(CREDENTIAL_EDIT_MODAL_KEY);
-		},
-		openNewCredential(type: string, showAuthOptions = false): void {
-			this.setActiveId(CREDENTIAL_EDIT_MODAL_KEY, type);
-			this.setShowAuthSelector(CREDENTIAL_EDIT_MODAL_KEY, showAuthOptions);
-			this.setMode(CREDENTIAL_EDIT_MODAL_KEY, 'new');
-			this.openModal(CREDENTIAL_EDIT_MODAL_KEY);
-		},
-		async getNextOnboardingPrompt(): Promise<IOnboardingCallPrompt> {
-			const rootStore = useRootStore();
-			const instanceId = rootStore.instanceId;
-			// TODO: current USER
-			const currentUser = {} as IUser;
-			return fetchNextOnboardingPrompt(instanceId, currentUser);
-		},
-		async applyForOnboardingCall(email: string): Promise<string> {
-			const rootStore = useRootStore();
-			const instanceId = rootStore.instanceId;
-			// TODO: current USER
-			const currentUser = {} as IUser;
-			return applyForOnboardingCall(instanceId, currentUser, email);
-		},
-		async submitContactEmail(email: string, agree: boolean): Promise<string> {
-			const rootStore = useRootStore();
-			const instanceId = rootStore.instanceId;
-			// TODO: current USER
-			const currentUser = {} as IUser;
-			return submitEmailOnSignup(instanceId, currentUser, email || currentUser.email, agree);
-		},
-		openCommunityPackageUninstallConfirmModal(packageName: string) {
-			this.setActiveId(COMMUNITY_PACKAGE_CONFIRM_MODAL_KEY, packageName);
-			this.setMode(COMMUNITY_PACKAGE_CONFIRM_MODAL_KEY, COMMUNITY_PACKAGE_MANAGE_ACTIONS.UNINSTALL);
-			this.openModal(COMMUNITY_PACKAGE_CONFIRM_MODAL_KEY);
-		},
-		openCommunityPackageUpdateConfirmModal(packageName: string) {
-			this.setActiveId(COMMUNITY_PACKAGE_CONFIRM_MODAL_KEY, packageName);
-			this.setMode(COMMUNITY_PACKAGE_CONFIRM_MODAL_KEY, COMMUNITY_PACKAGE_MANAGE_ACTIONS.UPDATE);
-			this.openModal(COMMUNITY_PACKAGE_CONFIRM_MODAL_KEY);
-		},
-		addActiveAction(action: string): void {
-			if (!this.activeActions.includes(action)) {
-				this.activeActions.push(action);
-			}
-		},
-		removeActiveAction(action: string): void {
-			const actionIndex = this.activeActions.indexOf(action);
-			if (actionIndex !== -1) {
-				this.activeActions.splice(actionIndex, 1);
-			}
-		},
-		addSelectedNode(node: INodeUi): void {
-			const isAlreadySelected = this.selectedNodes.some((n) => n.name === node.name);
-			if (!isAlreadySelected) {
-				this.selectedNodes.push(node);
-			}
-		},
-		removeNodeFromSelection(node: INodeUi): void {
-			let index;
-			for (index in this.selectedNodes) {
-				if (this.selectedNodes[index].name === node.name) {
-					this.selectedNodes.splice(parseInt(index, 10), 1);
-					break;
-				}
-			}
-		},
-		resetSelectedNodes(): void {
-			this.selectedNodes = [];
-		},
-		setCurlCommand(payload: { name: string; command: string }): void {
-			this.modals[payload.name] = {
-				...this.modals[payload.name],
-				curlCommand: payload.command,
-			};
-		},
-		setHttpNodeParameters(payload: { name: string; parameters: string }): void {
-			this.modals[payload.name] = {
-				...this.modals[payload.name],
-				httpNodeParameters: payload.parameters,
-			};
-		},
-		toggleSidebarMenuCollapse(): void {
-			this.sidebarMenuCollapsed = !this.sidebarMenuCollapsed;
-		},
-		async getCurlToJson(curlCommand: string): Promise<CurlToJSONResponse> {
-			const rootStore = useRootStore();
-			return getCurlToJson(rootStore.getRestApiContext, curlCommand);
-		},
-		async goToUpgrade(
-			source: CloudUpdateLinkSourceType,
-			utm_campaign: UTMCampaign,
-			mode: 'open' | 'redirect' = 'open',
-		): Promise<void> {
-			const { usageLeft, trialDaysLeft, userIsTrialing } = useCloudPlanStore();
-			const { executionsLeft, workflowsLeft } = usageLeft;
-			const deploymentType = useSettingsStore().deploymentType;
-=======
 	const setNotificationsForView = (view: VIEWS, notifications: NotificationOptions[]) => {
 		pendingNotificationsForViews.value[view] = notifications;
 	};
->>>>>>> tags/n8n@1.74.1
 
 	const deleteNotificationsForView = (view: VIEWS) => {
 		delete pendingNotificationsForViews.value[view];

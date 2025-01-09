@@ -1002,45 +1002,8 @@ export interface NDVState {
 	highlightDraggables: boolean;
 }
 
-<<<<<<< HEAD
-export interface UIState {
-	activeActions: string[];
-	activeCredentialType: string | null;
-	sidebarMenuCollapsed: boolean;
-	modalStack: string[];
-	modals: Modals;
-	isPageLoading: boolean;
-	currentView: string;
-	mainPanelPosition: number;
-	fakeDoorFeatures: IFakeDoor[];
-	draggable: {
-		isDragging: boolean;
-		type: string;
-		data: string;
-		canDrop: boolean;
-		stickyPosition: null | XYPosition;
-	};
-	stateIsDirty: boolean;
-	lastSelectedNode: string | null;
-	lastSelectedNodeOutputIndex: number | null;
-	lastSelectedNodeEndpointUuid: string | null;
-	nodeViewOffsetPosition: XYPosition;
-	nodeViewMoveInProgress: boolean;
-	selectedNodes: INodeUi[];
-	nodeViewInitialized: boolean;
-	addFirstStepOnLoad: boolean;
-	executionSidebarAutoRefresh: boolean;
-	bannersHeight: number;
-	bannerStack: BannerName[];
-	theme: ThemeOption;
-	suggestedTemplates?: SuggestedTemplates;
-	pendingNotificationsForViews: {
-		[key in VIEWS]?: NotificationOptions[];
-	};
-=======
 export interface NotificationOptions extends Partial<ElementNotificationOptions> {
 	message: string | ElementNotificationOptions['message'];
->>>>>>> tags/n8n@1.74.1
 }
 
 export type NodeFilterType =

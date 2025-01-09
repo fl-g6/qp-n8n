@@ -139,7 +139,6 @@ export const schema = {
 		doc: 'Public URL where the editor is accessible. Also used for emails sent from n8n.',
 	},
 
-<<<<<<< HEAD
 	security: {
 		restrictFileAccessTo: {
 			doc: 'If set only files in that directories can be accessed. Multiple directories can be separated by semicolon (";").',
@@ -379,8 +378,6 @@ export const schema = {
 		},
 	},
 
-=======
->>>>>>> tags/n8n@1.74.1
 	workflowTagsDisabled: {
 		format: Boolean,
 		default: false,
@@ -538,7 +535,6 @@ export const schema = {
 		},
 	},
 
-<<<<<<< HEAD
 	diagnostics: {
 		enabled: {
 			doc: 'Whether diagnostic mode is enabled.',
@@ -584,8 +580,6 @@ export const schema = {
 		},
 	},
 
-=======
->>>>>>> tags/n8n@1.74.1
 	defaultLocale: {
 		doc: 'Default locale for the UI',
 		format: String,

@@ -44,11 +44,7 @@ defineOptions({
 		<slot />
 		<template #content>
 			<slot name="content">
-<<<<<<< HEAD
-				<div v-html="content"></div>
-=======
 				<div v-n8n-html="props.content"></div>
->>>>>>> tags/n8n@1.74.1
 			</slot>
 			<div
 				v-if="props.buttons.length"

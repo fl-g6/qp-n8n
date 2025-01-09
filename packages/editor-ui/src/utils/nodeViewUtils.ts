@@ -22,11 +22,7 @@ import type {
 	NodeInputConnections,
 	Workflow,
 } from 'n8n-workflow';
-<<<<<<< HEAD
-import { NodeConnectionType } from 'n8n-workflow';
-=======
 import { NodeConnectionType, NodeHelpers } from 'n8n-workflow';
->>>>>>> tags/n8n@1.74.1
 import type { BrowserJsPlumbInstance } from '@jsplumb/browser-ui';
 import { EVENT_CONNECTION_MOUSEOUT, EVENT_CONNECTION_MOUSEOVER } from '@jsplumb/browser-ui';
 import { useUIStore } from '@/stores/ui.store';
@@ -1132,17 +1128,10 @@ export const getJSPlumbEndpoints = (
 	node: INodeUi | null,
 	instance: BrowserJsPlumbInstance,
 ): Endpoint[] => {
-<<<<<<< HEAD
-	const nodeEl = instance.getManagedElement(node?.id);
-
-	const endpoints = instance?.getEndpoints(nodeEl);
-	return endpoints;
-=======
 	if (!node) return [];
 
 	const nodeEl = instance.getManagedElement(node?.id);
 	return instance?.getEndpoints(nodeEl);
->>>>>>> tags/n8n@1.74.1
 };
 
 export const getPlusEndpoint = (
@@ -1153,10 +1142,6 @@ export const getPlusEndpoint = (
 	const endpoints = getJSPlumbEndpoints(node, instance);
 	return endpoints.find(
 		(endpoint: Endpoint) =>
-<<<<<<< HEAD
-			// @ts-ignore
-=======
->>>>>>> tags/n8n@1.74.1
 			endpoint.endpoint.type === 'N8nPlus' && endpoint?.__meta?.index === outputIndex,
 	);
 };
@@ -1166,11 +1151,7 @@ export const getJSPlumbConnection = (
 	sourceOutputIndex: number,
 	targetNode: INodeUi | null,
 	targetInputIndex: number,
-<<<<<<< HEAD
-	connectionType: ConnectionTypes,
-=======
 	connectionType: NodeConnectionType,
->>>>>>> tags/n8n@1.74.1
 	sourceNodeType: INodeTypeDescription | null,
 	instance: BrowserJsPlumbInstance,
 ): Connection | undefined => {
@@ -1184,14 +1165,6 @@ export const getJSPlumbConnection = (
 	const sourceEndpoint = getOutputEndpointUUID(sourceId, connectionType, sourceOutputIndex);
 	const targetEndpoint = getInputEndpointUUID(targetId, connectionType, targetInputIndex);
 
-<<<<<<< HEAD
-	const sourceNodeOutput = sourceNodeType?.outputs?.[sourceOutputIndex] || NodeConnectionType.Main;
-	const sourceNodeOutputName =
-		typeof sourceNodeOutput === 'string' ? sourceNodeOutput : sourceNodeOutput.name;
-	const scope = getEndpointScope(sourceNodeOutputName);
-
-	// @ts-ignore
-=======
 	const sourceNodeOutput = sourceNodeType?.outputs?.[sourceOutputIndex] ?? NodeConnectionType.Main;
 	const sourceNodeOutputName =
 		typeof sourceNodeOutput === 'string'
@@ -1201,28 +1174,21 @@ export const getJSPlumbConnection = (
 				: '';
 	const scope = getEndpointScope(sourceNodeOutputName);
 
->>>>>>> tags/n8n@1.74.1
 	const connections = instance?.getConnections({
 		scope,
 		source: sourceId,
 		target: targetId,
-<<<<<<< HEAD
-	}) as Connection[];
-=======
 	} as SelectOptions<Element>);
 
 	if (!Array.isArray(connections)) {
 		return;
 	}
->>>>>>> tags/n8n@1.74.1
 
 	return connections.find((connection: Connection) => {
 		const uuids = connection.getUuids();
 		return uuids[0] === sourceEndpoint && uuids[1] === targetEndpoint;
 	});
 };
-<<<<<<< HEAD
-=======
 
 export function getGenericHints({
 	workflowNode,
@@ -1360,4 +1326,3 @@ export function generateOffsets(nodeCount: number, nodeSize: number, gridSize: n
 
 	return offsets;
 }
->>>>>>> tags/n8n@1.74.1

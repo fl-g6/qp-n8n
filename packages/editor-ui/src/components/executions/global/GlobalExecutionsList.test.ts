@@ -21,10 +21,7 @@ vi.mock('vue-router', () => ({
 	useRoute: vi.fn().mockReturnValue({
 		name: VIEWS.WORKFLOW_EXECUTIONS,
 	}),
-<<<<<<< HEAD:packages/editor-ui/src/components/__tests__/ExecutionsList.test.ts
-=======
 	useRouter: vi.fn(),
->>>>>>> tags/n8n@1.74.1:packages/editor-ui/src/components/executions/global/GlobalExecutionsList.test.ts
 	RouterLink: vi.fn(),
 }));
 

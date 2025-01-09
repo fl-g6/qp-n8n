@@ -542,14 +542,9 @@ export class Redis implements INodeType {
 		) {
 			const items = this.getInputData();
 
-<<<<<<< HEAD
-				let item: INodeExecutionData;
-				for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
-=======
 			let item: INodeExecutionData;
 			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 				try {
->>>>>>> tags/n8n@1.74.1
 					item = { json: {}, pairedItem: { item: itemIndex } };
 
 					if (operation === 'delete') {

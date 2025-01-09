@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import validator from 'validator';
-import { User } from '@db/entities/User';
-import { SharedCredentials } from '@db/entities/SharedCredentials';
-import { SharedWorkflow } from '@db/entities/SharedWorkflow';
-import { In } from 'typeorm';
-=======
 import { RoleChangeRequestDto, SettingsUpdateRequestDto } from '@n8n/api-types';
 import { Response } from 'express';
 import { Logger } from 'n8n-core';
@@ -18,7 +11,6 @@ import { ProjectRepository } from '@/databases/repositories/project.repository';
 import { SharedCredentialsRepository } from '@/databases/repositories/shared-credentials.repository';
 import { SharedWorkflowRepository } from '@/databases/repositories/shared-workflow.repository';
 import { UserRepository } from '@/databases/repositories/user.repository';
->>>>>>> tags/n8n@1.74.1
 import {
 	GlobalScope,
 	Delete,
@@ -26,34 +18,10 @@ import {
 	RestController,
 	Patch,
 	Licensed,
-<<<<<<< HEAD
-	Post,
-=======
 	Body,
 	Param,
->>>>>>> tags/n8n@1.74.1
 } from '@/decorators';
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
-<<<<<<< HEAD
-import { InternalServerError } from '@/errors/response-errors/internal-server.error';
-import { ErrorReporterProxy as ErrorReporter } from 'n8n-workflow';
-import { ExternalHooks } from '@/ExternalHooks';
-import { InternalHooks } from '@/InternalHooks';
-import { validateEntity } from '@/GenericHelpers';
-import type { PostHogClient } from '@/posthog';
-import { Response } from 'express';
-import {
-	getInstanceBaseUrl,
-	generateUserInviteUrl,
-	validatePassword,
-	hashPassword,
-	sanitizeUser,
-	withFeatureFlags,
-} from '@/UserManagement/UserManagementHelper';
-import { issueCookie } from '@/auth/jwt';
-import { RoleRepository } from '@/databases/repositories/role.repository';
-import { UserManagementMailer } from '@/UserManagement/email';
-=======
 import { ForbiddenError } from '@/errors/response-errors/forbidden.error';
 import { NotFoundError } from '@/errors/response-errors/not-found.error';
 import { EventService } from '@/events/event.service';
@@ -64,7 +32,6 @@ import { AuthenticatedRequest, ListQuery, UserRequest } from '@/requests';
 import { ProjectService } from '@/services/project.service.ee';
 import { UserService } from '@/services/user.service';
 import { WorkflowService } from '@/workflows/workflow.service';
->>>>>>> tags/n8n@1.74.1
 
 @RestController('/users')
 export class UsersController {
@@ -76,16 +43,11 @@ export class UsersController {
 		private readonly userRepository: UserRepository,
 		private readonly authService: AuthService,
 		private readonly userService: UserService,
-<<<<<<< HEAD
-		private readonly roleRepository: RoleRepository,
-		private readonly mailer: UserManagementMailer,
-=======
 		private readonly projectRepository: ProjectRepository,
 		private readonly workflowService: WorkflowService,
 		private readonly credentialsService: CredentialsService,
 		private readonly projectService: ProjectService,
 		private readonly eventService: EventService,
->>>>>>> tags/n8n@1.74.1
 	) {}
 
 	private readonly postHog?: PostHogClient;

@@ -445,10 +445,6 @@ toDateTime.doc = {
 
 minus.doc = {
 	name: 'minus',
-<<<<<<< HEAD
-	description: 'Subtracts a given time period from a Date. Default unit is `milliseconds`.',
-	returnType: 'Date',
-=======
 	description: 'Subtracts a given period of time from the DateTime',
 	examples: [
 		{
@@ -462,7 +458,6 @@ minus.doc = {
 	],
 	section: 'edit',
 	returnType: 'DateTime',
->>>>>>> tags/n8n@1.74.1
 	args: [
 		{
 			name: 'n',
@@ -484,10 +479,6 @@ minus.doc = {
 
 plus.doc = {
 	name: 'plus',
-<<<<<<< HEAD
-	description: 'Adds a given time period to a Date. Default unit is `milliseconds`.',
-	returnType: 'Date',
-=======
 	description: 'Adds a given period of time to the DateTime',
 	examples: [
 		{
@@ -501,7 +492,6 @@ plus.doc = {
 	],
 	section: 'edit',
 	returnType: 'DateTime',
->>>>>>> tags/n8n@1.74.1
 	args: [
 		{
 			name: 'n',

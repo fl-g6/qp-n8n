@@ -865,11 +865,6 @@ export type FileRecord = {
 			  };
 	};
 };
-<<<<<<< HEAD:packages/nodes-base/nodes/Notion/GenericFunctions.ts
-// prettier-ignore
-export async function downloadFiles(this: IExecuteFunctions | IPollFunctions, records: FileRecord[], pairedItem?: IPairedItemData[]): Promise<INodeExecutionData[]> {
-=======
->>>>>>> tags/n8n@1.74.1:packages/nodes-base/nodes/Notion/shared/GenericFunctions.ts
 
 export async function downloadFiles(
 	this: IExecuteFunctions | IPollFunctions,

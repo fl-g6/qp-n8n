@@ -152,8 +152,6 @@ describe('MSSQL tests', () => {
 			expect(chunks.map((chunk) => chunk.length)).toEqual([699, 699, 699, 699, 204]);
 		});
 	});
-<<<<<<< HEAD
-=======
 
 	describe('executeSqlQueryAndPrepareResults', () => {
 		it('should handle SELECT query with single record', async () => {
@@ -244,5 +242,4 @@ describe('MSSQL tests', () => {
 			);
 		});
 	});
->>>>>>> tags/n8n@1.74.1
 });

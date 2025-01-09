@@ -4,16 +4,11 @@ import type { Connection, ConnectionDetachedParams } from '@jsplumb/core';
 import { useHistoryStore } from '@/stores/history.store';
 import {
 	CUSTOM_API_CALL_KEY,
-<<<<<<< HEAD
-	NODE_OUTPUT_DEFAULT_KEY,
-	PLACEHOLDER_FILLED_AT_EXECUTION_TIME,
-=======
 	FORM_TRIGGER_NODE_TYPE,
 	NODE_OUTPUT_DEFAULT_KEY,
 	PLACEHOLDER_FILLED_AT_EXECUTION_TIME,
 	SPLIT_IN_BATCHES_NODE_TYPE,
 	WEBHOOK_NODE_TYPE,
->>>>>>> tags/n8n@1.74.1
 } from '@/constants';
 
 import { NodeHelpers, ExpressionEvaluatorProxy, NodeConnectionType } from 'n8n-workflow';
@@ -36,14 +31,11 @@ import type {
 	INodeCredentialsDetails,
 	INodeParameters,
 	ITaskData,
-<<<<<<< HEAD
-=======
 	IConnections,
 	INodeTypeNameVersion,
 	IConnection,
 	IPinData,
 	NodeParameterValue,
->>>>>>> tags/n8n@1.74.1
 } from 'n8n-workflow';
 
 import type {
@@ -63,13 +55,6 @@ import { get } from 'lodash-es';
 import { useI18n } from './useI18n';
 import { AddNodeCommand, EnableNodeToggleCommand, RemoveConnectionCommand } from '@/models/history';
 import { useTelemetry } from './useTelemetry';
-<<<<<<< HEAD
-import { getCredentialPermissions } from '@/permissions';
-import { hasPermission } from '@/rbac/permissions';
-import type { N8nPlusEndpoint } from '@/plugins/jsplumb/N8nPlusEndpointType';
-import * as NodeViewUtils from '@/utils/nodeViewUtils';
-import { useCanvasStore } from '@/stores/canvas.store';
-=======
 import { hasPermission } from '@/utils/rbac/permissions';
 import type { N8nPlusEndpoint } from '@/plugins/jsplumb/N8nPlusEndpointType';
 import * as NodeViewUtils from '@/utils/nodeViewUtils';
@@ -78,7 +63,6 @@ import { getEndpointScope } from '@/utils/nodeViewUtils';
 import { useSourceControlStore } from '@/stores/sourceControl.store';
 import { getConnectionInfo } from '@/utils/canvasUtils';
 import type { UnpinNodeDataEvent } from '@/event-bus/data-pinning';
->>>>>>> tags/n8n@1.74.1
 
 declare namespace HttpRequestNode {
 	namespace V2 {
@@ -97,8 +81,6 @@ export function useNodeHelpers() {
 	const workflowsStore = useWorkflowsStore();
 	const i18n = useI18n();
 	const canvasStore = useCanvasStore();
-<<<<<<< HEAD
-=======
 	const sourceControlStore = useSourceControlStore();
 	const route = useRoute();
 
@@ -106,7 +88,6 @@ export function useNodeHelpers() {
 	const credentialsUpdated = ref(false);
 	const isProductionExecutionPreview = ref(false);
 	const pullConnActiveNodeName = ref<string | null>(null);
->>>>>>> tags/n8n@1.74.1
 
 	function hasProxyAuth(node: INodeUi): boolean {
 		return Object.keys(node.parameters).includes('nodeCredentialType');
@@ -792,20 +773,12 @@ export function useNodeHelpers() {
 
 		const allNodeConnections = workflowsStore.outgoingConnectionsByNodeName(sourceNode.name);
 
-<<<<<<< HEAD
-		const connectionType = Object.keys(allNodeConnections)[0];
-=======
 		const connectionType = Object.keys(allNodeConnections)[0] as NodeConnectionType;
->>>>>>> tags/n8n@1.74.1
 		const nodeConnections = allNodeConnections[connectionType];
 		const outputMap = NodeViewUtils.getOutputSummary(
 			data,
 			nodeConnections || [],
-<<<<<<< HEAD
-			(connectionType as ConnectionTypes) ?? NodeConnectionType.Main,
-=======
 			connectionType ?? NodeConnectionType.Main,
->>>>>>> tags/n8n@1.74.1
 		);
 		const sourceNodeType = nodeTypesStore.getNodeType(sourceNode.type, sourceNode.typeVersion);
 
@@ -820,11 +793,7 @@ export function useNodeHelpers() {
 								parseInt(sourceOutputIndex, 10),
 								targetNode,
 								parseInt(targetInputIndex, 10),
-<<<<<<< HEAD
-								connectionType as ConnectionTypes,
-=======
 								connectionType,
->>>>>>> tags/n8n@1.74.1
 								sourceNodeType,
 								canvasStore.jsPlumbInstance,
 							);
@@ -864,8 +833,6 @@ export function useNodeHelpers() {
 		});
 	}
 
-<<<<<<< HEAD
-=======
 	function matchCredentials(node: INodeUi) {
 		if (!node.credentials) {
 			return;
@@ -1346,7 +1313,6 @@ export function useNodeHelpers() {
 		return false;
 	}
 
->>>>>>> tags/n8n@1.74.1
 	return {
 		hasProxyAuth,
 		isCustomApiCallSelected,
@@ -1367,8 +1333,6 @@ export function useNodeHelpers() {
 		updateNodesCredentialsIssues,
 		getNodeInputData,
 		setSuccessOutput,
-<<<<<<< HEAD
-=======
 		matchCredentials,
 		isInsertingNodes,
 		credentialsUpdated,
@@ -1387,6 +1351,5 @@ export function useNodeHelpers() {
 		assignNodeId,
 		assignWebhookId,
 		isSingleExecution,
->>>>>>> tags/n8n@1.74.1
 	};
 }

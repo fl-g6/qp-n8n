@@ -35,11 +35,7 @@ export const INSTANCE_MEMBERS = [
 ];
 
 export const MANUAL_TRIGGER_NODE_NAME = 'Manual Trigger';
-<<<<<<< HEAD
-export const MANUAL_TRIGGER_NODE_DISPLAY_NAME = 'When clicking "Test workflow"';
-=======
 export const MANUAL_TRIGGER_NODE_DISPLAY_NAME = 'When clicking ‘Test workflow’';
->>>>>>> tags/n8n@1.74.1
 export const MANUAL_CHAT_TRIGGER_NODE_NAME = 'Chat Trigger';
 export const CHAT_TRIGGER_NODE_DISPLAY_NAME = 'When chat message received';
 export const SCHEDULE_TRIGGER_NODE_NAME = 'Schedule Trigger';

@@ -1,11 +1,7 @@
 import { SCHEDULE_TRIGGER_NODE_NAME, EDIT_FIELDS_SET_NODE_NAME } from '../constants';
 import { NDV, WorkflowExecutionsTab, WorkflowPage as WorkflowPageClass } from '../pages';
-<<<<<<< HEAD
-import { SCHEDULE_TRIGGER_NODE_NAME, EDIT_FIELDS_SET_NODE_NAME } from '../constants';
-=======
 import { clearNotifications, errorToast, successToast } from '../pages/notifications';
 import { isCanvasV2 } from '../utils/workflowUtils';
->>>>>>> tags/n8n@1.74.1
 
 const workflowPage = new WorkflowPageClass();
 const executionsTab = new WorkflowExecutionsTab();
@@ -515,8 +511,6 @@ describe('Execution', () => {
 				.should('have.class', 'pinned')
 				.should('have.class', 'has-run');
 		});
-<<<<<<< HEAD
-=======
 	});
 
 	it('should send proper payload for node rerun', () => {
@@ -680,6 +674,5 @@ describe('Execution', () => {
 			.find('.connection-run-items-label')
 			.filter(':contains("5 items")')
 			.should('have.length', 2);
->>>>>>> tags/n8n@1.74.1
 	});
 });

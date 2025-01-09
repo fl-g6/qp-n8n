@@ -10,17 +10,7 @@ import { GlobalConfig } from '@n8n/config';
 import { Container } from '@n8n/di';
 import type express from 'express';
 import get from 'lodash/get';
-<<<<<<< HEAD:packages/cli/src/WebhookHelpers.ts
-import stream from 'stream';
-import { promisify } from 'util';
-import formidable from 'formidable';
-
-import * as GenericHelpers from '@/GenericHelpers';
-import { BinaryDataService, NodeExecuteFunctions } from 'n8n-core';
-
-=======
 import { BinaryDataService, ErrorReporter, Logger } from 'n8n-core';
->>>>>>> tags/n8n@1.74.1:packages/cli/src/webhooks/webhook-helpers.ts
 import type {
 	IBinaryData,
 	IBinaryKeyData,

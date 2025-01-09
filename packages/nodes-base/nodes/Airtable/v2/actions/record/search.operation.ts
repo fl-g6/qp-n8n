@@ -203,17 +203,6 @@ export async function execute(
 				responseData = await apiRequest.call(this, 'GET', endpoint, body, qs);
 			}
 
-<<<<<<< HEAD
-		if (options.downloadFields) {
-			const pairedItem = generatePairedItemData(items.length);
-			return await downloadRecordAttachments.call(
-				this,
-				responseData.records as IRecord[],
-				options.downloadFields as string[],
-				pairedItem,
-			);
-		}
-=======
 			if (options.downloadFields) {
 				const itemWithAttachments = await downloadRecordAttachments.call(
 					this,
@@ -224,7 +213,6 @@ export async function execute(
 				returnData.push(...itemWithAttachments);
 				continue;
 			}
->>>>>>> tags/n8n@1.74.1
 
 			let records = responseData.records;
 

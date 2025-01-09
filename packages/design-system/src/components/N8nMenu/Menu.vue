@@ -126,7 +126,6 @@ const onSelect = (item: IMenuItem): void => {
 	</div>
 </template>
 
-<<<<<<< HEAD
 <script lang="ts">
 import { ElMenu } from 'element-plus';
 import N8nMenuItem from '../N8nMenuItem';
@@ -227,8 +226,6 @@ export default defineComponent({
 });
 </script>
 
-=======
->>>>>>> tags/n8n@1.74.1
 <style lang="scss" module>
 .container {
 	height: 100%;

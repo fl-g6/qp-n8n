@@ -675,11 +675,7 @@ describe('generateNodesGraph', () => {
 				{
 					parameters: {},
 					id: 'fe69383c-e418-4f98-9c0e-924deafa7f93',
-<<<<<<< HEAD
-					name: 'When clicking "Test workflow"',
-=======
 					name: 'When clicking ‘Test workflow’',
->>>>>>> tags/n8n@1.74.1
 					type: 'n8n-nodes-base.manualTrigger',
 					typeVersion: 1,
 					position: [540, 220],
@@ -704,11 +700,7 @@ describe('generateNodesGraph', () => {
 				},
 			],
 			connections: {
-<<<<<<< HEAD
-				'When clicking "Test workflow"': {
-=======
 				'When clicking ‘Test workflow’': {
->>>>>>> tags/n8n@1.74.1
 					main: [
 						[
 							{
@@ -774,11 +766,7 @@ describe('generateNodesGraph', () => {
 				is_pinned: false,
 			},
 			nameIndices: {
-<<<<<<< HEAD
-				'When clicking "Test workflow"': '0',
-=======
 				'When clicking ‘Test workflow’': '0',
->>>>>>> tags/n8n@1.74.1
 				Chain: '1',
 				Model: '2',
 			},

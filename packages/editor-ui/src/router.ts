@@ -13,12 +13,6 @@ import { useUIStore } from '@/stores/ui.store';
 import { useSSOStore } from '@/stores/sso.store';
 import { EnterpriseEditionFeature, VIEWS, EDITABLE_CANVAS_VIEWS } from '@/constants';
 import { useTelemetry } from '@/composables/useTelemetry';
-<<<<<<< HEAD
-import { middleware } from '@/rbac/middleware';
-import type { RouteConfig, RouterMiddleware } from '@/types/router';
-import { initializeCore } from '@/init';
-import { ROLE } from '@/utils/userUtils';
-=======
 import { middleware } from '@/utils/rbac/middleware';
 import type { RouterMiddleware } from '@/types/router';
 import { initializeAuthenticatedFeatures, initializeCore } from '@/init';
@@ -26,7 +20,6 @@ import { tryToParseNumber } from '@/utils/typesUtils';
 import { projectsRoutes } from '@/routes/projects.routes';
 import TestDefinitionRunsListView from './views/TestDefinition/TestDefinitionRunsListView.vue';
 import TestDefinitionRunDetailView from './views/TestDefinition/TestDefinitionRunDetailView.vue';
->>>>>>> tags/n8n@1.74.1
 
 const ChangePasswordView = async () => await import('./views/ChangePasswordView.vue');
 const ErrorView = async () => await import('./views/ErrorView.vue');
@@ -734,30 +727,6 @@ export const routes: RouteRecordRaw[] = [
 				},
 			},
 			{
-<<<<<<< HEAD
-				path: 'coming-soon/:featureId',
-				name: VIEWS.FAKE_DOOR,
-				components: {
-					settingsView: SettingsFakeDoorView,
-				},
-				meta: {
-					middleware: ['authenticated', 'role'],
-					middlewareOptions: {
-						role: [ROLE.Owner]
-					},
-					telemetry: {
-						pageCategory: 'settings',
-						getProperties(route: RouteLocation) {
-							return {
-								feature: route.params.featureId,
-							};
-						},
-					},
-				},
-			},
-			{
-=======
->>>>>>> tags/n8n@1.74.1
 				path: 'ldap',
 				name: VIEWS.LDAP_SETTINGS,
 				components: {
@@ -839,11 +808,7 @@ const router = createRouter({
 	routes: routes.map(withCanvasReadOnlyMeta),
 });
 
-<<<<<<< HEAD
-router.beforeEach(async (to: RouteLocationNormalized & RouteConfig, from, next) => {
-=======
 router.beforeEach(async (to: RouteLocationNormalized, from, next) => {
->>>>>>> tags/n8n@1.74.1
 	try {
 		/**
 		 * Initialize application core
@@ -851,10 +816,7 @@ router.beforeEach(async (to: RouteLocationNormalized, from, next) => {
 		 */
 
 		await initializeCore();
-<<<<<<< HEAD
-=======
 		await initializeAuthenticatedFeatures();
->>>>>>> tags/n8n@1.74.1
 
 		/**
 		 * Redirect to setup page. User should be redirected to this only once
