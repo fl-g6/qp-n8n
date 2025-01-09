@@ -36,6 +36,15 @@ git checkout upgrade/n8n-v1.74.1
 git merge tags/n8n@1.74.1
 ```
 
+Resolving merge conflicts:
+- To find all merge conflicts, search for ">>>>>>> n8n@1.74.1" in all files.
+- Open changes: https://github.com/n8n-io/n8n/compare/master...fl-g6:qp-n8n:master
+- For each conflict file do:
+  - Open file
+  - Look for original [changes](https://github.com/n8n-io/n8n/compare/master...fl-g6:qp-n8n:master) in file **to understand what was implemented and why**.
+  - In general case, we have to accept **incomming changes** and apply qickplay changes according to new architecture/changes.
+
+
 git merge tags/n8n@1.74.1
 Auto-merging CHANGELOG.md
 CONFLICT (content): Merge conflict in CHANGELOG.md
