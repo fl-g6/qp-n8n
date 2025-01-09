@@ -10,11 +10,12 @@ import {
 } from '@jsplumb/browser-ui';
 
 export type ComputedN8nPlusEndpoint = [number, number, number, number, number];
+export type N8nEndpointLabelLength = 'small' | 'medium' | 'large';
 interface N8nPlusEndpointParams extends EndpointRepresentationParams {
 	dimensions: number;
 	connectedEndpoint: Endpoint;
 	hoverMessage: string;
-	endpointLabelLength: 'small' | 'medium';
+	endpointLabelLength: N8nEndpointLabelLength;
 	size: 'small' | 'medium';
 	showOutputLabel: boolean;
 }
@@ -107,7 +108,6 @@ export class N8nPlusEndpoint extends EndpointRepresentation<ComputedN8nPlusEndpo
 			this[`${fnKey}Class`]('long-stalk');
 
 			if (this.label) {
-				// @ts-expect-error: Overlay interface is missing the `canvas` property
 				stalkOverlay.canvas.setAttribute('data-label', this.label);
 			}
 		}
@@ -182,7 +182,13 @@ export class N8nPlusEndpoint extends EndpointRepresentation<ComputedN8nPlusEndpo
 export const N8nPlusEndpointHandler: EndpointHandler<N8nPlusEndpoint, ComputedN8nPlusEndpoint> = {
 	type: N8nPlusEndpoint.type,
 	cls: N8nPlusEndpoint,
-	compute: (ep: N8nPlusEndpoint, anchorPoint: AnchorPlacement): ComputedN8nPlusEndpoint => {
+	compute: (
+		ep: EndpointRepresentation<ComputedN8nPlusEndpoint>,
+		anchorPoint: AnchorPlacement,
+	): ComputedN8nPlusEndpoint => {
+		if (!(ep instanceof N8nPlusEndpoint)) {
+			throw Error('Unexpected Endpoint type');
+		}
 		const x = anchorPoint.curX - ep.params.dimensions / 2;
 		const y = anchorPoint.curY - ep.params.dimensions / 2;
 		const w = ep.params.dimensions;

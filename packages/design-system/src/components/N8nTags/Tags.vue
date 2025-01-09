@@ -1,10 +1,63 @@
+<script lang="ts" setup>
+import { computed, ref } from 'vue';
+
+import { useI18n } from '../../composables/useI18n';
+import N8nLink from '../N8nLink';
+import N8nTag from '../N8nTag';
+
+interface ITag {
+	id: string;
+	name: string;
+}
+
+interface TagsProp {
+	tags?: ITag[];
+	truncate?: boolean;
+	truncateAt?: number;
+	clickable?: boolean;
+}
+
+defineOptions({ name: 'N8nTags' });
+const props = withDefaults(defineProps<TagsProp>(), {
+	tags: () => [],
+	truncate: false,
+	truncateAt: 3,
+	clickable: true,
+});
+
+const emit = defineEmits<{
+	expand: [value: boolean];
+	'click:tag': [tagId: string, e: MouseEvent];
+}>();
+
+const { t } = useI18n();
+
+const showAll = ref(false);
+
+const visibleTags = computed((): ITag[] => {
+	const { tags, truncate, truncateAt } = props;
+	if (truncate && !showAll.value && tags.length > truncateAt) {
+		return tags.slice(0, truncateAt);
+	}
+	return tags;
+});
+
+const hiddenTagsLength = computed((): number => props.tags.length - props.truncateAt);
+
+const onExpand = () => {
+	showAll.value = true;
+	emit('expand', true);
+};
+</script>
+
 <template>
 	<div :class="['n8n-tags', $style.tags]">
 		<N8nTag
 			v-for="tag in visibleTags"
 			:key="tag.id"
 			:text="tag.name"
-			@click="$emit('click:tag', tag.id, $event)"
+			:clickable="clickable"
+			@click="emit('click:tag', tag.id, $event)"
 		/>
 		<N8nLink
 			v-if="truncate && !showAll && hiddenTagsLength > 0"
@@ -13,69 +66,10 @@
 			size="small"
 			@click.stop.prevent="onExpand"
 		>
-			{{ t('tags.showMore', `${hiddenTagsLength}`) }}
+			{{ t('tags.showMore', [`${hiddenTagsLength}`]) }}
 		</N8nLink>
 	</div>
 </template>
-
-<script lang="ts">
-import N8nTag from '../N8nTag';
-import N8nLink from '../N8nLink';
-import Locale from '../../mixins/locale';
-import type { PropType } from 'vue';
-import { defineComponent } from 'vue';
-
-export interface ITag {
-	id: string;
-	name: string;
-}
-
-export default defineComponent({
-	name: 'N8nTags',
-	components: {
-		N8nTag,
-		N8nLink,
-	},
-	mixins: [Locale],
-	props: {
-		tags: {
-			type: Array as PropType<ITag[]>,
-			default: () => [],
-		},
-		truncate: {
-			type: Boolean,
-			default: false,
-		},
-		truncateAt: {
-			type: Number,
-			default: 3,
-		},
-	},
-	data() {
-		return {
-			showAll: false,
-		};
-	},
-	computed: {
-		visibleTags(): ITag[] {
-			if (this.truncate && !this.showAll && this.tags.length > this.truncateAt) {
-				return this.tags.slice(0, this.truncateAt);
-			}
-
-			return this.tags;
-		},
-		hiddenTagsLength(): number {
-			return this.tags.length - this.truncateAt;
-		},
-	},
-	methods: {
-		onExpand() {
-			this.showAll = true;
-			this.$emit('expand', true);
-		},
-	},
-});
-</script>
 
 <style lang="scss" module>
 .tags {

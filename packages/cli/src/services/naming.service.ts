@@ -1,6 +1,7 @@
-import { Service } from 'typedi';
-import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
+import { Service } from '@n8n/di';
+
 import { CredentialsRepository } from '@/databases/repositories/credentials.repository';
+import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
 
 @Service()
 export class NamingService {
@@ -10,11 +11,11 @@ export class NamingService {
 	) {}
 
 	async getUniqueWorkflowName(requestedName: string) {
-		return this.getUniqueName(requestedName, 'workflow');
+		return await this.getUniqueName(requestedName, 'workflow');
 	}
 
 	async getUniqueCredentialName(requestedName: string) {
-		return this.getUniqueName(requestedName, 'credential');
+		return await this.getUniqueName(requestedName, 'credential');
 	}
 
 	private async getUniqueName(requestedName: string, entity: 'workflow' | 'credential') {

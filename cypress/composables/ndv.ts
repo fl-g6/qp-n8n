@@ -2,6 +2,8 @@
  * Getters
  */
 
+import { getVisibleSelect } from '../utils/popper';
+
 export function getCredentialSelect(eq = 0) {
 	return cy.getByTestId('node-credentials-select').eq(eq);
 }
@@ -38,8 +40,48 @@ export function getOutputPanelDataContainer() {
 	return getOutputPanel().getByTestId('ndv-data-container');
 }
 
+export function getOutputTableRows() {
+	return getOutputPanelDataContainer().find('table tr');
+}
+
+export function getOutputTableRow(row: number) {
+	return getOutputTableRows().eq(row);
+}
+
+export function getOutputTableHeaders() {
+	return getOutputPanelDataContainer().find('table thead th');
+}
+
+export function getOutputTableHeaderByText(text: string) {
+	return getOutputTableHeaders().contains(text);
+}
+
+export function getOutputTbodyCell(row: number, col: number) {
+	return getOutputTableRows().eq(row).find('td').eq(col);
+}
+
+export function getOutputRunSelector() {
+	return getOutputPanel().findChildByTestId('run-selector');
+}
+
+export function getOutputRunSelectorInput() {
+	return getOutputRunSelector().find('input');
+}
+
 export function getOutputPanelTable() {
 	return getOutputPanelDataContainer().get('table');
+}
+
+export function getRunDataInfoCallout() {
+	return cy.getByTestId('run-data-callout');
+}
+
+export function getOutputPanelItemsCount() {
+	return getOutputPanel().getByTestId('ndv-items-count');
+}
+
+export function getOutputPanelRelatedExecutionLink() {
+	return getOutputPanel().getByTestId('related-execution-link');
 }
 
 /**
@@ -57,7 +99,7 @@ export function setCredentialByName(name: string) {
 
 export function clickCreateNewCredential() {
 	openCredentialSelect();
-	getCreateNewCredentialOption().click();
+	getCreateNewCredentialOption().click({ force: true });
 }
 
 export function clickGetBackToCanvas() {
@@ -70,4 +112,18 @@ export function clickExecuteNode() {
 
 export function setParameterInputByName(name: string, value: string) {
 	getParameterInputByName(name).clear().type(value);
+}
+
+export function toggleParameterCheckboxInputByName(name: string) {
+	getParameterInputByName(name).find('input[type="checkbox"]').realClick();
+}
+
+export function setParameterSelectByContent(name: string, content: string) {
+	getParameterInputByName(name).realClick();
+	getVisibleSelect().find('.option-headline').contains(content).click();
+}
+
+export function changeOutputRunSelector(runName: string) {
+	getOutputRunSelector().click();
+	getVisibleSelect().find('.el-select-dropdown__item').contains(runName).click();
 }

@@ -1,6 +1,7 @@
 import type { IDataObject, ILoadOptionsFunctions, INodeListSearchResult } from 'n8n-workflow';
-import { getSubfolders, microsoftApiRequest } from '../transport';
+
 import { encodeOutlookId } from '../helpers/utils';
+import { getSubfolders, microsoftApiRequest } from '../transport';
 
 async function search(
 	this: ILoadOptionsFunctions,
@@ -50,7 +51,7 @@ export async function searchContacts(
 	filter?: string,
 	paginationToken?: string,
 ): Promise<INodeListSearchResult> {
-	return search.call(this, '/contacts', 'displayName', filter, paginationToken);
+	return await search.call(this, '/contacts', 'displayName', filter, paginationToken);
 }
 
 export async function searchCalendars(
@@ -58,7 +59,7 @@ export async function searchCalendars(
 	filter?: string,
 	paginationToken?: string,
 ): Promise<INodeListSearchResult> {
-	return search.call(this, '/calendars', 'name', filter, paginationToken);
+	return await search.call(this, '/calendars', 'name', filter, paginationToken);
 }
 
 export async function searchDrafts(

@@ -1,4 +1,5 @@
 import type { INodeProperties } from 'n8n-workflow';
+
 import { DEFAULT_STEP_EXECUTOR_HUMAN_CHAT_MESSAGE_TEMPLATE } from './prompt';
 
 export const planAndExecuteAgentProperties: INodeProperties[] = [
@@ -39,7 +40,7 @@ export const planAndExecuteAgentProperties: INodeProperties[] = [
 				'@version': [1.2],
 			},
 		},
-		default: '={{ $json.chatInput } }',
+		default: '={{ $json.chatInput }}',
 	},
 	{
 		displayName: 'Options',

@@ -1,8 +1,12 @@
-import { Service } from 'typedi';
-import type { EntityManager, FindManyOptions } from 'typeorm';
-import { DataSource, In, IsNull, Not, Repository } from 'typeorm';
-import { User } from '../entities/User';
+import { Service } from '@n8n/di';
+import type { DeepPartial, EntityManager, FindManyOptions } from '@n8n/typeorm';
+import { DataSource, In, IsNull, Not, Repository } from '@n8n/typeorm';
+
 import type { ListQuery } from '@/requests';
+
+import { Project } from '../entities/project';
+import { ProjectRelation } from '../entities/project-relation';
+import { type GlobalRole, User } from '../entities/user';
 
 @Service()
 export class UserRepository extends Repository<User> {
@@ -10,11 +14,23 @@ export class UserRepository extends Repository<User> {
 		super(User, dataSource.manager);
 	}
 
-	async findManybyIds(userIds: string[]) {
-		return this.find({
+	async findManyByIds(userIds: string[]) {
+		return await this.find({
 			where: { id: In(userIds) },
-			relations: ['globalRole'],
 		});
+	}
+
+	/**
+	 * @deprecated Use `UserRepository.save` instead if you can.
+	 *
+	 * We need to use `save` so that that the subscriber in
+	 * packages/cli/src/databases/entities/Project.ts receives the full user.
+	 * With `update` it would only receive the updated fields, e.g. the `id`
+	 * would be missing. test('does not use `Repository.update`, but
+	 * `Repository.save` instead'.
+	 */
+	async update(...args: Parameters<Repository<User>['update']>) {
+		return await super.update(...args);
 	}
 
 	async deleteAllExcept(user: User) {
@@ -22,36 +38,50 @@ export class UserRepository extends Repository<User> {
 	}
 
 	async getByIds(transaction: EntityManager, ids: string[]) {
-		return transaction.find(User, { where: { id: In(ids) } });
+		return await transaction.find(User, { where: { id: In(ids) } });
 	}
 
 	async findManyByEmail(emails: string[]) {
-		return this.find({
+		return await this.find({
 			where: { email: In(emails) },
-			relations: ['globalRole'],
 			select: ['email', 'password', 'id'],
 		});
 	}
 
 	async deleteMany(userIds: string[]) {
-		return this.delete({ id: In(userIds) });
+		return await this.delete({ id: In(userIds) });
 	}
 
 	async findNonShellUser(email: string) {
-		return this.findOne({
+		return await this.findOne({
 			where: {
 				email,
 				password: Not(IsNull()),
 			},
-			relations: ['authIdentities', 'globalRole'],
+			relations: ['authIdentities'],
 		});
 	}
 
-	async toFindManyOptions(listQueryOptions?: ListQuery.Options, globalOwnerRoleId?: string) {
+	/** Counts the number of users in each role, e.g. `{ admin: 2, member: 6, owner: 1 }` */
+	async countUsersByRole() {
+		const rows = (await this.createQueryBuilder()
+			.select(['role', 'COUNT(role) as count'])
+			.groupBy('role')
+			.execute()) as Array<{ role: GlobalRole; count: string }>;
+		return rows.reduce(
+			(acc, row) => {
+				acc[row.role] = parseInt(row.count, 10);
+				return acc;
+			},
+			{} as Record<GlobalRole, number>,
+		);
+	}
+
+	async toFindManyOptions(listQueryOptions?: ListQuery.Options) {
 		const findManyOptions: FindManyOptions<User> = {};
 
 		if (!listQueryOptions) {
-			findManyOptions.relations = ['globalRole', 'authIdentities'];
+			findManyOptions.relations = ['authIdentities'];
 			return findManyOptions;
 		}
 
@@ -62,7 +92,7 @@ export class UserRepository extends Repository<User> {
 		if (skip) findManyOptions.skip = skip;
 
 		if (take && !select) {
-			findManyOptions.relations = ['globalRole', 'authIdentities'];
+			findManyOptions.relations = ['authIdentities'];
 		}
 
 		if (take && select && !select?.id) {
@@ -74,14 +104,83 @@ export class UserRepository extends Repository<User> {
 
 			findManyOptions.where = otherFilters;
 
-			if (isOwner !== undefined && globalOwnerRoleId) {
-				findManyOptions.relations = ['globalRole'];
-				findManyOptions.where.globalRole = {
-					id: isOwner ? globalOwnerRoleId : Not(globalOwnerRoleId),
-				};
+			if (isOwner !== undefined) {
+				findManyOptions.where.role = isOwner ? 'global:owner' : Not('global:owner');
 			}
 		}
 
 		return findManyOptions;
+	}
+
+	/**
+	 * Get emails of users who have completed setup, by user IDs.
+	 */
+	async getEmailsByIds(userIds: string[]) {
+		return await this.find({
+			select: ['email'],
+			where: { id: In(userIds), password: Not(IsNull()) },
+		});
+	}
+
+	async createUserWithProject(
+		user: DeepPartial<User>,
+		transactionManager?: EntityManager,
+	): Promise<{ user: User; project: Project }> {
+		const createInner = async (entityManager: EntityManager) => {
+			const newUser = entityManager.create(User, user);
+			const savedUser = await entityManager.save<User>(newUser);
+			const savedProject = await entityManager.save<Project>(
+				entityManager.create(Project, {
+					type: 'personal',
+					name: savedUser.createPersonalProjectName(),
+				}),
+			);
+			await entityManager.save<ProjectRelation>(
+				entityManager.create(ProjectRelation, {
+					projectId: savedProject.id,
+					userId: savedUser.id,
+					role: 'project:personalOwner',
+				}),
+			);
+			return { user: savedUser, project: savedProject };
+		};
+		if (transactionManager) {
+			return await createInner(transactionManager);
+		}
+		// TODO: use a transactions
+		// This is blocked by TypeORM having concurrency issues with transactions
+		return await createInner(this.manager);
+	}
+
+	/**
+	 * Find the user that owns the personal project that owns the workflow.
+	 *
+	 * Returns null if the workflow does not exist or is owned by a team project.
+	 */
+	async findPersonalOwnerForWorkflow(workflowId: string): Promise<User | null> {
+		return await this.findOne({
+			where: {
+				projectRelations: {
+					role: 'project:personalOwner',
+					project: { sharedWorkflows: { workflowId, role: 'workflow:owner' } },
+				},
+			},
+		});
+	}
+
+	/**
+	 * Find the user that owns the personal project.
+	 *
+	 * Returns null if the project does not exist or is not a personal project.
+	 */
+	async findPersonalOwnerForProject(projectId: string): Promise<User | null> {
+		return await this.findOne({
+			where: {
+				projectRelations: {
+					role: 'project:personalOwner',
+					projectId,
+				},
+			},
+		});
 	}
 }

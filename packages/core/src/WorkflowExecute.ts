@@ -2,9 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+import { Container } from '@n8n/di';
+import * as assert from 'assert/strict';
 import { setMaxListeners } from 'events';
-import PCancelable from 'p-cancelable';
-
+import { omit } from 'lodash';
+import get from 'lodash/get';
 import type {
 	ExecutionBaseError,
 	ExecutionStatus,
@@ -33,6 +35,12 @@ import type {
 	IWorkflowExecuteAdditionalData,
 	WorkflowExecuteMode,
 	CloseFunction,
+	StartNodeData,
+	NodeExecutionHint,
+	NodeInputConnections,
+	IRunNodeResponse,
+	IWorkflowIssues,
+	INodeIssues,
 } from 'n8n-workflow';
 import {
 	LoggerProxy as Logger,
@@ -40,9 +48,28 @@ import {
 	NodeHelpers,
 	NodeConnectionType,
 	ApplicationError,
+	NodeExecutionOutput,
+	sleep,
+	ExecutionCancelledError,
+	Node,
 } from 'n8n-workflow';
-import get from 'lodash/get';
+import PCancelable from 'p-cancelable';
+
+import { ErrorReporter } from './error-reporter';
+import { ExecuteContext, PollContext } from './node-execution-context';
 import * as NodeExecuteFunctions from './NodeExecuteFunctions';
+import {
+	DirectedGraph,
+	findStartNodes,
+	findSubgraph,
+	findTriggerForPartialExecution,
+	cleanRunData,
+	recreateNodeExecutionStack,
+	handleCycles,
+	filterDisabledNodes,
+} from './PartialExecutionUtils';
+import { RoutingNode } from './RoutingNode';
+import { TriggersAndPollers } from './TriggersAndPollers';
 
 export class WorkflowExecute {
 	private status: ExecutionStatus = 'new';
@@ -72,7 +99,7 @@ export class WorkflowExecute {
 	 * Executes the given workflow.
 	 *
 	 * @param {Workflow} workflow The workflow to execute
-	 * @param {INode[]} [startNodes] Node to start execution from
+	 * @param {INode[]} [startNode] Node to start execution from
 	 * @param {string} [destinationNode] Node to stop execution at
 	 */
 	// IMPORTANT: Do not add "async" to this function, it will then convert the
@@ -153,11 +180,11 @@ export class WorkflowExecute {
 	// IMPORTANT: Do not add "async" to this function, it will then convert the
 	//            PCancelable to a regular Promise and does so not allow canceling
 	//            active executions anymore
-	// eslint-disable-next-line @typescript-eslint/promise-function-async
+	// eslint-disable-next-line @typescript-eslint/promise-function-async, complexity
 	runPartialWorkflow(
 		workflow: Workflow,
 		runData: IRunData,
-		startNodes: string[],
+		startNodes: StartNodeData[],
 		destinationNode?: string,
 		pinData?: IPinData,
 	): PCancelable<IRun> {
@@ -175,7 +202,7 @@ export class WorkflowExecute {
 		const waitingExecution: IWaitingForExecution = {};
 		const waitingExecutionSource: IWaitingForExecutionSource = {};
 		for (const startNode of startNodes) {
-			incomingNodeConnections = workflow.connectionsByDestinationNode[startNode];
+			incomingNodeConnections = workflow.connectionsByDestinationNode[startNode.name];
 
 			const incomingData: INodeExecutionData[][] = [];
 			let incomingSourceData: ITaskDataConnectionsSource | null = null;
@@ -190,6 +217,9 @@ export class WorkflowExecute {
 				// Get the data of the incoming connections
 				incomingSourceData = { main: [] };
 				for (const connections of incomingNodeConnections.main) {
+					if (!connections) {
+						continue;
+					}
 					for (let inputIndex = 0; inputIndex < connections.length; inputIndex++) {
 						connection = connections[inputIndex];
 
@@ -210,15 +240,13 @@ export class WorkflowExecute {
 							}
 						}
 
-						incomingSourceData.main.push({
-							previousNode: connection.node,
-						});
+						incomingSourceData.main.push(startNode.sourceData ?? { previousNode: connection.node });
 					}
 				}
 			}
 
 			const executeData: IExecuteData = {
-				node: workflow.getNode(startNode) as INode,
+				node: workflow.getNode(startNode.name) as INode,
 				data: {
 					main: incomingData,
 				},
@@ -233,6 +261,9 @@ export class WorkflowExecute {
 				incomingNodeConnections = workflow.connectionsByDestinationNode[destinationNode];
 				if (incomingNodeConnections !== undefined) {
 					for (const connections of incomingNodeConnections.main) {
+						if (!connections) {
+							continue;
+						}
 						for (let inputIndex = 0; inputIndex < connections.length; inputIndex++) {
 							connection = connections[inputIndex];
 
@@ -298,6 +329,81 @@ export class WorkflowExecute {
 		return this.processRunExecutionData(workflow);
 	}
 
+	// IMPORTANT: Do not add "async" to this function, it will then convert the
+	//            PCancelable to a regular Promise and does so not allow canceling
+	//            active executions anymore
+	// eslint-disable-next-line @typescript-eslint/promise-function-async
+	runPartialWorkflow2(
+		workflow: Workflow,
+		runData: IRunData,
+		pinData: IPinData = {},
+		dirtyNodeNames: string[] = [],
+		destinationNodeName?: string,
+	): PCancelable<IRun> {
+		// TODO: Refactor the call-site to make `destinationNodeName` a required
+		// after removing the old partial execution flow.
+		assert.ok(
+			destinationNodeName,
+			'a destinationNodeName is required for the new partial execution flow',
+		);
+
+		const destination = workflow.getNode(destinationNodeName);
+		assert.ok(
+			destination,
+			`Could not find a node with the name ${destinationNodeName} in the workflow.`,
+		);
+
+		// 1. Find the Trigger
+		const trigger = findTriggerForPartialExecution(workflow, destinationNodeName);
+		if (trigger === undefined) {
+			throw new ApplicationError(
+				'The destination node is not connected to any trigger. Partial executions need a trigger.',
+			);
+		}
+
+		// 2. Find the Subgraph
+		let graph = DirectedGraph.fromWorkflow(workflow);
+		graph = findSubgraph({ graph: filterDisabledNodes(graph), destination, trigger });
+		const filteredNodes = graph.getNodes();
+
+		// 3. Find the Start Nodes
+		runData = omit(runData, dirtyNodeNames);
+		let startNodes = findStartNodes({ graph, trigger, destination, runData, pinData });
+
+		// 4. Detect Cycles
+		// 5. Handle Cycles
+		startNodes = handleCycles(graph, startNodes, trigger);
+
+		// 6. Clean Run Data
+		runData = cleanRunData(runData, graph, startNodes);
+
+		// 7. Recreate Execution Stack
+		const { nodeExecutionStack, waitingExecution, waitingExecutionSource } =
+			recreateNodeExecutionStack(graph, new Set(startNodes), runData, pinData ?? {});
+
+		// 8. Execute
+		this.status = 'running';
+		this.runExecutionData = {
+			startData: {
+				destinationNode: destinationNodeName,
+				runNodeFilter: Array.from(filteredNodes.values()).map((node) => node.name),
+			},
+			resultData: {
+				runData,
+				pinData,
+			},
+			executionData: {
+				contextData: {},
+				nodeExecutionStack,
+				metadata: {},
+				waitingExecution,
+				waitingExecutionSource,
+			},
+		};
+
+		return this.processRunExecutionData(graph.toWorkflow({ ...workflow }));
+	}
+
 	/**
 	 * Executes the hook with the given name
 	 *
@@ -308,9 +414,20 @@ export class WorkflowExecute {
 			return;
 		}
 
-		return this.additionalData.hooks.executeHookFunctions(hookName, parameters);
+		return await this.additionalData.hooks.executeHookFunctions(hookName, parameters);
 	}
 
+	/**
+	 * Merges temporary execution metadata into the final runData structure.
+	 * During workflow execution, metadata is collected in a temporary location
+	 * (executionData.metadata). This method moves that metadata to its final
+	 * location in the resultData.runData for each node.
+	 *
+	 * @remarks
+	 * - Metadata from multiple runs is preserved using run indices
+	 * - Existing metadata in runData is preserved and merged with new metadata
+	 * - If no metadata exists, the operation is a no-op
+	 */
 	moveNodeMetadata(): void {
 		const metadata = get(this.runExecutionData, 'executionData.metadata');
 
@@ -321,26 +438,45 @@ export class WorkflowExecute {
 			let metaRunData: ITaskMetadata;
 			for (const nodeName of Object.keys(metadata)) {
 				for ([index, metaRunData] of metadata[nodeName].entries()) {
-					runData[nodeName][index].metadata = metaRunData;
+					runData[nodeName][index].metadata = {
+						...(runData[nodeName][index].metadata ?? {}),
+						...metaRunData,
+					};
 				}
 			}
 		}
 	}
 
 	/**
-	 * Checks the incoming connection does not receive any data
+	 * Checks if all incoming connections to a node are empty (have no data).
+	 * This is used to determine if a node should be executed or skipped.
+	 *
+	 * @param runData - The execution data from all nodes in the workflow
+	 * @param inputConnections - Array of connections to check
+	 * @param runIndex - Index of the current execution run (nodes can execute multiple times)
+	 *
+	 * @returns `true` if all connections are empty (no data), `false` if any connection has data
+	 *
+	 * @remarks
+	 * A connection is considered empty when:
+	 * - The source node doesn't exist in runData
+	 * - The source node's data is undefined
+	 * - The source node's output array is empty
+	 * - The specified output index contains no items
 	 */
 	incomingConnectionIsEmpty(
 		runData: IRunData,
 		inputConnections: IConnection[],
 		runIndex: number,
 	): boolean {
-		// for (const inputConnection of workflow.connectionsByDestinationNode[nodeToAdd].main[0]) {
 		for (const inputConnection of inputConnections) {
-			const nodeIncomingData = get(
-				runData,
-				`[${inputConnection.node}][${runIndex}].data.main[${inputConnection.index}]`,
-			);
+			const nodeIncomingData = get(runData, [
+				inputConnection.node,
+				runIndex,
+				'data',
+				'main',
+				inputConnection.index,
+			]);
 			if (nodeIncomingData !== undefined && (nodeIncomingData as object[]).length !== 0) {
 				return false;
 			}
@@ -348,27 +484,33 @@ export class WorkflowExecute {
 		return true;
 	}
 
+	/**
+	 * Prepares the waiting execution data structure for a node that needs to wait for data before it can execute.
+	 * This function initializes arrays to store data and metadata for each connection of the node.
+	 *
+	 * @param nodeName - The name of the node to prepare waiting execution for
+	 * @param numberOfConnections - Number of input connections the node has
+	 * @param runIndex - The index of the current run (for nodes that may run multiple times)
+	 */
 	prepareWaitingToExecution(nodeName: string, numberOfConnections: number, runIndex: number) {
-		if (!this.runExecutionData.executionData!.waitingExecutionSource) {
-			this.runExecutionData.executionData!.waitingExecutionSource = {};
-		}
+		const executionData = this.runExecutionData.executionData!;
 
-		this.runExecutionData.executionData!.waitingExecution[nodeName][runIndex] = {
-			main: [],
-		};
-		this.runExecutionData.executionData!.waitingExecutionSource[nodeName][runIndex] = {
-			main: [],
-		};
+		executionData.waitingExecution ??= {};
+		executionData.waitingExecutionSource ??= {};
+
+		const nodeWaiting = (executionData.waitingExecution[nodeName] ??= []);
+		const nodeWaitingSource = (executionData.waitingExecutionSource[nodeName] ??= []);
+
+		nodeWaiting[runIndex] = { main: [] };
+		nodeWaitingSource[runIndex] = { main: [] };
 
 		for (let i = 0; i < numberOfConnections; i++) {
-			this.runExecutionData.executionData!.waitingExecution[nodeName][runIndex].main.push(null);
-
-			this.runExecutionData.executionData!.waitingExecutionSource[nodeName][runIndex].main.push(
-				null,
-			);
+			nodeWaiting[runIndex].main.push(null);
+			nodeWaitingSource[runIndex].main.push(null);
 		}
 	}
 
+	// eslint-disable-next-line complexity
 	addNodeToBeExecuted(
 		workflow: Workflow,
 		connectionData: IConnection,
@@ -544,7 +686,7 @@ export class WorkflowExecute {
 					}
 					for (const connectionDataCheck of workflow.connectionsBySourceNode[parentNodeName].main[
 						outputIndexParent
-					]) {
+					] ?? []) {
 						checkOutputNodes.push(connectionDataCheck.node);
 					}
 				}
@@ -563,7 +705,7 @@ export class WorkflowExecute {
 				) {
 					for (const inputData of workflow.connectionsByDestinationNode[connectionData.node].main[
 						inputIndex
-					]) {
+					] ?? []) {
 						if (inputData.node === parentNodeName) {
 							// Is the node we come from so its data will be available for sure
 							continue;
@@ -583,7 +725,7 @@ export class WorkflowExecute {
 							if (
 								!this.incomingConnectionIsEmpty(
 									this.runExecutionData.resultData.runData,
-									workflow.connectionsByDestinationNode[inputData.node].main[0],
+									workflow.connectionsByDestinationNode[inputData.node].main[0] ?? [],
 									runIndex,
 								)
 							) {
@@ -612,7 +754,11 @@ export class WorkflowExecute {
 
 						// Check if any of the parent nodes does not have any inputs. That
 						// would mean that it has to get added to the list of nodes to process.
-						const parentNodes = workflow.getParentNodes(inputData.node, 'main', -1);
+						const parentNodes = workflow.getParentNodes(
+							inputData.node,
+							NodeConnectionType.Main,
+							-1,
+						);
 						let nodeToAdd: string | undefined = inputData.node;
 						parentNodes.push(inputData.node);
 						parentNodes.reverse();
@@ -668,7 +814,7 @@ export class WorkflowExecute {
 						} else if (
 							this.incomingConnectionIsEmpty(
 								this.runExecutionData.resultData.runData,
-								workflow.connectionsByDestinationNode[nodeToAdd].main[0],
+								workflow.connectionsByDestinationNode[nodeToAdd].main[0] ?? [],
 								runIndex,
 							)
 						) {
@@ -706,10 +852,23 @@ export class WorkflowExecute {
 			}
 		}
 
-		// Make sure the array has all the values
-		const connectionDataArray: Array<INodeExecutionData[] | null> = [];
-		for (let i: number = connectionData.index; i >= 0; i--) {
-			connectionDataArray[i] = null;
+		let connectionDataArray: Array<INodeExecutionData[] | null> = get(
+			this.runExecutionData,
+			[
+				'executionData',
+				'waitingExecution',
+				connectionData.node,
+				waitingNodeIndex!,
+				NodeConnectionType.Main,
+			],
+			null,
+		);
+
+		if (connectionDataArray === null) {
+			connectionDataArray = [];
+			for (let i: number = connectionData.index; i >= 0; i--) {
+				connectionDataArray[i] = null;
+			}
 		}
 
 		// Add the data of the current execution
@@ -762,6 +921,280 @@ export class WorkflowExecute {
 	}
 
 	/**
+	 * Checks if everything in the workflow is complete
+	 * and ready to be executed. If it returns null everything
+	 * is fine. If there are issues it returns the issues
+	 * which have been found for the different nodes.
+	 * TODO: Does currently not check for credential issues!
+	 */
+	checkReadyForExecution(
+		workflow: Workflow,
+		inputData: {
+			startNode?: string;
+			destinationNode?: string;
+			pinDataNodeNames?: string[];
+		} = {},
+	): IWorkflowIssues | null {
+		const workflowIssues: IWorkflowIssues = {};
+
+		let checkNodes: string[] = [];
+		if (inputData.destinationNode) {
+			// If a destination node is given we have to check all the nodes
+			// leading up to it
+			checkNodes = workflow.getParentNodes(inputData.destinationNode);
+			checkNodes.push(inputData.destinationNode);
+		} else if (inputData.startNode) {
+			// If a start node is given we have to check all nodes which
+			// come after it
+			checkNodes = workflow.getChildNodes(inputData.startNode);
+			checkNodes.push(inputData.startNode);
+		}
+
+		for (const nodeName of checkNodes) {
+			let nodeIssues: INodeIssues | null = null;
+			const node = workflow.nodes[nodeName];
+
+			if (node.disabled === true) {
+				continue;
+			}
+
+			const nodeType = workflow.nodeTypes.getByNameAndVersion(node.type, node.typeVersion);
+
+			if (nodeType === undefined) {
+				// Node type is not known
+				nodeIssues = {
+					typeUnknown: true,
+				};
+			} else {
+				nodeIssues = NodeHelpers.getNodeParametersIssues(
+					nodeType.description.properties,
+					node,
+					inputData.pinDataNodeNames,
+				);
+			}
+
+			if (nodeIssues !== null) {
+				workflowIssues[node.name] = nodeIssues;
+			}
+		}
+
+		if (Object.keys(workflowIssues).length === 0) {
+			return null;
+		}
+
+		return workflowIssues;
+	}
+
+	/** Executes the given node */
+	// eslint-disable-next-line complexity
+	async runNode(
+		workflow: Workflow,
+		executionData: IExecuteData,
+		runExecutionData: IRunExecutionData,
+		runIndex: number,
+		additionalData: IWorkflowExecuteAdditionalData,
+		mode: WorkflowExecuteMode,
+		abortSignal?: AbortSignal,
+	): Promise<IRunNodeResponse> {
+		const { node } = executionData;
+		let inputData = executionData.data;
+
+		if (node.disabled === true) {
+			// If node is disabled simply pass the data through
+			// return NodeRunHelpers.
+			if (inputData.hasOwnProperty('main') && inputData.main.length > 0) {
+				// If the node is disabled simply return the data from the first main input
+				if (inputData.main[0] === null) {
+					return { data: undefined };
+				}
+				return { data: [inputData.main[0]] };
+			}
+			return { data: undefined };
+		}
+
+		const nodeType = workflow.nodeTypes.getByNameAndVersion(node.type, node.typeVersion);
+
+		let connectionInputData: INodeExecutionData[] = [];
+		if (nodeType.execute || (!nodeType.poll && !nodeType.trigger && !nodeType.webhook)) {
+			// Only stop if first input is empty for execute runs. For all others run anyways
+			// because then it is a trigger node. As they only pass data through and so the input-data
+			// becomes output-data it has to be possible.
+
+			if (inputData.main?.length > 0) {
+				// We always use the data of main input and the first input for execute
+				connectionInputData = inputData.main[0] as INodeExecutionData[];
+			}
+
+			const forceInputNodeExecution = workflow.settings.executionOrder !== 'v1';
+			if (!forceInputNodeExecution) {
+				// If the nodes do not get force executed data of some inputs may be missing
+				// for that reason do we use the data of the first one that contains any
+				for (const mainData of inputData.main) {
+					if (mainData?.length) {
+						connectionInputData = mainData;
+						break;
+					}
+				}
+			}
+
+			if (connectionInputData.length === 0) {
+				// No data for node so return
+				return { data: undefined };
+			}
+		}
+
+		if (
+			runExecutionData.resultData.lastNodeExecuted === node.name &&
+			runExecutionData.resultData.error !== undefined
+		) {
+			// The node did already fail. So throw an error here that it displays and logs it correctly.
+			// Does get used by webhook and trigger nodes in case they throw an error that it is possible
+			// to log the error and display in Editor-UI.
+			if (
+				runExecutionData.resultData.error.name === 'NodeOperationError' ||
+				runExecutionData.resultData.error.name === 'NodeApiError'
+			) {
+				throw runExecutionData.resultData.error;
+			}
+
+			const error = new Error(runExecutionData.resultData.error.message);
+			error.stack = runExecutionData.resultData.error.stack;
+			throw error;
+		}
+
+		if (node.executeOnce === true) {
+			// If node should be executed only once so use only the first input item
+			const newInputData: ITaskDataConnections = {};
+			for (const connectionType of Object.keys(inputData)) {
+				newInputData[connectionType] = inputData[connectionType].map((input) => {
+					// eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+					return input && input.slice(0, 1);
+				});
+			}
+			inputData = newInputData;
+		}
+
+		if (nodeType.execute) {
+			const closeFunctions: CloseFunction[] = [];
+			const context = new ExecuteContext(
+				workflow,
+				node,
+				additionalData,
+				mode,
+				runExecutionData,
+				runIndex,
+				connectionInputData,
+				inputData,
+				executionData,
+				closeFunctions,
+				abortSignal,
+			);
+
+			const data =
+				nodeType instanceof Node
+					? await nodeType.execute(context)
+					: await nodeType.execute.call(context);
+
+			const closeFunctionsResults = await Promise.allSettled(
+				closeFunctions.map(async (fn) => await fn()),
+			);
+
+			const closingErrors = closeFunctionsResults
+				.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+				.map((result) => result.reason);
+
+			if (closingErrors.length > 0) {
+				if (closingErrors[0] instanceof Error) throw closingErrors[0];
+				throw new ApplicationError("Error on execution node's close function(s)", {
+					extra: { nodeName: node.name },
+					tags: { nodeType: node.type },
+					cause: closingErrors,
+				});
+			}
+
+			return { data };
+		} else if (nodeType.poll) {
+			if (mode === 'manual') {
+				// In manual mode run the poll function
+				const context = new PollContext(workflow, node, additionalData, mode, 'manual');
+				return { data: await nodeType.poll.call(context) };
+			}
+			// In any other mode pass data through as it already contains the result of the poll
+			return { data: inputData.main as INodeExecutionData[][] };
+		} else if (nodeType.trigger) {
+			if (mode === 'manual') {
+				// In manual mode start the trigger
+				const triggerResponse = await Container.get(TriggersAndPollers).runTrigger(
+					workflow,
+					node,
+					NodeExecuteFunctions.getExecuteTriggerFunctions,
+					additionalData,
+					mode,
+					'manual',
+				);
+
+				if (triggerResponse === undefined) {
+					return { data: null };
+				}
+
+				let closeFunction;
+				if (triggerResponse.closeFunction) {
+					// In manual mode we return the trigger closeFunction. That allows it to be called directly
+					// but we do not have to wait for it to finish. That is important for things like queue-nodes.
+					// There the full close will may be delayed till a message gets acknowledged after the execution.
+					// If we would not be able to wait for it to close would it cause problems with "own" mode as the
+					// process would be killed directly after it and so the acknowledge would not have been finished yet.
+					closeFunction = triggerResponse.closeFunction;
+
+					// Manual testing of Trigger nodes creates an execution. If the execution is cancelled, `closeFunction` should be called to cleanup any open connections/consumers
+					abortSignal?.addEventListener('abort', closeFunction);
+				}
+
+				if (triggerResponse.manualTriggerFunction !== undefined) {
+					// If a manual trigger function is defined call it and wait till it did run
+					await triggerResponse.manualTriggerFunction();
+				}
+
+				const response = await triggerResponse.manualTriggerResponse!;
+
+				if (response.length === 0) {
+					return { data: null, closeFunction };
+				}
+
+				return { data: response, closeFunction };
+			}
+			// For trigger nodes in any mode except "manual" do we simply pass the data through
+			return { data: inputData.main as INodeExecutionData[][] };
+		} else if (nodeType.webhook) {
+			// For webhook nodes always simply pass the data through
+			return { data: inputData.main as INodeExecutionData[][] };
+		} else {
+			// For nodes which have routing information on properties
+
+			const routingNode = new RoutingNode(
+				workflow,
+				node,
+				connectionInputData,
+				runExecutionData ?? null,
+				additionalData,
+				mode,
+			);
+
+			return {
+				data: await routingNode.runNode(
+					inputData,
+					runIndex,
+					nodeType,
+					executionData,
+					undefined,
+					abortSignal,
+				),
+			};
+		}
+	}
+
+	/**
 	 * Runs the given execution data.
 	 *
 	 */
@@ -770,7 +1203,7 @@ export class WorkflowExecute {
 	//            active executions anymore
 	// eslint-disable-next-line @typescript-eslint/promise-function-async
 	processRunExecutionData(workflow: Workflow): PCancelable<IRun> {
-		Logger.verbose('Workflow execution started', { workflowId: workflow.id });
+		Logger.debug('Workflow execution started', { workflowId: workflow.id });
 
 		const startedAt = new Date();
 		const forceInputNodeExecution = this.forceInputNodeExecution(workflow);
@@ -786,25 +1219,25 @@ export class WorkflowExecute {
 
 		const pinDataNodeNames = Object.keys(this.runExecutionData.resultData.pinData ?? {});
 
-		const workflowIssues = workflow.checkReadyForExecution({
+		const workflowIssues = this.checkReadyForExecution(workflow, {
 			startNode,
 			destinationNode,
 			pinDataNodeNames,
 		});
 		if (workflowIssues !== null) {
 			throw new WorkflowOperationError(
-				'The workflow has issues and can for that reason not be executed. Please fix them first.',
+				'The workflow has issues and cannot be executed for that reason. Please fix them first.',
 			);
 		}
 
 		// Variables which hold temporary data for each node-execution
 		let executionData: IExecuteData;
 		let executionError: ExecutionBaseError | undefined;
+		let executionHints: NodeExecutionHint[] = [];
 		let executionNode: INode;
 		let nodeSuccessData: INodeExecutionData[][] | null | undefined;
 		let runIndex: number;
 		let startTime: number;
-		let taskData: ITaskData;
 
 		if (this.runExecutionData.startData === undefined) {
 			this.runExecutionData.startData = {};
@@ -821,7 +1254,7 @@ export class WorkflowExecute {
 		let lastExecutionTry = '';
 		let closeFunction: Promise<void> | undefined;
 
-		return new PCancelable(async (resolve, reject, onCancel) => {
+		return new PCancelable(async (resolve, _reject, onCancel) => {
 			// Let as many nodes listen to the abort signal, without getting the MaxListenersExceededWarning
 			setMaxListeners(Infinity, this.abortController.signal);
 
@@ -831,13 +1264,13 @@ export class WorkflowExecute {
 				this.abortController.abort();
 				const fullRunData = this.getFullRunData(startedAt);
 				void this.executeHook('workflowExecuteAfter', [fullRunData]);
-				setTimeout(() => resolve(fullRunData), 10);
 			});
 
+			// eslint-disable-next-line complexity
 			const returnPromise = (async () => {
 				try {
 					if (!this.additionalData.restartExecutionId) {
-						await this.executeHook('workflowExecuteBefore', [workflow]);
+						await this.executeHook('workflowExecuteBefore', [workflow, this.runExecutionData]);
 					}
 				} catch (error) {
 					const e = error as unknown as ExecutionBaseError;
@@ -889,14 +1322,15 @@ export class WorkflowExecute {
 
 					nodeSuccessData = null;
 					executionError = undefined;
+					executionHints = [];
 					executionData =
 						this.runExecutionData.executionData!.nodeExecutionStack.shift() as IExecuteData;
 					executionNode = executionData.node;
 
 					// Update the pairedItem information on items
 					const newTaskDataConnections: ITaskDataConnections = {};
-					for (const inputName of Object.keys(executionData.data)) {
-						newTaskDataConnections[inputName] = executionData.data[inputName].map(
+					for (const connectionType of Object.keys(executionData.data)) {
+						newTaskDataConnections[connectionType] = executionData.data[connectionType].map(
 							(input, inputIndex) => {
 								if (input === null) {
 									return input;
@@ -941,7 +1375,7 @@ export class WorkflowExecute {
 						this.runExecutionData.startData!.runNodeFilter.indexOf(executionNode.name) === -1
 					) {
 						// If filter is set and node is not on filter skip it, that avoids the problem that it executes
-						// leafs that are parallel to a selected destinationNode. Normally it would execute them because
+						// leaves that are parallel to a selected destinationNode. Normally it would execute them because
 						// they have the same parent and it executes all child nodes.
 						continue;
 					}
@@ -950,7 +1384,7 @@ export class WorkflowExecute {
 					if (workflow.connectionsByDestinationNode.hasOwnProperty(executionNode.name)) {
 						// Check if the node has incoming connections
 						if (workflow.connectionsByDestinationNode[executionNode.name].hasOwnProperty('main')) {
-							let inputConnections: IConnection[][];
+							let inputConnections: NodeInputConnections;
 							let connectionIndex: number;
 
 							// eslint-disable-next-line prefer-const
@@ -962,7 +1396,11 @@ export class WorkflowExecute {
 								connectionIndex++
 							) {
 								if (
-									workflow.getHighestNode(executionNode.name, 'main', connectionIndex).length === 0
+									workflow.getHighestNode(
+										executionNode.name,
+										NodeConnectionType.Main,
+										connectionIndex,
+									).length === 0
 								) {
 									// If there is no valid incoming node (if all are disabled)
 									// then ignore that it has inputs and simply execute it as it is without
@@ -1043,71 +1481,40 @@ export class WorkflowExecute {
 									workflowId: workflow.id,
 								});
 
-								const runNodeData = await workflow.runNode(
+								let runNodeData = await this.runNode(
+									workflow,
 									executionData,
 									this.runExecutionData,
 									runIndex,
 									this.additionalData,
-									NodeExecuteFunctions,
 									this.mode,
 									this.abortController.signal,
 								);
+
 								nodeSuccessData = runNodeData.data;
 
-								if (nodeSuccessData && executionData.node.onError === 'continueErrorOutput') {
-									// If errorOutput is activated check all the output items for error data.
-									// If any is found, route them to the last output as that will be the
-									// error output.
+								const didContinueOnFail = nodeSuccessData?.at(0)?.at(0)?.json?.error !== undefined;
 
-									const nodeType = workflow.nodeTypes.getByNameAndVersion(
-										executionData.node.type,
-										executionData.node.typeVersion,
-									);
-									const outputs = NodeHelpers.getNodeOutputs(
-										workflow,
-										executionData.node,
-										nodeType.description,
-									);
-									const outputTypes = NodeHelpers.getConnectionTypes(outputs);
-									const mainOutputTypes = outputTypes.filter(
-										(output) => output === NodeConnectionType.Main,
-									);
+								while (didContinueOnFail && tryIndex !== maxTries - 1) {
+									await sleep(waitBetweenTries);
 
-									const errorItems: INodeExecutionData[] = [];
-									const successItems: INodeExecutionData[] = [];
-									const closeFunctions: CloseFunction[] = [];
-									// Create a WorkflowDataProxy instance that we can get the data of the
-									// item which did error
-									const executeFunctions = NodeExecuteFunctions.getExecuteFunctions(
+									runNodeData = await this.runNode(
 										workflow,
+										executionData,
 										this.runExecutionData,
 										runIndex,
-										[],
-										executionData.data,
-										executionData.node,
 										this.additionalData,
-										executionData,
 										this.mode,
-										closeFunctions,
 										this.abortController.signal,
 									);
-									const dataProxy = executeFunctions.getWorkflowDataProxy(0);
 
-									// Loop over all outputs except the error output as it would not contain data by default
-									for (
-										let outputIndex = 0;
-										outputIndex < mainOutputTypes.length - 1;
-										outputIndex++
-									) {
-										successItems.length = 0;
-										const items = nodeSuccessData.length ? nodeSuccessData[0] : [];
+									tryIndex++;
+								}
 
-										while (items.length) {
-											const item = items.pop();
-											if (item === undefined) {
-												continue;
-											}
+								if (nodeSuccessData instanceof NodeExecutionOutput) {
+									const hints = (nodeSuccessData as NodeExecutionOutput).getHints();
 
+<<<<<<< HEAD
 											let errorData: GenericValue | undefined;
 											if (item.error) {
 												errorData = item.error;
@@ -1121,51 +1528,13 @@ export class WorkflowExecute {
 											) {
 												errorData = item.json.error;
 											}
+=======
+									executionHints.push(...hints);
+								}
+>>>>>>> tags/n8n@1.74.1
 
-											if (errorData) {
-												const pairedItemData =
-													item.pairedItem && typeof item.pairedItem === 'object'
-														? Array.isArray(item.pairedItem)
-															? item.pairedItem[0]
-															: item.pairedItem
-														: undefined;
-
-												if (executionData!.source === null || pairedItemData === undefined) {
-													// Source data is missing for some reason so we can not figure out the item
-													errorItems.push(item);
-												} else {
-													const pairedItemInputIndex = pairedItemData.input || 0;
-
-													const sourceData =
-														executionData!.source[NodeConnectionType.Main][pairedItemInputIndex];
-
-													const constPairedItem = dataProxy.$getPairedItem(
-														sourceData!.previousNode,
-														sourceData,
-														pairedItemData,
-													);
-
-													if (constPairedItem === null) {
-														errorItems.push(item);
-													} else {
-														errorItems.push({
-															...item,
-															json: {
-																...constPairedItem.json,
-																...item.json,
-															},
-														});
-													}
-												}
-											} else {
-												successItems.push(item);
-											}
-										}
-
-										nodeSuccessData[outputIndex] = successItems;
-									}
-
-									nodeSuccessData[mainOutputTypes.length - 1] = errorItems;
+								if (nodeSuccessData && executionData.node.onError === 'continueErrorOutput') {
+									this.handleNodeErrorOutput(workflow, executionData, nodeSuccessData, runIndex);
 								}
 
 								if (runNodeData.closeFunction) {
@@ -1180,53 +1549,7 @@ export class WorkflowExecute {
 								workflowId: workflow.id,
 							});
 
-							if (nodeSuccessData?.length) {
-								// Check if the output data contains pairedItem data and if not try
-								// to automatically fix it
-
-								const isSingleInputAndOutput =
-									executionData.data.main.length === 1 && executionData.data.main[0]?.length === 1;
-
-								const isSameNumberOfItems =
-									nodeSuccessData.length === 1 &&
-									executionData.data.main.length === 1 &&
-									executionData.data.main[0]?.length === nodeSuccessData[0].length;
-
-								checkOutputData: for (const outputData of nodeSuccessData) {
-									if (outputData === null) {
-										continue;
-									}
-									for (const [index, item] of outputData.entries()) {
-										if (item.pairedItem === undefined) {
-											// The pairedItem data is missing, so check if it can get automatically fixed
-											if (isSingleInputAndOutput) {
-												// The node has one input and one incoming item, so we know
-												// that all items must originate from that single
-												item.pairedItem = {
-													item: 0,
-												};
-											} else if (isSameNumberOfItems) {
-												// The number of oncoming and outcoming items is identical so we can
-												// make the reasonable assumption that each of the input items
-												// is the origin of the corresponding output items
-												item.pairedItem = {
-													item: index,
-												};
-											} else {
-												// In all other cases autofixing is not possible
-												break checkOutputData;
-											}
-										}
-									}
-								}
-							}
-
-							if (nodeSuccessData === undefined) {
-								// Node did not get executed
-								nodeSuccessData = null;
-							} else {
-								this.runExecutionData.resultData.lastNodeExecuted = executionData.node.name;
-							}
+							nodeSuccessData = this.assignPairedItems(nodeSuccessData, executionData);
 
 							if (nodeSuccessData === null || nodeSuccessData[0][0] === undefined) {
 								if (executionData.node.alwaysOutputData === true) {
@@ -1237,7 +1560,7 @@ export class WorkflowExecute {
 										if (!inputData) {
 											return;
 										}
-										inputData.forEach((item, itemIndex) => {
+										inputData.forEach((_item, itemIndex) => {
 											pairedItem.push({
 												item: itemIndex,
 												input: inputIndex,
@@ -1255,7 +1578,7 @@ export class WorkflowExecute {
 								}
 							}
 
-							if (nodeSuccessData === null && !this.runExecutionData.waitTill!) {
+							if (nodeSuccessData === null && !this.runExecutionData.waitTill) {
 								// If null gets returned it means that the node did succeed
 								// but did not have any data. So the branch should end
 								// (meaning the nodes afterwards should not be processed)
@@ -1266,13 +1589,28 @@ export class WorkflowExecute {
 						} catch (error) {
 							this.runExecutionData.resultData.lastNodeExecuted = executionData.node.name;
 
+							let toReport: Error | undefined;
+							if (error instanceof ApplicationError) {
+								// Report any unhandled errors that were wrapped in by one of our error classes
+								if (error.cause instanceof Error) toReport = error.cause;
+							} else {
+								// Report any unhandled and non-wrapped errors to Sentry
+								toReport = error;
+							}
+							if (toReport) {
+								Container.get(ErrorReporter).error(toReport, {
+									extra: {
+										nodeName: executionNode.name,
+										nodeType: executionNode.type,
+										nodeVersion: executionNode.typeVersion,
+										workflowId: workflow.id,
+									},
+								});
+							}
+
 							const e = error as unknown as ExecutionBaseError;
 
-							executionError = {
-								...e,
-								message: e.message,
-								stack: e.stack,
-							};
+							executionError = { ...e, message: e.message, stack: e.stack };
 
 							Logger.debug(`Running node "${executionNode.name}" finished with error`, {
 								node: executionNode.name,
@@ -1288,11 +1626,13 @@ export class WorkflowExecute {
 						this.runExecutionData.resultData.runData[executionNode.name] = [];
 					}
 
-					taskData = {
+					const taskData: ITaskData = {
+						hints: executionHints,
 						startTime,
 						executionTime: new Date().getTime() - startTime,
 						source: !executionData.source ? [] : executionData.source.main,
-						executionStatus: 'success',
+						metadata: executionData.metadata,
+						executionStatus: this.runExecutionData.waitTill ? 'waiting' : 'success',
 					};
 
 					if (executionError !== undefined) {
@@ -1319,12 +1659,14 @@ export class WorkflowExecute {
 
 							// Add the execution data again so that it can get restarted
 							this.runExecutionData.executionData!.nodeExecutionStack.unshift(executionData);
-
-							await this.executeHook('nodeExecuteAfter', [
-								executionNode.name,
-								taskData,
-								this.runExecutionData,
-							]);
+							// Only execute the nodeExecuteAfter hook if the node did not get aborted
+							if (!this.isCancelled) {
+								await this.executeHook('nodeExecuteAfter', [
+									executionNode.name,
+									taskData,
+									this.runExecutionData,
+								]);
+							}
 
 							break;
 						}
@@ -1341,16 +1683,13 @@ export class WorkflowExecute {
 								lineResult.json.$json !== undefined
 							) {
 								// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-								// @ts-ignore
 								lineResult.error = lineResult.json.$error as NodeApiError | NodeOperationError;
 								lineResult.json = {
 									// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-									// @ts-ignore
 									error: (lineResult.json.$error as NodeApiError | NodeOperationError).message,
 								};
 							} else if (lineResult.error !== undefined) {
 								// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-								// @ts-ignore
 								lineResult.json = { error: lineResult.error.message };
 							}
 						}
@@ -1363,7 +1702,7 @@ export class WorkflowExecute {
 
 					this.runExecutionData.resultData.runData[executionNode.name].push(taskData);
 
-					if (this.runExecutionData.waitTill!) {
+					if (this.runExecutionData.waitTill) {
 						await this.executeHook('nodeExecuteAfter', [
 							executionNode.name,
 							taskData,
@@ -1421,7 +1760,7 @@ export class WorkflowExecute {
 								// Iterate over all the different connections of this output
 								for (connectionData of workflow.connectionsBySourceNode[executionNode.name].main[
 									outputIndex
-								]) {
+								] ?? []) {
 									if (!workflow.nodes.hasOwnProperty(connectionData.node)) {
 										throw new ApplicationError('Destination node not found', {
 											extra: {
@@ -1594,7 +1933,7 @@ export class WorkflowExecute {
 										continue;
 									}
 								} else {
-									// A certain amout of inputs are required (amount of inputs)
+									// A certain amount of inputs are required (amount of inputs)
 									if (inputsWithData.length < requiredInputs) {
 										continue;
 									}
@@ -1652,7 +1991,7 @@ export class WorkflowExecute {
 								// Node to add did not get found, rather an empty one removed so continue with search
 								waitingNodes = Object.keys(this.runExecutionData.executionData!.waitingExecution);
 								// Set counter to start again from the beginning. Set it to -1 as it auto increments
-								// after run. So only like that will we end up again ot 0.
+								// after run. So only like that will we end up again at 0.
 								i = -1;
 							}
 						}
@@ -1663,14 +2002,19 @@ export class WorkflowExecute {
 			})()
 				.then(async () => {
 					if (this.status === 'canceled' && executionError === undefined) {
-						return this.processSuccessExecution(
+						return await this.processSuccessExecution(
 							startedAt,
 							workflow,
-							new WorkflowOperationError('Workflow has been canceled or timed out!'),
+							new ExecutionCancelledError(this.additionalData.executionId ?? 'unknown'),
 							closeFunction,
 						);
 					}
-					return this.processSuccessExecution(startedAt, workflow, executionError, closeFunction);
+					return await this.processSuccessExecution(
+						startedAt,
+						workflow,
+						executionError,
+						closeFunction,
+					);
 				})
 				.catch(async (error) => {
 					const fullRunData = this.getFullRunData(startedAt);
@@ -1714,10 +2058,31 @@ export class WorkflowExecute {
 					return fullRunData;
 				});
 
-			return returnPromise.then(resolve);
+			return await returnPromise.then(resolve);
 		});
 	}
 
+	/**
+	 * Processes the final state of a workflow execution and prepares the execution result.
+	 * This method handles different completion scenarios: success, waiting, error, and canceled states.
+	 * It also manages cleanup tasks like static data updates and trigger deactivation.
+	 *
+	 * @param startedAt - The timestamp when the workflow execution started
+	 * @param workflow - The workflow being executed
+	 * @param executionError - Optional error that occurred during execution
+	 * @param closeFunction - Optional promise that handles cleanup of triggers/webhooks
+	 *
+	 * @returns A promise that resolves to the complete workflow execution data (IRun)
+	 *
+	 * @remarks
+	 * The function performs these tasks in order:
+	 * 1. Generates full execution data
+	 * 2. Sets appropriate status based on execution outcome
+	 * 3. Handles any static data changes
+	 * 4. Moves node metadata to its final location
+	 * 5. Executes the 'workflowExecuteAfter' hook
+	 * 6. Performs cleanup via closeFunction if provided
+	 */
 	async processSuccessExecution(
 		startedAt: Date,
 		workflow: Workflow,
@@ -1727,7 +2092,7 @@ export class WorkflowExecute {
 		const fullRunData = this.getFullRunData(startedAt);
 
 		if (executionError !== undefined) {
-			Logger.verbose('Workflow execution finished with error', {
+			Logger.debug('Workflow execution finished with error', {
 				error: executionError,
 				workflowId: workflow.id,
 			});
@@ -1739,15 +2104,15 @@ export class WorkflowExecute {
 			if (executionError.message?.includes('canceled')) {
 				fullRunData.status = 'canceled';
 			}
-		} else if (this.runExecutionData.waitTill!) {
+		} else if (this.runExecutionData.waitTill) {
 			// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-			Logger.verbose(`Workflow execution will wait until ${this.runExecutionData.waitTill}`, {
+			Logger.debug(`Workflow execution will wait until ${this.runExecutionData.waitTill}`, {
 				workflowId: workflow.id,
 			});
 			fullRunData.waitTill = this.runExecutionData.waitTill;
 			fullRunData.status = 'waiting';
 		} else {
-			Logger.verbose('Workflow execution finished successfully', { workflowId: workflow.id });
+			Logger.debug('Workflow execution finished successfully', { workflowId: workflow.id });
 			fullRunData.finished = true;
 			fullRunData.status = 'success';
 		}
@@ -1761,8 +2126,10 @@ export class WorkflowExecute {
 		}
 
 		this.moveNodeMetadata();
-
-		await this.executeHook('workflowExecuteAfter', [fullRunData, newStaticData]);
+		// Prevent from running the hook if the error is an abort error as it was already handled
+		if (!this.isCancelled) {
+			await this.executeHook('workflowExecuteAfter', [fullRunData, newStaticData]);
+		}
 
 		if (closeFunction) {
 			try {
@@ -1781,14 +2148,190 @@ export class WorkflowExecute {
 	}
 
 	getFullRunData(startedAt: Date): IRun {
-		const fullRunData: IRun = {
+		return {
 			data: this.runExecutionData,
 			mode: this.mode,
 			startedAt,
 			stoppedAt: new Date(),
 			status: this.status,
 		};
+	}
 
-		return fullRunData;
+	handleNodeErrorOutput(
+		workflow: Workflow,
+		executionData: IExecuteData,
+		nodeSuccessData: INodeExecutionData[][],
+		runIndex: number,
+	): void {
+		const nodeType = workflow.nodeTypes.getByNameAndVersion(
+			executionData.node.type,
+			executionData.node.typeVersion,
+		);
+		const outputs = NodeHelpers.getNodeOutputs(workflow, executionData.node, nodeType.description);
+		const outputTypes = NodeHelpers.getConnectionTypes(outputs);
+		const mainOutputTypes = outputTypes.filter((output) => output === NodeConnectionType.Main);
+
+		const errorItems: INodeExecutionData[] = [];
+		const closeFunctions: CloseFunction[] = [];
+		// Create a WorkflowDataProxy instance that we can get the data of the
+		// item which did error
+		const executeFunctions = new ExecuteContext(
+			workflow,
+			executionData.node,
+			this.additionalData,
+			this.mode,
+			this.runExecutionData,
+			runIndex,
+			[],
+			executionData.data,
+			executionData,
+			closeFunctions,
+			this.abortController.signal,
+		);
+
+		const dataProxy = executeFunctions.getWorkflowDataProxy(0);
+
+		// Loop over all outputs except the error output as it would not contain data by default
+		for (let outputIndex = 0; outputIndex < mainOutputTypes.length - 1; outputIndex++) {
+			const successItems: INodeExecutionData[] = [];
+			const items = nodeSuccessData[outputIndex]?.length ? nodeSuccessData[outputIndex] : [];
+
+			while (items.length) {
+				const item = items.shift();
+				if (item === undefined) {
+					continue;
+				}
+
+				let errorData: GenericValue | undefined;
+				if (item.error) {
+					errorData = item.error;
+					item.error = undefined;
+				} else if (item.json.error && Object.keys(item.json).length === 1) {
+					errorData = item.json.error;
+				} else if (item.json.error && item.json.message && Object.keys(item.json).length === 2) {
+					errorData = item.json.error;
+				}
+
+				if (errorData) {
+					const pairedItemData =
+						item.pairedItem && typeof item.pairedItem === 'object'
+							? Array.isArray(item.pairedItem)
+								? item.pairedItem[0]
+								: item.pairedItem
+							: undefined;
+
+					if (executionData.source === null || pairedItemData === undefined) {
+						// Source data is missing for some reason so we can not figure out the item
+						errorItems.push(item);
+					} else {
+						const pairedItemInputIndex = pairedItemData.input || 0;
+
+						const sourceData = executionData.source[NodeConnectionType.Main][pairedItemInputIndex];
+
+						const constPairedItem = dataProxy.$getPairedItem(
+							sourceData!.previousNode,
+							sourceData,
+							pairedItemData,
+						);
+
+						if (constPairedItem === null) {
+							errorItems.push(item);
+						} else {
+							errorItems.push({
+								...item,
+								json: {
+									...constPairedItem.json,
+									...item.json,
+								},
+							});
+						}
+					}
+				} else {
+					successItems.push(item);
+				}
+			}
+
+			nodeSuccessData[outputIndex] = successItems;
+		}
+
+		nodeSuccessData[mainOutputTypes.length - 1] = errorItems;
+	}
+
+	/**
+	 * Assigns pairedItem information to node output items by matching them with input items.
+	 * PairedItem data is used to track which output items were derived from which input items.
+	 *
+	 * @param nodeSuccessData - The output data from a node execution
+	 * @param executionData - The execution data containing input information
+	 *
+	 * @returns The node output data with pairedItem information assigned where possible
+	 *
+	 * @remarks
+	 * Auto-assignment of pairedItem happens in two scenarios:
+	 * 1. Single input/output: When node has exactly one input item and produces output(s),
+	 *    all outputs are marked as derived from that single input (item: 0)
+	 * 2. Matching items count: When number of input and output items match exactly,
+	 *    each output item is paired with the input item at the same index
+	 *
+	 * In all other cases, if pairedItem is missing, it remains undefined as automatic
+	 * assignment cannot be done reliably.
+	 */
+	assignPairedItems(
+		nodeSuccessData: INodeExecutionData[][] | null | undefined,
+		executionData: IExecuteData,
+	) {
+		if (nodeSuccessData?.length) {
+			// Check if the output data contains pairedItem data and if not try
+			// to automatically fix it
+
+			const isSingleInputAndOutput =
+				executionData.data.main.length === 1 && executionData.data.main[0]?.length === 1;
+
+			const isSameNumberOfItems =
+				nodeSuccessData.length === 1 &&
+				executionData.data.main.length === 1 &&
+				executionData.data.main[0]?.length === nodeSuccessData[0].length;
+
+			checkOutputData: for (const outputData of nodeSuccessData) {
+				if (outputData === null) {
+					continue;
+				}
+				for (const [index, item] of outputData.entries()) {
+					if (item.pairedItem === undefined) {
+						// The pairedItem data is missing, so check if it can get automatically fixed
+						if (isSingleInputAndOutput) {
+							// The node has one input and one incoming item, so we know
+							// that all items must originate from that single
+							item.pairedItem = {
+								item: 0,
+							};
+						} else if (isSameNumberOfItems) {
+							// The number of oncoming and outcoming items is identical so we can
+							// make the reasonable assumption that each of the input items
+							// is the origin of the corresponding output items
+							item.pairedItem = {
+								item: index,
+							};
+						} else {
+							// In all other cases autofixing is not possible
+							break checkOutputData;
+						}
+					}
+				}
+			}
+		}
+
+		if (nodeSuccessData === undefined) {
+			// Node did not get executed
+			nodeSuccessData = null;
+		} else {
+			this.runExecutionData.resultData.lastNodeExecuted = executionData.node.name;
+		}
+
+		return nodeSuccessData;
+	}
+
+	private get isCancelled() {
+		return this.abortController.signal.aborted;
 	}
 }

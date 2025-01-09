@@ -1,4 +1,17 @@
-import { ApplicationError, NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import type { BaseLanguageModel } from '@langchain/core/language_models/base';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { HumanMessage } from '@langchain/core/messages';
+import {
+	AIMessagePromptTemplate,
+	PromptTemplate,
+	SystemMessagePromptTemplate,
+	HumanMessagePromptTemplate,
+	ChatPromptTemplate,
+} from '@langchain/core/prompts';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatOllama } from '@langchain/ollama';
+import { LLMChain } from 'langchain/chains';
+import { CombiningOutputParser } from 'langchain/output_parsers';
 import type {
 	IBinaryData,
 	IDataObject,
@@ -7,21 +20,24 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-
-import type { BaseLanguageModel } from 'langchain/base_language';
 import {
-	AIMessagePromptTemplate,
-	PromptTemplate,
-	SystemMessagePromptTemplate,
-	HumanMessagePromptTemplate,
-	ChatPromptTemplate,
-} from 'langchain/prompts';
-import type { BaseOutputParser } from 'langchain/schema/output_parser';
-import { CombiningOutputParser } from 'langchain/output_parsers';
-import { LLMChain } from 'langchain/chains';
-import { BaseChatModel } from 'langchain/chat_models/base';
-import { HumanMessage } from 'langchain/schema';
-import { getTemplateNoticeField } from '../../../utils/sharedFields';
+	ApplicationError,
+	NodeApiError,
+	NodeConnectionType,
+	NodeOperationError,
+} from 'n8n-workflow';
+
+import { promptTypeOptions, textFromPreviousNode } from '@utils/descriptions';
+import { getPromptInputByType, isChatInstance } from '@utils/helpers';
+import type { N8nOutputParser } from '@utils/output_parsers/N8nOutputParser';
+import { getOptionalOutputParsers } from '@utils/output_parsers/N8nOutputParser';
+import { getTemplateNoticeField } from '@utils/sharedFields';
+import { getTracingConfig } from '@utils/tracing';
+
+import {
+	getCustomErrorMessage as getCustomOpenAiErrorMessage,
+	isOpenAiError,
+} from '../../vendors/OpenAi/helpers/error-handling';
 
 interface MessagesTemplate {
 	type: string;
@@ -68,14 +84,22 @@ async function getImageMessage(
 	}
 
 	const bufferData = await context.helpers.getBinaryDataBuffer(itemIndex, binaryDataKey);
+	const model = (await context.getInputConnectionData(
+		NodeConnectionType.AiLanguageModel,
+		0,
+	)) as BaseLanguageModel;
+	const dataURI = `data:image/jpeg;base64,${bufferData.toString('base64')}`;
+
+	const directUriModels = [ChatGoogleGenerativeAI, ChatOllama];
+	const imageUrl = directUriModels.some((i) => model instanceof i)
+		? dataURI
+		: { url: dataURI, detail };
+
 	return new HumanMessage({
 		content: [
 			{
 				type: 'image_url',
-				image_url: {
-					url: `data:image/jpeg;base64,${bufferData.toString('base64')}`,
-					detail,
-				},
+				image_url: imageUrl,
 			},
 		],
 	});
@@ -87,6 +111,7 @@ async function getChainPromptTemplate(
 	llm: BaseLanguageModel | BaseChatModel,
 	messages?: MessagesTemplate[],
 	formatInstructions?: string,
+	query?: string,
 ) {
 	const queryTemplate = new PromptTemplate({
 		template: `{query}${formatInstructions ? '\n{formatInstructions}' : ''}`,
@@ -94,7 +119,7 @@ async function getChainPromptTemplate(
 		partialVariables: formatInstructions ? { formatInstructions } : undefined,
 	});
 
-	if (llm instanceof BaseChatModel) {
+	if (isChatInstance(llm)) {
 		const parsedMessages = await Promise.all(
 			(messages ?? []).map(async (message) => {
 				const messageClass = [
@@ -124,7 +149,15 @@ async function getChainPromptTemplate(
 			}),
 		);
 
-		parsedMessages.push(new HumanMessagePromptTemplate(queryTemplate));
+		const lastMessage = parsedMessages[parsedMessages.length - 1];
+		// If the last message is a human message and it has an array of content, we need to add the query to the last message
+		if (lastMessage instanceof HumanMessage && Array.isArray(lastMessage.content)) {
+			const humanMessage = new HumanMessagePromptTemplate(queryTemplate);
+			const test = await humanMessage.format({ query });
+			lastMessage.content.push({ text: test.content.toString(), type: 'text' });
+		} else {
+			parsedMessages.push(new HumanMessagePromptTemplate(queryTemplate));
+		}
 		return ChatPromptTemplate.fromMessages(parsedMessages);
 	}
 
@@ -140,8 +173,9 @@ async function createSimpleLLMChain(
 	const chain = new LLMChain({
 		llm,
 		prompt,
-	});
-	const response = (await chain.call({
+	}).withConfig(getTracingConfig(context));
+
+	const response = (await chain.invoke({
 		query,
 		signal: context.getExecutionCancelSignal(),
 	})) as string[];
@@ -154,7 +188,7 @@ async function getChain(
 	itemIndex: number,
 	query: string,
 	llm: BaseLanguageModel,
-	outputParsers: BaseOutputParser[],
+	outputParsers: N8nOutputParser[],
 	messages?: MessagesTemplate[],
 ): Promise<unknown[]> {
 	const chatTemplate: ChatPromptTemplate | PromptTemplate = await getChainPromptTemplate(
@@ -162,11 +196,13 @@ async function getChain(
 		itemIndex,
 		llm,
 		messages,
+		undefined,
+		query,
 	);
 
 	// If there are no output parsers, create a simple LLM chain and execute the query
 	if (!outputParsers.length) {
-		return createSimpleLLMChain(context, llm, query, chatTemplate);
+		return await createSimpleLLMChain(context, llm, query, chatTemplate);
 	}
 
 	// If there's only one output parser, use it; otherwise, create a combined output parser
@@ -182,11 +218,13 @@ async function getChain(
 		llm,
 		messages,
 		formatInstructions,
+		query,
 	);
 
 	const chain = prompt.pipe(llm).pipe(combinedOutputParser);
-
-	const response = (await chain.invoke({ query })) as string | string[];
+	const response = (await chain.withConfig(getTracingConfig(context)).invoke({ query })) as
+		| string
+		| string[];
 
 	return Array.isArray(response) ? response : [response];
 }
@@ -203,7 +241,7 @@ function getInputs(parameters: IDataObject) {
 		},
 	];
 
-	// If `hasOutputParser` is undefined it must be version 1.1 or earlier so we
+	// If `hasOutputParser` is undefined it must be version 1.3 or earlier so we
 	// always add the output parser input
 	if (hasOutputParser === undefined || hasOutputParser === true) {
 		inputs.push({ displayName: 'Output Parser', type: NodeConnectionType.AiOutputParser });
@@ -216,8 +254,9 @@ export class ChainLlm implements INodeType {
 		displayName: 'Basic LLM Chain',
 		name: 'chainLlm',
 		icon: 'fa:link',
+		iconColor: 'black',
 		group: ['transform'],
-		version: [1, 1.1, 1.2, 1.3],
+		version: [1, 1.1, 1.2, 1.3, 1.4, 1.5],
 		description: 'A simple chain to prompt a large language model',
 		defaults: {
 			name: 'Basic LLM Chain',
@@ -227,7 +266,7 @@ export class ChainLlm implements INodeType {
 			alias: ['LangChain'],
 			categories: ['AI'],
 			subcategories: {
-				AI: ['Chains'],
+				AI: ['Chains', 'Root Nodes'],
 			},
 			resources: {
 				primaryDocumentation: [
@@ -275,6 +314,46 @@ export class ChainLlm implements INodeType {
 				displayOptions: {
 					show: {
 						'@version': [1.3],
+					},
+				},
+			},
+			{
+				...promptTypeOptions,
+				displayOptions: {
+					hide: {
+						'@version': [1, 1.1, 1.2, 1.3],
+					},
+				},
+			},
+			{
+				...textFromPreviousNode,
+				displayOptions: { show: { promptType: ['auto'], '@version': [{ _cnd: { gte: 1.5 } }] } },
+			},
+			{
+				displayName: 'Text',
+				name: 'text',
+				type: 'string',
+				required: true,
+				default: '',
+				placeholder: 'e.g. Hello, how can you help me?',
+				typeOptions: {
+					rows: 2,
+				},
+				displayOptions: {
+					show: {
+						promptType: ['define'],
+					},
+				},
+			},
+			{
+				displayName: 'Require Specific Output Format',
+				name: 'hasOutputParser',
+				type: 'boolean',
+				default: false,
+				noDataExpression: true,
+				displayOptions: {
+					hide: {
+						'@version': [1, 1.1, 1.3],
 					},
 				},
 			},
@@ -419,17 +498,6 @@ export class ChainLlm implements INodeType {
 				],
 			},
 			{
-				displayName: 'Require Specific Output Format',
-				name: 'hasOutputParser',
-				type: 'boolean',
-				default: false,
-				displayOptions: {
-					show: {
-						'@version': [1.2],
-					},
-				},
-			},
-			{
 				displayName: `Connect an <a data-action='openSelectiveNodeCreator' data-action-parameter-connectiontype='${NodeConnectionType.AiOutputParser}'>output parser</a> on the canvas to specify the output format you require`,
 				name: 'notice',
 				type: 'notice',
@@ -444,7 +512,7 @@ export class ChainLlm implements INodeType {
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		this.logger.verbose('Executing LLM Chain');
+		this.logger.debug('Executing LLM Chain');
 		const items = this.getInputData();
 
 		const returnData: INodeExecutionData[] = [];
@@ -453,55 +521,79 @@ export class ChainLlm implements INodeType {
 			0,
 		)) as BaseLanguageModel;
 
-		let outputParsers: BaseOutputParser[] = [];
-
-		if (this.getNodeParameter('hasOutputParser', 0, true) === true) {
-			outputParsers = (await this.getInputConnectionData(
-				NodeConnectionType.AiOutputParser,
-				0,
-			)) as BaseOutputParser[];
-		}
+		const outputParsers = await getOptionalOutputParsers(this);
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
-			const prompt = this.getNodeParameter('prompt', itemIndex) as string;
-			const messages = this.getNodeParameter(
-				'messages.messageValues',
-				itemIndex,
-				[],
-			) as MessagesTemplate[];
-
-			if (prompt === undefined) {
-				throw new NodeOperationError(this.getNode(), 'The ‘prompt’ parameter is empty.');
-			}
-
-			const responses = await getChain(this, itemIndex, prompt, llm, outputParsers, messages);
-
-			responses.forEach((response) => {
-				let data: IDataObject;
-				if (typeof response === 'string') {
-					data = {
-						response: {
-							text: response.trim(),
-						},
-					};
-				} else if (Array.isArray(response)) {
-					data = {
-						data: response,
-					};
-				} else if (response instanceof Object) {
-					data = response as IDataObject;
+			try {
+				let prompt: string;
+				if (this.getNode().typeVersion <= 1.3) {
+					prompt = this.getNodeParameter('prompt', itemIndex) as string;
 				} else {
-					data = {
-						response: {
-							text: response,
-						},
-					};
+					prompt = getPromptInputByType({
+						ctx: this,
+						i: itemIndex,
+						inputKey: 'text',
+						promptTypeKey: 'promptType',
+					});
+				}
+				const messages = this.getNodeParameter(
+					'messages.messageValues',
+					itemIndex,
+					[],
+				) as MessagesTemplate[];
+
+				if (prompt === undefined) {
+					throw new NodeOperationError(this.getNode(), "The 'prompt' parameter is empty.");
 				}
 
-				returnData.push({
-					json: data,
+				const responses = await getChain(this, itemIndex, prompt, llm, outputParsers, messages);
+
+				responses.forEach((response) => {
+					let data: IDataObject;
+					if (typeof response === 'string') {
+						data = {
+							response: {
+								text: response.trim(),
+							},
+						};
+					} else if (Array.isArray(response)) {
+						data = {
+							data: response,
+						};
+					} else if (response instanceof Object) {
+						data = response as IDataObject;
+					} else {
+						data = {
+							response: {
+								text: response,
+							},
+						};
+					}
+
+					returnData.push({
+						json: data,
+					});
 				});
-			});
+			} catch (error) {
+				// If the error is an OpenAI's rate limit error, we want to handle it differently
+				// because OpenAI has multiple different rate limit errors
+				if (error instanceof NodeApiError && isOpenAiError(error.cause)) {
+					const openAiErrorCode: string | undefined = (error.cause as any).error?.code;
+					if (openAiErrorCode) {
+						const customMessage = getCustomOpenAiErrorMessage(openAiErrorCode);
+						if (customMessage) {
+							error.message = customMessage;
+						}
+					}
+				}
+
+				if (this.continueOnFail()) {
+					returnData.push({ json: { error: error.message }, pairedItem: { item: itemIndex } });
+					continue;
+				}
+
+				throw error;
+			}
 		}
 
 		return [returnData];

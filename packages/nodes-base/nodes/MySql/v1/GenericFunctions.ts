@@ -1,10 +1,10 @@
+import mysql2 from 'mysql2/promise';
 import type {
 	ICredentialDataDecryptedObject,
 	IDataObject,
 	ILoadOptionsFunctions,
 	INodeListSearchResult,
 } from 'n8n-workflow';
-import mysql2 from 'mysql2/promise';
 
 export async function createConnection(
 	credentials: ICredentialDataDecryptedObject,
@@ -25,7 +25,7 @@ export async function createConnection(
 		}
 	}
 
-	return mysql2.createConnection(baseCredentials);
+	return await mysql2.createConnection(baseCredentials);
 }
 
 export async function searchTables(

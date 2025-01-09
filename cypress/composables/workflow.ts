@@ -1,5 +1,6 @@
-import { ROUTES } from '../constants';
 import { getManualChatModal } from './modals/chat-modal';
+import { clickGetBackToCanvas, getParameterInputByName } from './ndv';
+import { ROUTES } from '../constants';
 
 /**
  * Types
@@ -45,7 +46,20 @@ export function getNodes() {
 }
 
 export function getNodeByName(name: string) {
-	return cy.getByTestId('canvas-node').filter(`[data-name="${name}"]`).eq(0);
+	return cy.ifCanvasVersion(
+		() => cy.getByTestId('canvas-node').filter(`[data-name="${name}"]`).eq(0),
+		() => cy.getByTestId('canvas-node').filter(`[data-node-name="${name}"]`).eq(0),
+	);
+}
+
+export function getWorkflowHistoryCloseButton() {
+	return cy.getByTestId('workflow-history-close-button');
+}
+
+export function disableNode(name: string) {
+	const target = getNodeByName(name);
+	target.rightclick(name ? 'center' : 'topLeft', { force: true });
+	cy.getByTestId('context-menu-item-toggle_activation').click();
 }
 
 export function getConnectionBySourceAndTarget(source: string, target: string) {
@@ -61,6 +75,25 @@ export function getNodeCreatorSearchBar() {
 
 export function getNodeCreatorPlusButton() {
 	return cy.getByTestId('node-creator-plus-button');
+}
+
+export function getCanvasNodes() {
+	return cy.ifCanvasVersion(
+		() => cy.getByTestId('canvas-node'),
+		() => cy.getByTestId('canvas-node').not('[data-node-type="n8n-nodes-internal.addNodes"]'),
+	);
+}
+
+export function getCanvasNodeByName(nodeName: string) {
+	return getCanvasNodes().filter(`:contains(${nodeName})`);
+}
+
+export function getSaveButton() {
+	return cy.getByTestId('workflow-save-button');
+}
+
+export function getZoomToFitButton() {
+	return cy.getByTestId('zoom-to-fit');
 }
 
 /**
@@ -102,18 +135,38 @@ export function navigateToNewWorkflowPage(preventNodeViewUnload = true) {
 	});
 }
 
+function connectNodeToParent(
+	nodeName: string,
+	endpointType: EndpointType,
+	parentNodeName: string,
+	exactMatch = false,
+) {
+	getAddInputEndpointByType(parentNodeName, endpointType).click({ force: true });
+	if (exactMatch) {
+		getNodeCreatorItems()
+			.contains(new RegExp('^' + nodeName + '$', 'g'))
+			.click();
+	} else {
+		getNodeCreatorItems().contains(nodeName).click();
+	}
+}
+
 export function addSupplementalNodeToParent(
 	nodeName: string,
 	endpointType: EndpointType,
 	parentNodeName: string,
+	exactMatch = false,
 ) {
-	getAddInputEndpointByType(parentNodeName, endpointType).click({ force: true });
-	getNodeCreatorItems().contains(nodeName).click();
+	connectNodeToParent(nodeName, endpointType, parentNodeName, exactMatch);
 	getConnectionBySourceAndTarget(parentNodeName, nodeName).should('exist');
 }
 
-export function addLanguageModelNodeToParent(nodeName: string, parentNodeName: string) {
-	addSupplementalNodeToParent(nodeName, 'ai_languageModel', parentNodeName);
+export function addLanguageModelNodeToParent(
+	nodeName: string,
+	parentNodeName: string,
+	exactMatch = false,
+) {
+	addSupplementalNodeToParent(nodeName, 'ai_languageModel', parentNodeName, exactMatch);
 }
 
 export function addMemoryNodeToParent(nodeName: string, parentNodeName: string) {
@@ -124,8 +177,23 @@ export function addToolNodeToParent(nodeName: string, parentNodeName: string) {
 	addSupplementalNodeToParent(nodeName, 'ai_tool', parentNodeName);
 }
 
+export function addVectorStoreToolToParent(nodeName: string, parentNodeName: string) {
+	connectNodeToParent(nodeName, 'ai_tool', parentNodeName, false);
+	getParameterInputByName('mode')
+		.find('input')
+		.should('have.value', 'Retrieve Documents (As Tool for AI Agent)');
+	clickGetBackToCanvas();
+	getConnectionBySourceAndTarget(nodeName, parentNodeName).should('exist');
+}
+
 export function addOutputParserNodeToParent(nodeName: string, parentNodeName: string) {
 	addSupplementalNodeToParent(nodeName, 'ai_outputParser', parentNodeName);
+}
+export function addVectorStoreNodeToParent(nodeName: string, parentNodeName: string) {
+	addSupplementalNodeToParent(nodeName, 'ai_vectorStore', parentNodeName);
+}
+export function addRetrieverNodeToParent(nodeName: string, parentNodeName: string) {
+	addSupplementalNodeToParent(nodeName, 'ai_retriever', parentNodeName);
 }
 
 export function clickExecuteWorkflowButton() {
@@ -139,4 +207,25 @@ export function clickManualChatButton() {
 
 export function openNode(nodeName: string) {
 	getNodeByName(nodeName).dblclick();
+}
+
+export function saveWorkflowOnButtonClick() {
+	cy.intercept('POST', '/rest/workflows').as('createWorkflow');
+	getSaveButton().should('contain', 'Save');
+	getSaveButton().click();
+	getSaveButton().should('contain', 'Saved');
+	cy.url().should('not.have.string', '/new');
+}
+
+export function pasteWorkflow(workflow: object) {
+	cy.get('body').paste(JSON.stringify(workflow));
+}
+
+export function clickZoomToFit() {
+	getZoomToFitButton().click();
+}
+
+export function deleteNode(name: string) {
+	getCanvasNodeByName(name).first().click();
+	cy.get('body').type('{del}');
 }

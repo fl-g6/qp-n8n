@@ -1,4 +1,5 @@
 import cheerio from 'cheerio';
+import get from 'lodash/get';
 import type {
 	IDataObject,
 	IExecuteFunctions,
@@ -6,9 +7,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
-
-import get from 'lodash/get';
+import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
 type Cheerio = ReturnType<typeof cheerio>;
 
@@ -57,8 +56,8 @@ export class HtmlExtract implements INodeType {
 			name: 'HTML Extract',
 			color: '#333377',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		properties: [
 			{
 				displayName: 'Source Data',
@@ -192,7 +191,7 @@ export class HtmlExtract implements INodeType {
 				displayName: 'Options',
 				name: 'options',
 				type: 'collection',
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				default: {},
 				options: [
 					{
@@ -270,7 +269,7 @@ export class HtmlExtract implements INodeType {
 							// An array should be returned so iterate over one
 							// value at a time
 							newItem.json[valueData.key] = [];
-							htmlElement.each((i, el) => {
+							htmlElement.each((_, el) => {
 								(newItem.json[valueData.key] as Array<string | undefined>).push(
 									getValue($(el), valueData, options),
 								);

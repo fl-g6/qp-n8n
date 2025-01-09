@@ -1,8 +1,6 @@
+import { SchemaRegistry } from '@kafkajs/confluent-schema-registry';
 import type { KafkaConfig, SASLOptions, TopicMessages } from 'kafkajs';
 import { CompressionTypes, Kafka as apacheKafka } from 'kafkajs';
-
-import { SchemaRegistry } from '@kafkajs/confluent-schema-registry';
-
 import type {
 	IExecuteFunctions,
 	ICredentialDataDecryptedObject,
@@ -14,22 +12,23 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { ApplicationError, NodeOperationError } from 'n8n-workflow';
+import { ApplicationError, NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+
 import { generatePairedItemData } from '../../utils/utilities';
 
 export class Kafka implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Kafka',
 		name: 'kafka',
-		icon: 'file:kafka.svg',
+		icon: { light: 'file:kafka.svg', dark: 'file:kafka.dark.svg' },
 		group: ['transform'],
 		version: 1,
 		description: 'Sends messages to a Kafka topic',
 		defaults: {
 			name: 'Kafka',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'kafka',
@@ -51,7 +50,7 @@ export class Kafka implements INodeType {
 				name: 'sendInputData',
 				type: 'boolean',
 				default: true,
-				description: 'Whether to send the the data the node receives as JSON to Kafka',
+				description: 'Whether to send the data the node receives as JSON to Kafka',
 			},
 			{
 				displayName: 'Message',
@@ -178,7 +177,7 @@ export class Kafka implements INodeType {
 				name: 'options',
 				type: 'collection',
 				default: {},
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				options: [
 					{
 						displayName: 'Acks',
@@ -229,7 +228,6 @@ export class Kafka implements INodeType {
 					};
 					if (credentials.authentication === true) {
 						if (!(credentials.username && credentials.password)) {
-							// eslint-disable-next-line n8n-nodes-base/node-execute-block-wrong-error-thrown
 							throw new ApplicationError('Username and password are required for authentication', {
 								level: 'warning',
 							});

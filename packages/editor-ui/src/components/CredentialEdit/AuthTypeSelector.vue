@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ParameterInputFull from '@/components/ParameterInputFull.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { IUpdateInformation, NodeAuthenticationOption } from '@/Interface';
 import { useNDVStore } from '@/stores/ndv.store';
 import { useNodeTypesStore } from '@/stores/nodeTypes.store';
@@ -9,19 +10,26 @@ import {
 	getNodeAuthOptions,
 	isAuthRelatedParameter,
 } from '@/utils/nodeTypesUtils';
-import type { INodeProperties, INodeTypeDescription, NodeParameterValue } from 'n8n-workflow';
+import type {
+	ICredentialType,
+	INodeProperties,
+	INodeTypeDescription,
+	NodeParameterValue,
+} from 'n8n-workflow';
 import { computed, onMounted, ref } from 'vue';
 
 export interface Props {
-	credentialType: object;
+	credentialType: ICredentialType;
 }
 
 const emit = defineEmits<{
-	(event: 'authTypeChanged', value: string): void;
+	authTypeChanged: [value: string];
 }>();
 
 const nodeTypesStore = useNodeTypesStore();
 const ndvStore = useNDVStore();
+
+const i18n = useI18n();
 
 const props = defineProps<Props>();
 
@@ -128,8 +136,8 @@ defineExpose({
 		</div>
 		<div>
 			<n8n-input-label
-				:label="$locale.baseText('credentialEdit.credentialConfig.authTypeSelectorLabel')"
-				:tooltip-text="$locale.baseText('credentialEdit.credentialConfig.authTypeSelectorTooltip')"
+				:label="i18n.baseText('credentialEdit.credentialConfig.authTypeSelectorLabel')"
+				:tooltip-text="i18n.baseText('credentialEdit.credentialConfig.authTypeSelectorTooltip')"
 				:required="true"
 			/>
 		</div>
@@ -140,7 +148,7 @@ defineExpose({
 			:label="prop.value"
 			:class="$style.authRadioButton"
 			border
-			@update:modelValue="onAuthTypeChange"
+			@update:model-value="onAuthTypeChange"
 			>{{ prop.name }}</el-radio
 		>
 	</div>

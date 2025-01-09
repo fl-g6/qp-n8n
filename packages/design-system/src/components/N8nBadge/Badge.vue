@@ -1,3 +1,32 @@
+<script lang="ts" setup>
+import type { TextSize } from 'n8n-design-system/types/text';
+
+import N8nText from '../N8nText';
+
+const THEME = [
+	'default',
+	'success',
+	'warning',
+	'danger',
+	'primary',
+	'secondary',
+	'tertiary',
+] as const;
+
+interface BadgeProps {
+	theme?: (typeof THEME)[number];
+	size?: TextSize;
+	bold?: boolean;
+}
+
+defineOptions({ name: 'N8nBadge' });
+withDefaults(defineProps<BadgeProps>(), {
+	theme: 'default',
+	size: 'small',
+	bold: false,
+});
+</script>
+
 <template>
 	<span :class="['n8n-badge', $style[theme]]">
 		<N8nText :size="size" :bold="bold" :compact="true">
@@ -5,36 +34,6 @@
 		</N8nText>
 	</span>
 </template>
-
-<script lang="ts">
-import N8nText from '../N8nText';
-
-import { defineComponent } from 'vue';
-
-export default defineComponent({
-	components: {
-		N8nText,
-	},
-	props: {
-		theme: {
-			type: String,
-			default: 'default',
-			validator: (value: string) =>
-				['default', 'success', 'warning', 'danger', 'primary', 'secondary', 'tertiary'].includes(
-					value,
-				),
-		},
-		size: {
-			type: String,
-			default: 'small',
-		},
-		bold: {
-			type: Boolean,
-			default: false,
-		},
-	},
-});
-</script>
 
 <style lang="scss" module>
 .badge {

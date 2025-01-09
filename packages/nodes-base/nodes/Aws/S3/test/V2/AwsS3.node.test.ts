@@ -1,4 +1,5 @@
 import nock from 'nock';
+
 import { getWorkflowFilenames, initBinaryDataService, testWorkflows } from '@test/nodes/Helpers';
 
 const workflows = getWorkflowFilenames(__dirname);
@@ -14,11 +15,11 @@ describe('Test S3 V2 Node', () => {
 			await initBinaryDataService();
 
 			nock.disableNetConnect();
-			mock = nock('https://bucket.s3.eu-central-1.amazonaws.com');
+			mock = nock('https://s3.eu-central-1.amazonaws.com/buc.ket');
 		});
 
 		beforeEach(async () => {
-			mock.get('/?location').reply(
+			mock.get('?location').reply(
 				200,
 				`<?xml version="1.0" encoding="UTF-8"?>
 				<LocationConstraint>

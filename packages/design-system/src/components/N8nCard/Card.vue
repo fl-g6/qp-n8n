@@ -1,9 +1,29 @@
+<script lang="ts" setup>
+import { computed, useCssModule } from 'vue';
+
+interface CardProps {
+	hoverable?: boolean;
+}
+
+defineOptions({ name: 'N8nCard' });
+const props = withDefaults(defineProps<CardProps>(), {
+	hoverable: false,
+});
+
+const $style = useCssModule();
+const classes = computed(() => ({
+	card: true,
+	[$style.card]: true,
+	[$style.hoverable]: props.hoverable,
+}));
+</script>
+
 <template>
 	<div :class="classes" v-bind="$attrs">
-		<div v-if="$slots.prepend" :class="$style.icon">
+		<div v-if="$slots.prepend" data-test-id="card-prepend" :class="$style.icon">
 			<slot name="prepend" />
 		</div>
-		<div :class="$style.content">
+		<div :class="$style.content" data-test-id="card-content">
 			<div v-if="$slots.header" :class="$style.header">
 				<slot name="header" />
 			</div>
@@ -14,42 +34,22 @@
 				<slot name="footer" />
 			</div>
 		</div>
-		<div v-if="$slots.append" :class="$style.append">
+		<div
+			v-if="$slots.append"
+			data-test-id="card-append"
+			:class="[$style.append, 'n8n-card-append']"
+		>
 			<slot name="append" />
 		</div>
 	</div>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue';
-
-export default defineComponent({
-	name: 'N8nCard',
-	inheritAttrs: true,
-	props: {
-		hoverable: {
-			type: Boolean,
-			default: false,
-		},
-	},
-	computed: {
-		classes(): Record<string, boolean> {
-			return {
-				card: true,
-				[this.$style.card]: true,
-				[this.$style.hoverable]: this.hoverable,
-			};
-		},
-	},
-});
-</script>
 
 <style lang="scss" module>
 .card {
 	border-radius: var(--border-radius-large);
 	border: var(--border-base);
 	background-color: var(--color-background-xlight);
-	padding: var(--spacing-s);
+	padding: var(--card--padding, var(--spacing-s));
 	display: flex;
 	flex-direction: row;
 	width: 100%;
@@ -105,5 +105,6 @@ export default defineComponent({
 	display: flex;
 	align-items: center;
 	cursor: default;
+	width: var(--card--append--width, unset);
 }
 </style>

@@ -1,3 +1,41 @@
+<script lang="ts" setup generic="Value extends string">
+import RadioButton from './RadioButton.vue';
+
+interface RadioOption {
+	label: string;
+	value: Value;
+	disabled?: boolean;
+}
+
+interface RadioButtonsProps {
+	modelValue?: Value;
+	options?: RadioOption[];
+	/** @default medium */
+	size?: 'small' | 'medium';
+	disabled?: boolean;
+}
+
+const props = withDefaults(defineProps<RadioButtonsProps>(), {
+	active: false,
+	disabled: false,
+	size: 'medium',
+});
+
+const emit = defineEmits<{
+	'update:modelValue': [value: Value, e: MouseEvent];
+}>();
+
+const onClick = (
+	option: { label: string; value: Value; disabled?: boolean },
+	event: MouseEvent,
+) => {
+	if (props.disabled || option.disabled) {
+		return;
+	}
+	emit('update:modelValue', option.value, event);
+};
+</script>
+
 <template>
 	<div
 		role="radiogroup"
@@ -15,6 +53,7 @@
 	</div>
 </template>
 
+<<<<<<< HEAD
 <script lang="ts">
 import RadioButton from './RadioButton.vue';
 
@@ -59,6 +98,8 @@ export default defineComponent({
 });
 </script>
 
+=======
+>>>>>>> tags/n8n@1.74.1
 <style lang="scss" module>
 .radioGroup {
 	display: inline-flex;

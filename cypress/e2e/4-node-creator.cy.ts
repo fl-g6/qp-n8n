@@ -1,8 +1,16 @@
+import { clickGetBackToCanvas } from '../composables/ndv';
+import {
+	addNodeToCanvas,
+	addRetrieverNodeToParent,
+	addVectorStoreNodeToParent,
+	addVectorStoreToolToParent,
+	getNodeCreatorItems,
+} from '../composables/workflow';
+import { AGENT_NODE_NAME, IF_NODE_NAME, MANUAL_CHAT_TRIGGER_NODE_NAME } from '../constants';
 import { NodeCreator } from '../pages/features/node-creator';
-import { WorkflowPage as WorkflowPageClass } from '../pages/workflow';
 import { NDV } from '../pages/ndv';
+import { WorkflowPage as WorkflowPageClass } from '../pages/workflow';
 import { getVisibleSelect } from '../utils';
-import { IF_NODE_NAME } from '../constants';
 
 const nodeCreatorFeature = new NodeCreator();
 const WorkflowPage = new WorkflowPageClass();
@@ -35,7 +43,7 @@ describe('Node Creator', () => {
 		nodeCreatorFeature.actions.openNodeCreator();
 
 		nodeCreatorFeature.getters.searchBar().find('input').type('manual');
-		nodeCreatorFeature.getters.creatorItem().should('have.length', 2);
+		nodeCreatorFeature.getters.creatorItem().should('have.length', 1);
 		nodeCreatorFeature.getters.searchBar().find('input').clear().type('manual123');
 		nodeCreatorFeature.getters.creatorItem().should('have.length', 0);
 		nodeCreatorFeature.getters
@@ -159,7 +167,7 @@ describe('Node Creator', () => {
 
 	it('should have "Triggers" section collapsed when opening actions view from Regular root view', () => {
 		nodeCreatorFeature.actions.openNodeCreator();
-		nodeCreatorFeature.getters.getCreatorItem('Manually').click();
+		nodeCreatorFeature.getters.getCreatorItem('Trigger manually').click();
 
 		nodeCreatorFeature.actions.openNodeCreator();
 		nodeCreatorFeature.getters.searchBar().find('input').clear().type('n8n');
@@ -308,7 +316,11 @@ describe('Node Creator', () => {
 			nodeCreatorFeature.getters.getCategoryItem('Actions').click();
 			nodeCreatorFeature.getters.getCreatorItem('Create a credential').click();
 			NDVModal.actions.close();
+<<<<<<< HEAD
 			WorkflowPage.actions.deleteNode('When clicking "Test workflow"');
+=======
+			WorkflowPage.actions.deleteNode('When clicking ‘Test workflow’');
+>>>>>>> tags/n8n@1.74.1
 			WorkflowPage.getters.canvasNodePlusEndpointByName('n8n').click();
 			nodeCreatorFeature.getters.searchBar().find('input').clear().type('n8n');
 			nodeCreatorFeature.getters.getCreatorItem('n8n').click();
@@ -485,7 +497,7 @@ describe('Node Creator', () => {
 
 		nodeCreatorFeature.getters.searchBar().find('input').clear().type('spreadsheet');
 		nodeCreatorFeature.getters.nodeItemName().first().should('have.text', 'Convert to File');
-		nodeCreatorFeature.getters.nodeItemName().eq(1).should('have.text', 'Extract From File');
+		nodeCreatorFeature.getters.nodeItemName().eq(1).should('have.text', 'Extract from File');
 		nodeCreatorFeature.getters.nodeItemName().eq(2).should('have.text', 'Google Sheets');
 
 		nodeCreatorFeature.getters.searchBar().find('input').clear().type('sheets');
@@ -503,5 +515,47 @@ describe('Node Creator', () => {
 
 		nodeCreatorFeature.getters.searchBar().find('input').clear().type('gith');
 		nodeCreatorFeature.getters.nodeItemName().first().should('have.text', 'GitHub');
+	});
+
+	it('should show vector stores actions', () => {
+		const actions = [
+			'Get ranked documents from vector store',
+			'Add documents to vector store',
+			'Retrieve documents for Chain/Tool as Vector Store',
+		];
+
+		nodeCreatorFeature.actions.openNodeCreator();
+
+		nodeCreatorFeature.getters.searchBar().find('input').clear().type('Vector Store');
+
+		getNodeCreatorItems().then((items) => {
+			const vectorStores = items.map((_i, el) => el.innerText);
+
+			// Loop over all vector stores and check if they have the three actions
+			vectorStores.each((_i, vectorStore) => {
+				nodeCreatorFeature.getters.getCreatorItem(vectorStore).click();
+				actions.forEach((action) => {
+					nodeCreatorFeature.getters.getCreatorItem(action).should('be.visible');
+				});
+				cy.realPress('ArrowLeft');
+			});
+		});
+	});
+
+	it('should add node directly for sub-connection as vector store', () => {
+		addNodeToCanvas('Question and Answer Chain', true);
+		addRetrieverNodeToParent('Vector Store Retriever', 'Question and Answer Chain');
+		cy.realPress('Escape');
+		addVectorStoreNodeToParent('In-Memory Vector Store', 'Vector Store Retriever');
+		cy.realPress('Escape');
+		WorkflowPage.getters.canvasNodes().should('have.length', 4);
+	});
+
+	it('should add node directly for sub-connection as tool', () => {
+		addNodeToCanvas(MANUAL_CHAT_TRIGGER_NODE_NAME, true);
+		addNodeToCanvas(AGENT_NODE_NAME, true, true);
+		clickGetBackToCanvas();
+
+		addVectorStoreToolToParent('In-Memory Vector Store', AGENT_NODE_NAME);
 	});
 });

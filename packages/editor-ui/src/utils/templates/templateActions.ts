@@ -6,7 +6,7 @@ import type {
 } from '@/Interface';
 import { getNewWorkflow } from '@/api/workflows';
 import { TEMPLATE_CREDENTIAL_SETUP_EXPERIMENT, VIEWS } from '@/constants';
-import type { useRootStore } from '@/stores/n8nRoot.store';
+import type { useRootStore } from '@/stores/root.store';
 import type { PosthogStore } from '@/stores/posthog.store';
 import type { useWorkflowsStore } from '@/stores/workflows.store';
 import { getFixedNodesList } from '@/utils/nodeViewUtils';
@@ -21,6 +21,7 @@ import type { Telemetry } from '@/plugins/telemetry';
 import type { useExternalHooks } from '@/composables/useExternalHooks';
 import { assert } from '@/utils/assert';
 import { doesNodeHaveCredentialsToFill } from '@/utils/nodes/nodeTransforms';
+import { tryToParseNumber } from '@/utils/typesUtils';
 
 type ExternalHooks = ReturnType<typeof useExternalHooks>;
 
@@ -36,7 +37,7 @@ export async function createWorkflowFromTemplate(opts: {
 }) {
 	const { credentialOverrides, nodeTypeProvider, rootStore, template, workflowsStore } = opts;
 
-	const workflowData = await getNewWorkflow(rootStore.getRestApiContext, template.name);
+	const workflowData = await getNewWorkflow(rootStore.restApiContext, { name: template.name });
 	const nodesWithCreds = replaceAllTemplateNodeCredentials(
 		nodeTypeProvider,
 		template.workflow.nodes,
@@ -106,7 +107,7 @@ async function openTemplateWorkflowOnNodeView(opts: {
 	};
 	const telemetryPayload = {
 		source: 'workflow',
-		template_id: templateId,
+		template_id: tryToParseNumber(templateId),
 		wf_template_repo_session_id: templatesStore.currentSessionId,
 	};
 

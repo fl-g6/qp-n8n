@@ -5,11 +5,11 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
-import { generatePairedItemData } from '../../utils/utilities';
 import type { IRecord } from './GenericFunction';
 import { apiRequest, apiRequestAllItems } from './GenericFunction';
+import { generatePairedItemData } from '../../utils/utilities';
 
 export class Stackby implements INodeType {
 	description: INodeTypeDescription = {
@@ -23,8 +23,8 @@ export class Stackby implements INodeType {
 		defaults: {
 			name: 'Stackby',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'stackbyApi',

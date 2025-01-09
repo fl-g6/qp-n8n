@@ -1,15 +1,16 @@
 import type {
-	IBinaryKeyData,
 	IDataObject,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeProperties,
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
+
+import { updateDisplayOptions } from '@utils/utilities';
+
+import { messageRLC } from '../../descriptions';
 import { createMessage } from '../../helpers/utils';
 import { microsoftApiRequest } from '../../transport';
-import { messageRLC } from '../../descriptions';
-import { updateDisplayOptions } from '@utils/utilities';
 
 export const properties: INodeProperties[] = [
 	messageRLC,
@@ -254,7 +255,9 @@ export async function execute(this: IExecuteFunctions, index: number, items: INo
 	if (additionalFields.attachments) {
 		const attachments = (additionalFields.attachments as IDataObject).attachments as IDataObject[];
 		// // Handle attachments
-		const data = attachments.map((attachment) => {
+		const data: IDataObject[] = [];
+
+		for (const attachment of attachments) {
 			const binaryPropertyName = attachment.binaryPropertyName as string;
 
 			if (items[index].binary === undefined) {
@@ -274,13 +277,24 @@ export async function execute(this: IExecuteFunctions, index: number, items: INo
 				);
 			}
 
-			const binaryData = (items[index].binary as IBinaryKeyData)[binaryPropertyName];
-			return {
+			const binaryData = this.helpers.assertBinaryData(index, binaryPropertyName);
+
+			let fileBase64;
+			if (binaryData.id) {
+				const chunkSize = 256 * 1024;
+				const stream = await this.helpers.getBinaryStream(binaryData.id, chunkSize);
+				const buffer = await this.helpers.binaryToBuffer(stream);
+				fileBase64 = buffer.toString('base64');
+			} else {
+				fileBase64 = binaryData.data;
+			}
+
+			data.push({
 				'@odata.type': '#microsoft.graph.fileAttachment',
 				name: binaryData.fileName,
-				contentBytes: binaryData.data,
-			};
-		});
+				contentBytes: fileBase64,
+			});
+		}
 
 		for (const attachment of data) {
 			await microsoftApiRequest.call(

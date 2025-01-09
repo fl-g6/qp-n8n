@@ -1,23 +1,24 @@
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import type { INodeExecutionData, IPinData } from 'n8n-workflow';
-import { jsonParse, jsonStringify } from 'n8n-workflow';
+import { jsonParse, jsonStringify, NodeConnectionType, NodeHelpers } from 'n8n-workflow';
 import {
 	MAX_EXPECTED_REQUEST_SIZE,
 	MAX_PINNED_DATA_SIZE,
 	MAX_WORKFLOW_SIZE,
 	PIN_DATA_NODE_TYPES_DENYLIST,
 } from '@/constants';
-import { stringSizeInBytes } from '@/utils/typesUtils';
+import { stringSizeInBytes, toMegaBytes } from '@/utils/typesUtils';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import type { INodeUi, IRunDataDisplayMode } from '@/Interface';
 import { useExternalHooks } from '@/composables/useExternalHooks';
 import { useTelemetry } from '@/composables/useTelemetry';
 import type { MaybeRef } from 'vue';
 import { computed, unref } from 'vue';
-import { useRootStore } from '@/stores/n8nRoot.store';
-import { storeToRefs } from 'pinia';
+import { useRootStore } from '@/stores/root.store';
 import { useNodeType } from '@/composables/useNodeType';
+import { useDataSchema } from './useDataSchema';
+import { useNodeTypesStore } from '@/stores/nodeTypes.store';
 
 export type PinDataSource =
 	| 'pin-icon-click'
@@ -26,9 +27,14 @@ export type PinDataSource =
 	| 'duplicate-node'
 	| 'add-nodes'
 	| 'context-menu'
-	| 'keyboard-shortcut';
+	| 'keyboard-shortcut'
+	| 'banner-link';
 
-export type UnpinDataSource = 'unpin-and-execute-modal' | 'context-menu' | 'keyboard-shortcut';
+export type UnpinDataSource =
+	| 'unpin-and-execute-modal'
+	| 'context-menu'
+	| 'keyboard-shortcut'
+	| 'unpin-and-send-chat-message-modal';
 
 export function usePinnedData(
 	node: MaybeRef<INodeUi | null>,
@@ -43,8 +49,8 @@ export function usePinnedData(
 	const i18n = useI18n();
 	const telemetry = useTelemetry();
 	const externalHooks = useExternalHooks();
+	const { getInputDataWithPinned } = useDataSchema();
 
-	const { sessionId } = storeToRefs(rootStore);
 	const { isSubNodeType, isMultipleOutputsNodeType } = useNodeType({
 		node,
 	});
@@ -68,6 +74,37 @@ export function usePinnedData(
 			!PIN_DATA_NODE_TYPES_DENYLIST.includes(targetNode.type)
 		);
 	});
+
+	function canPinNode(checkDataEmpty = false, outputIndex?: number) {
+		const targetNode = unref(node);
+		if (targetNode === null || PIN_DATA_NODE_TYPES_DENYLIST.includes(targetNode.type)) return false;
+
+		const nodeType = useNodeTypesStore().getNodeType(targetNode.type, targetNode.typeVersion);
+		const dataToPin = getInputDataWithPinned(targetNode);
+
+		if (!nodeType || (checkDataEmpty && dataToPin.length === 0)) return false;
+
+		const workflow = workflowsStore.getCurrentWorkflow();
+		const outputs = NodeHelpers.getNodeOutputs(workflow, targetNode, nodeType).map((output) =>
+			typeof output === 'string' ? { type: output } : output,
+		);
+
+		const mainOutputs = outputs.filter(
+			(output) => output.type === NodeConnectionType.Main && output.category !== 'error',
+		);
+
+		let indexAcceptable = true;
+
+		if (outputIndex !== undefined) {
+			const output = outputs[outputIndex];
+
+			if (outputs[outputIndex] === undefined) return false;
+
+			indexAcceptable = output.type === NodeConnectionType.Main && output.category !== 'error';
+		}
+
+		return mainOutputs.length === 1 && indexAcceptable;
+	}
 
 	function isValidJSON(data: string): boolean {
 		try {
@@ -114,6 +151,10 @@ export function usePinnedData(
 		}
 	}
 
+	function getMaxPinnedDataSize() {
+		return window.maxPinnedDataSize ?? MAX_PINNED_DATA_SIZE;
+	}
+
 	function isValidSize(data: string | object): boolean {
 		const targetNode = unref(node);
 		if (!targetNode) {
@@ -128,21 +169,31 @@ export function usePinnedData(
 		const newPinData = { ...currentPinData, [targetNode.name]: data };
 		const newPinDataSize = workflowsStore.getPinDataSize(newPinData);
 
-		if (newPinDataSize > MAX_PINNED_DATA_SIZE) {
+		if (newPinDataSize > getMaxPinnedDataSize()) {
 			toast.showError(
-				new Error(i18n.baseText('ndv.pinData.error.tooLarge.description')),
+				new Error(
+					i18n.baseText('ndv.pinData.error.tooLarge.description', {
+						interpolate: {
+							size: toMegaBytes(newPinDataSize),
+							limit: toMegaBytes(getMaxPinnedDataSize()),
+						},
+					}),
+				),
 				i18n.baseText('ndv.pinData.error.tooLarge.title'),
 			);
 
 			return false;
 		}
 
-		if (
-			stringSizeInBytes(workflowJson) + newPinDataSize >
-			MAX_WORKFLOW_SIZE - MAX_EXPECTED_REQUEST_SIZE
-		) {
+		const workflowSize = stringSizeInBytes(workflowJson) + newPinDataSize;
+		const limit = MAX_WORKFLOW_SIZE - MAX_EXPECTED_REQUEST_SIZE;
+		if (workflowSize > limit) {
 			toast.showError(
-				new Error(i18n.baseText('ndv.pinData.error.tooLargeWorkflow.description')),
+				new Error(
+					i18n.baseText('ndv.pinData.error.tooLargeWorkflow.description', {
+						interpolate: { size: toMegaBytes(workflowSize), limit: toMegaBytes(limit) },
+					}),
+				),
 				i18n.baseText('ndv.pinData.error.tooLargeWorkflow.title'),
 			);
 
@@ -159,7 +210,7 @@ export function usePinnedData(
 		const telemetryPayload = {
 			pinning_source: source,
 			node_type: targetNode?.type,
-			session_id: sessionId.value,
+			push_ref: rootStore.pushRef,
 			data_size: stringSizeInBytes(data.value),
 			view: displayMode,
 			run_index: runIndex,
@@ -183,7 +234,7 @@ export function usePinnedData(
 		telemetry.track('Ndv data pinning failure', {
 			pinning_source: source,
 			node_type: targetNode?.type,
-			session_id: sessionId.value,
+			push_ref: rootStore.pushRef,
 			data_size: stringSizeInBytes(data.value),
 			view: displayMode,
 			run_index: runIndex,
@@ -215,20 +266,20 @@ export function usePinnedData(
 		onSetDataSuccess({ source });
 	}
 
-	function onUnsetData({ source }: { source: UnpinDataSource }) {
+	function onUnsetData({ source }: { source: PinDataSource | UnpinDataSource }) {
 		const targetNode = unref(node);
 		const runIndex = unref(options.runIndex);
 
 		telemetry.track('User unpinned ndv data', {
 			node_type: targetNode?.type,
-			session_id: sessionId.value,
+			push_ref: rootStore.pushRef,
 			run_index: runIndex,
 			source,
 			data_size: stringSizeInBytes(data.value),
 		});
 	}
 
-	function unsetData(source: UnpinDataSource): void {
+	function unsetData(source: PinDataSource | UnpinDataSource): void {
 		const targetNode = unref(node);
 		if (!targetNode) {
 			return;
@@ -242,6 +293,7 @@ export function usePinnedData(
 		data,
 		hasData,
 		isValidNodeType,
+		canPinNode,
 		setData,
 		onSetDataSuccess,
 		onSetDataError,

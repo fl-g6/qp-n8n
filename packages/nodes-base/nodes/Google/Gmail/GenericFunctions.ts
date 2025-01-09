@@ -1,36 +1,24 @@
-import type { OptionsWithUri } from 'request';
-
+import isEmpty from 'lodash/isEmpty';
+import { DateTime } from 'luxon';
 import { simpleParser } from 'mailparser';
-
 import type {
 	IBinaryKeyData,
 	IDataObject,
 	IExecuteFunctions,
+	IHttpRequestMethods,
 	ILoadOptionsFunctions,
 	INode,
 	INodeExecutionData,
 	IPollFunctions,
+	IRequestOptions,
 	JsonObject,
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
+import MailComposer from 'nodemailer/lib/mail-composer';
 
-import { DateTime } from 'luxon';
-
-import isEmpty from 'lodash/isEmpty';
-
-export interface IEmail {
-	from?: string;
-	to?: string;
-	cc?: string;
-	bcc?: string;
-	replyTo?: string;
-	inReplyTo?: string;
-	reference?: string;
-	subject: string;
-	body: string;
-	htmlBody?: string;
-	attachments?: IDataObject[];
-}
+import type { IEmail } from '../../../utils/sendAndWait/interfaces';
+import { escapeHtml } from '../../../utils/utilities';
+import { getGoogleAccessToken } from '../GenericFunctions';
 
 export interface IAttachments {
 	type: string;
@@ -38,19 +26,16 @@ export interface IAttachments {
 	content: string;
 }
 
-import MailComposer from 'nodemailer/lib/mail-composer';
-import { getGoogleAccessToken } from '../GenericFunctions';
-
 export async function googleApiRequest(
 	this: IExecuteFunctions | ILoadOptionsFunctions | IPollFunctions,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
 	body: IDataObject = {},
 	qs: IDataObject = {},
 	uri?: string,
 	option: IDataObject = {},
 ) {
-	let options: OptionsWithUri = {
+	let options: IRequestOptions = {
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -202,6 +187,11 @@ export async function parseRawEmail(
 		headers,
 		headerLines: undefined,
 		attachments: undefined,
+		// Having data in IDataObjects that is not representable in JSON leads to
+		// inconsistencies between test executions and production executions.
+		// During a manual execution this would be stringified and during a
+		// production execution the next node would receive a date instance.
+		date: responseData.date ? responseData.date.toISOString() : responseData.date,
 	}) as IDataObject;
 
 	return {
@@ -265,7 +255,7 @@ export async function encodeEmail(email: IEmail) {
 export async function googleApiRequestAllItems(
 	this: IExecuteFunctions | ILoadOptionsFunctions | IPollFunctions,
 	propertyName: string,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
 
 	body: any = {},
@@ -477,7 +467,6 @@ export function prepareEmailBody(
 export async function prepareEmailAttachments(
 	this: IExecuteFunctions,
 	options: IDataObject,
-	items: INodeExecutionData[],
 	itemIndex: number,
 ) {
 	const attachmentsList: IDataObject[] = [];
@@ -512,22 +501,7 @@ export function unescapeSnippets(items: INodeExecutionData[]) {
 	const result = items.map((item) => {
 		const snippet = item.json.snippet as string;
 		if (snippet) {
-			item.json.snippet = snippet.replace(/&amp;|&lt;|&gt;|&#39;|&quot;/g, (match) => {
-				switch (match) {
-					case '&amp;':
-						return '&';
-					case '&lt;':
-						return '<';
-					case '&gt;':
-						return '>';
-					case '&#39;':
-						return "'";
-					case '&quot;':
-						return '"';
-					default:
-						return match;
-				}
-			});
+			item.json.snippet = escapeHtml(snippet);
 		}
 		return item;
 	});
@@ -536,7 +510,6 @@ export function unescapeSnippets(items: INodeExecutionData[]) {
 
 export async function replyToEmail(
 	this: IExecuteFunctions,
-	items: INodeExecutionData[],
 	gmailId: string,
 	options: IDataObject,
 	itemIndex: number,
@@ -558,7 +531,6 @@ export async function replyToEmail(
 		attachments = await prepareEmailAttachments.call(
 			this,
 			options.attachmentsUi as IDataObject,
-			items,
 			itemIndex,
 		);
 		if (attachments.length) {
@@ -638,7 +610,7 @@ export async function replyToEmail(
 		threadId,
 	};
 
-	return googleApiRequest.call(this, 'POST', '/gmail/v1/users/me/messages/send', body, qs);
+	return await googleApiRequest.call(this, 'POST', '/gmail/v1/users/me/messages/send', body, qs);
 }
 
 export async function simplifyOutput(

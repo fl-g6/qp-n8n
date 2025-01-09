@@ -3,6 +3,9 @@ import { resolve } from 'path';
 import { defineConfig, mergeConfig } from 'vite';
 import { type UserConfig } from 'vitest';
 import { defineConfig as defineVitestConfig } from 'vitest/config';
+import components from 'unplugin-vue-components/vite';
+import icons from 'unplugin-icons/vite';
+import iconsResolver from 'unplugin-icons/resolver';
 
 export const vitestConfig = defineVitestConfig({
 	test: {
@@ -18,7 +21,7 @@ export const vitestConfig = defineVitestConfig({
 						reporter: process.env.CI === 'true' ? 'cobertura' : 'text-summary',
 						all: true,
 					},
-			  }
+				}
 			: {}),
 		css: {
 			modules: {
@@ -30,11 +33,27 @@ export const vitestConfig = defineVitestConfig({
 
 export default mergeConfig(
 	defineConfig({
-		plugins: [vue()],
+		plugins: [
+			vue(),
+			icons({
+				compiler: 'vue3',
+				autoInstall: true,
+			}),
+			components({
+				dirs: [],
+				dts: false,
+				resolvers: [
+					iconsResolver({
+						prefix: 'icon',
+					}),
+				],
+			}),
+		],
 		resolve: {
 			alias: {
 				'@': resolve(__dirname, 'src'),
 				'n8n-design-system': resolve(__dirname, 'src'),
+				lodash: 'lodash-es',
 			},
 		},
 		build: {

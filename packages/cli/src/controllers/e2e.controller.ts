@@ -1,47 +1,61 @@
+import type { PushMessage } from '@n8n/api-types';
+import { Container } from '@n8n/di';
 import { Request } from 'express';
+import { Logger } from 'n8n-core';
 import { v4 as uuid } from 'uuid';
+
+import { ActiveWorkflowManager } from '@/active-workflow-manager';
 import config from '@/config';
-import type { Role } from '@db/entities/Role';
-import { RoleRepository } from '@db/repositories/role.repository';
-import { SettingsRepository } from '@db/repositories/settings.repository';
-import { UserRepository } from '@db/repositories/user.repository';
-import { ActiveWorkflowRunner } from '@/ActiveWorkflowRunner';
-import { eventBus } from '@/eventbus/MessageEventBus/MessageEventBus';
-import { License } from '@/License';
-import { LICENSE_FEATURES, inE2ETests } from '@/constants';
-import { NoAuthRequired, Patch, Post, RestController } from '@/decorators';
-import type { UserSetupPayload } from '@/requests';
-import type { BooleanLicenseFeature, IPushDataType } from '@/Interfaces';
-import { MfaService } from '@/Mfa/mfa.service';
+import { LICENSE_FEATURES, LICENSE_QUOTAS, UNLIMITED_LICENSE_QUOTA, inE2ETests } from '@/constants';
+import { AuthUserRepository } from '@/databases/repositories/auth-user.repository';
+import { SettingsRepository } from '@/databases/repositories/settings.repository';
+import { UserRepository } from '@/databases/repositories/user.repository';
+import { Patch, Post, RestController } from '@/decorators';
+import { MessageEventBus } from '@/eventbus/message-event-bus/message-event-bus';
+import type { BooleanLicenseFeature, NumericLicenseFeature } from '@/interfaces';
+import type { FeatureReturnType } from '@/license';
+import { License } from '@/license';
+import { MfaService } from '@/mfa/mfa.service';
 import { Push } from '@/push';
 import { CacheService } from '@/services/cache/cache.service';
 import { PasswordUtility } from '@/services/password.utility';
 
 if (!inE2ETests) {
-	console.error('E2E endpoints only allowed during E2E tests');
+	Container.get(Logger).error('E2E endpoints only allowed during E2E tests');
 	process.exit(1);
 }
 
 const tablesToTruncate = [
 	'auth_identity',
 	'auth_provider_sync_history',
-	'event_destinations',
-	'shared_workflow',
-	'shared_credentials',
-	'webhook_entity',
-	'workflows_tags',
 	'credentials_entity',
-	'tag_entity',
-	'workflow_statistics',
-	'workflow_entity',
+	'event_destinations',
 	'execution_entity',
-	'settings',
-	'installed_packages',
 	'installed_nodes',
+	'installed_packages',
+	'project',
+	'project_relation',
+	'settings',
+	'shared_credentials',
+	'shared_workflow',
+	'tag_entity',
 	'user',
-	'role',
 	'variables',
+	'webhook_entity',
+	'workflow_entity',
+	'workflow_statistics',
+	'workflows_tags',
 ];
+
+type UserSetupPayload = {
+	email: string;
+	password: string;
+	firstName: string;
+	lastName: string;
+	mfaEnabled?: boolean;
+	mfaSecret?: string;
+	mfaRecoveryCodes?: string[];
+};
 
 type ResetRequest = Request<
 	{},
@@ -57,13 +71,10 @@ type PushRequest = Request<
 	{},
 	{},
 	{
-		type: IPushDataType;
-		sessionId: string;
-		data: object;
-	}
+		pushRef: string;
+	} & PushMessage
 >;
 
-@NoAuthRequired()
 @RestController('/e2e')
 export class E2EController {
 	private enabledFeatures: Record<BooleanLicenseFeature, boolean> = {
@@ -83,24 +94,55 @@ export class E2EController {
 		[LICENSE_FEATURES.MULTIPLE_MAIN_INSTANCES]: false,
 		[LICENSE_FEATURES.WORKER_VIEW]: false,
 		[LICENSE_FEATURES.ADVANCED_PERMISSIONS]: false,
+		[LICENSE_FEATURES.PROJECT_ROLE_ADMIN]: false,
+		[LICENSE_FEATURES.PROJECT_ROLE_EDITOR]: false,
+		[LICENSE_FEATURES.PROJECT_ROLE_VIEWER]: false,
+		[LICENSE_FEATURES.AI_ASSISTANT]: false,
+		[LICENSE_FEATURES.COMMUNITY_NODES_CUSTOM_REGISTRY]: false,
+		[LICENSE_FEATURES.ASK_AI]: false,
+		[LICENSE_FEATURES.AI_CREDITS]: false,
+	};
+
+	private numericFeatures: Record<NumericLicenseFeature, number> = {
+		[LICENSE_QUOTAS.TRIGGER_LIMIT]: -1,
+		[LICENSE_QUOTAS.VARIABLES_LIMIT]: -1,
+		[LICENSE_QUOTAS.USERS_LIMIT]: -1,
+		[LICENSE_QUOTAS.WORKFLOW_HISTORY_PRUNE_LIMIT]: -1,
+		[LICENSE_QUOTAS.TEAM_PROJECT_LIMIT]: 0,
+		[LICENSE_QUOTAS.AI_CREDITS]: 0,
 	};
 
 	constructor(
 		license: License,
-		private readonly roleRepo: RoleRepository,
 		private readonly settingsRepo: SettingsRepository,
-		private readonly userRepo: UserRepository,
-		private readonly workflowRunner: ActiveWorkflowRunner,
+		private readonly workflowRunner: ActiveWorkflowManager,
 		private readonly mfaService: MfaService,
 		private readonly cacheService: CacheService,
 		private readonly push: Push,
 		private readonly passwordUtility: PasswordUtility,
+		private readonly eventBus: MessageEventBus,
+		private readonly userRepository: UserRepository,
+		private readonly authUserRepository: AuthUserRepository,
 	) {
 		license.isFeatureEnabled = (feature: BooleanLicenseFeature) =>
 			this.enabledFeatures[feature] ?? false;
+
+		// Ugly hack to satisfy biome parser
+		const getFeatureValue = <T extends keyof FeatureReturnType>(
+			feature: T,
+		): FeatureReturnType[T] => {
+			if (feature in this.numericFeatures) {
+				return this.numericFeatures[feature as NumericLicenseFeature] as FeatureReturnType[T];
+			} else {
+				return UNLIMITED_LICENSE_QUOTA as FeatureReturnType[T];
+			}
+		};
+		license.getFeatureValue = getFeatureValue;
+
+		license.getPlanName = () => 'Enterprise';
 	}
 
-	@Post('/reset')
+	@Post('/reset', { skipAuth: true })
 	async reset(req: ResetRequest) {
 		this.resetFeatures();
 		await this.resetLogStreaming();
@@ -110,18 +152,25 @@ export class E2EController {
 		await this.setupUserManagement(req.body.owner, req.body.members, req.body.admin);
 	}
 
-	@Post('/push')
+	@Post('/push', { skipAuth: true })
 	async pushSend(req: PushRequest) {
-		this.push.broadcast(req.body.type, req.body.data);
+		const { pushRef: _, ...pushMsg } = req.body;
+		this.push.broadcast(pushMsg);
 	}
 
-	@Patch('/feature')
+	@Patch('/feature', { skipAuth: true })
 	setFeature(req: Request<{}, {}, { feature: BooleanLicenseFeature; enabled: boolean }>) {
 		const { enabled, feature } = req.body;
 		this.enabledFeatures[feature] = enabled;
 	}
 
-	@Patch('/queue-mode')
+	@Patch('/quota', { skipAuth: true })
+	setQuota(req: Request<{}, {}, { feature: NumericLicenseFeature; value: number }>) {
+		const { value, feature } = req.body;
+		this.numericFeatures[feature] = value;
+	}
+
+	@Patch('/queue-mode', { skipAuth: true })
 	async setQueueMode(req: Request<{}, {}, { enabled: boolean }>) {
 		const { enabled } = req.body;
 		config.set('executions.mode', enabled ? 'queue' : 'regular');
@@ -140,20 +189,22 @@ export class E2EController {
 	}
 
 	private async resetLogStreaming() {
-		for (const id in eventBus.destinations) {
-			await eventBus.removeDestination(id, false);
+		for (const id in this.eventBus.destinations) {
+			await this.eventBus.removeDestination(id, false);
 		}
 	}
 
 	private async truncateAll() {
 		for (const table of tablesToTruncate) {
 			try {
-				const { connection } = this.roleRepo.manager;
+				const { connection } = this.settingsRepo.manager;
 				await connection.query(
 					`DELETE FROM ${table}; DELETE FROM sqlite_sequence WHERE name=${table};`,
 				);
 			} catch (error) {
-				console.warn('Dropping Table for E2E Reset error: ', error);
+				Container.get(Logger).warn('Dropping Table for E2E Reset error', {
+					error: error as Error,
+				});
 			}
 		}
 	}
@@ -163,58 +214,46 @@ export class E2EController {
 		members: UserSetupPayload[],
 		admin: UserSetupPayload,
 	) {
-		const roles: Array<[Role['name'], Role['scope']]> = [
-			['owner', 'global'],
-			['member', 'global'],
-			['admin', 'global'],
-			['owner', 'workflow'],
-			['owner', 'credential'],
-			['user', 'credential'],
-			['editor', 'workflow'],
+		const userCreatePromises = [
+			this.userRepository.createUserWithProject({
+				id: uuid(),
+				...owner,
+				password: await this.passwordUtility.hash(owner.password),
+				role: 'global:owner',
+			}),
 		];
 
-		const [{ id: globalOwnerRoleId }, { id: globalMemberRoleId }, { id: globalAdminRoleId }] =
-			await this.roleRepo.save(
-				roles.map(([name, scope], index) => ({ name, scope, id: (index + 1).toString() })),
-			);
-
-		const instanceOwner = {
-			id: uuid(),
-			...owner,
-			password: await this.passwordUtility.hash(owner.password),
-			globalRoleId: globalOwnerRoleId,
-		};
-
-		if (owner?.mfaSecret && owner.mfaRecoveryCodes?.length) {
-			const { encryptedRecoveryCodes, encryptedSecret } =
-				this.mfaService.encryptSecretAndRecoveryCodes(owner.mfaSecret, owner.mfaRecoveryCodes);
-			instanceOwner.mfaSecret = encryptedSecret;
-			instanceOwner.mfaRecoveryCodes = encryptedRecoveryCodes;
-		}
-
-		const adminUser = {
-			id: uuid(),
-			...admin,
-			password: await this.passwordUtility.hash(admin.password),
-			globalRoleId: globalAdminRoleId,
-		};
-
-		const users = [];
-
-		users.push(instanceOwner, adminUser);
+		userCreatePromises.push(
+			this.userRepository.createUserWithProject({
+				id: uuid(),
+				...admin,
+				password: await this.passwordUtility.hash(admin.password),
+				role: 'global:admin',
+			}),
+		);
 
 		for (const { password, ...payload } of members) {
-			users.push(
-				this.userRepo.create({
+			userCreatePromises.push(
+				this.userRepository.createUserWithProject({
 					id: uuid(),
 					...payload,
 					password: await this.passwordUtility.hash(password),
-					globalRoleId: globalMemberRoleId,
+					role: 'global:member',
 				}),
 			);
 		}
 
-		await this.userRepo.insert(users);
+		const [newOwner] = await Promise.all(userCreatePromises);
+
+		if (owner?.mfaSecret && owner.mfaRecoveryCodes?.length) {
+			const { encryptedRecoveryCodes, encryptedSecret } =
+				this.mfaService.encryptSecretAndRecoveryCodes(owner.mfaSecret, owner.mfaRecoveryCodes);
+
+			await this.authUserRepository.update(newOwner.user.id, {
+				mfaSecret: encryptedSecret,
+				mfaRecoveryCodes: encryptedRecoveryCodes,
+			});
+		}
 
 		await this.settingsRepo.update(
 			{ key: 'userManagement.isInstanceOwnerSetUp' },

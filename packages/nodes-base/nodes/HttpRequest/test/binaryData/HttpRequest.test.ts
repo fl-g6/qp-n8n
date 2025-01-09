@@ -1,4 +1,5 @@
 import nock from 'nock';
+
 import {
 	setup,
 	equalityTest,
@@ -40,6 +41,6 @@ describe('Test Binary Data Download', () => {
 	const nodeTypes = setup(tests);
 
 	for (const testData of tests) {
-		test(testData.description, async () => equalityTest(testData, nodeTypes));
+		test(testData.description, async () => await equalityTest(testData, nodeTypes));
 	}
 });

@@ -1,3 +1,32 @@
+<script lang="ts" setup>
+import type { RouteLocationRaw } from 'vue-router';
+
+import type { TextSize } from 'n8n-design-system/types/text';
+
+import N8nRoute from '../N8nRoute';
+import N8nText from '../N8nText';
+
+const THEME = ['primary', 'danger', 'text', 'secondary'] as const;
+
+interface LinkProps {
+	to?: RouteLocationRaw | string;
+	size?: TextSize;
+	newWindow?: boolean;
+	bold?: boolean;
+	underline?: boolean;
+	theme?: (typeof THEME)[number];
+}
+
+defineOptions({ name: 'N8nLink' });
+withDefaults(defineProps<LinkProps>(), {
+	to: undefined,
+	size: undefined,
+	bold: false,
+	underline: false,
+	theme: 'primary',
+});
+</script>
+
 <template>
 	<N8nRoute :to="to" :new-window="newWindow" v-bind="$attrs" class="n8n-link">
 		<span :class="$style[`${underline ? `${theme}-underline` : theme}`]">
@@ -7,46 +36,6 @@
 		</span>
 	</N8nRoute>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue';
-import N8nText from '../N8nText';
-import N8nRoute from '../N8nRoute';
-
-export default defineComponent({
-	name: 'N8nLink',
-	components: {
-		N8nText,
-		N8nRoute,
-	},
-	props: {
-		size: {
-			type: String,
-		},
-		to: {
-			type: String || Object,
-		},
-		newWindow: {
-			type: Boolean || undefined,
-			default: undefined,
-		},
-		bold: {
-			type: Boolean,
-			default: false,
-		},
-		underline: {
-			type: Boolean,
-			default: false,
-		},
-		theme: {
-			type: String,
-			default: 'primary',
-			validator: (value: string): boolean =>
-				['primary', 'danger', 'text', 'secondary'].includes(value),
-		},
-	},
-});
-</script>
 
 <style lang="scss" module>
 @import '../../utils';

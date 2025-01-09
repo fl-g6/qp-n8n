@@ -1,4 +1,4 @@
-/* eslint-disable n8n-nodes-base/node-filename-against-convention */
+import type mysql2 from 'mysql2/promise';
 import type {
 	ICredentialDataDecryptedObject,
 	ICredentialsDecrypted,
@@ -11,14 +11,12 @@ import type {
 	INodeTypeBaseDescription,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
-
-import type mysql2 from 'mysql2/promise';
-
-import { createConnection, searchTables } from './GenericFunctions';
+import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
 import { oldVersionNotice } from '@utils/descriptions';
 import { getResolvables } from '@utils/utilities';
+
+import { createConnection, searchTables } from './GenericFunctions';
 
 const versionDescription: INodeTypeDescription = {
 	displayName: 'MySQL',
@@ -30,8 +28,8 @@ const versionDescription: INodeTypeDescription = {
 	defaults: {
 		name: 'MySQL',
 	},
-	inputs: ['main'],
-	outputs: ['main'],
+	inputs: [NodeConnectionType.Main],
+	outputs: [NodeConnectionType.Main],
 	credentials: [
 		{
 			name: 'mySql',
@@ -316,7 +314,7 @@ export class MySqlV1 implements INodeType {
 						);
 					}
 
-					return connection.query(rawQuery);
+					return await connection.query(rawQuery);
 				});
 
 				returnItems = ((await Promise.all(queryQueue)) as mysql2.OkPacket[][]).reduce(
@@ -328,7 +326,7 @@ export class MySqlV1 implements INodeType {
 							{ itemData: { item: index } },
 						);
 
-						collection.push(...executionData);
+						collection = collection.concat(executionData);
 
 						return collection;
 					},
@@ -398,8 +396,9 @@ export class MySqlV1 implements INodeType {
 				const updateSQL = `UPDATE ${table} SET ${columns
 					.map((column) => `${column} = ?`)
 					.join(',')} WHERE ${updateKey} = ?;`;
-				const queryQueue = updateItems.map(async (item) =>
-					connection.query(updateSQL, Object.values(item).concat(item[updateKey])),
+				const queryQueue = updateItems.map(
+					async (item) =>
+						await connection.query(updateSQL, Object.values(item).concat(item[updateKey])),
 				);
 				const queryResult = await Promise.all(queryQueue);
 				returnItems = this.helpers.returnJsonArray(

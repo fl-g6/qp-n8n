@@ -1,25 +1,28 @@
 /* eslint-disable n8n-nodes-base/node-dirname-against-convention */
+
+import { ChatOpenAI, type ClientOptions } from '@langchain/openai';
 import {
 	NodeConnectionType,
-	type IExecuteFunctions,
 	type INodeType,
 	type INodeTypeDescription,
+	type ISupplyDataFunctions,
 	type SupplyData,
 } from 'n8n-workflow';
 
-import type { ClientOptions } from 'openai';
-import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { logWrapper } from '../../../utils/logWrapper';
-import { getConnectionHintNoticeField } from '../../../utils/sharedFields';
+import { getConnectionHintNoticeField } from '@utils/sharedFields';
+
+import { openAiFailedAttemptHandler } from '../../vendors/OpenAi/helpers/error-handling';
+import { makeN8nLlmFailedAttemptHandler } from '../n8nLlmFailedAttemptHandler';
+import { N8nLlmTracing } from '../N8nLlmTracing';
 
 export class LmChatOpenAi implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'OpenAI Chat Model',
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-name-miscased
 		name: 'lmChatOpenAi',
-		icon: 'file:openAi.svg',
+		icon: { light: 'file:openAiLight.svg', dark: 'file:openAiLight.dark.svg' },
 		group: ['transform'],
-		version: 1,
+		version: [1, 1.1],
 		description: 'For advanced usage with an AI chain',
 		defaults: {
 			name: 'OpenAI Chat Model',
@@ -27,7 +30,8 @@ export class LmChatOpenAi implements INodeType {
 		codex: {
 			categories: ['AI'],
 			subcategories: {
-				AI: ['Language Models'],
+				AI: ['Language Models', 'Root Nodes'],
+				'Language Models': ['Chat Models (Recommended)'],
 			},
 			resources: {
 				primaryDocumentation: [
@@ -51,7 +55,7 @@ export class LmChatOpenAi implements INodeType {
 		requestDefaults: {
 			ignoreHttpStatusErrors: true,
 			baseURL:
-				'={{ $parameter.options?.baseURL?.split("/").slice(0,-1).join("/") || "https://api.openai.com" }}',
+				'={{ $parameter.options?.baseURL?.split("/").slice(0,-1).join("/") || $credentials?.url?.split("/").slice(0,-1).join("/") || "https://api.openai.com" }}',
 		},
 		properties: [
 			getConnectionHintNoticeField([NodeConnectionType.AiChain, NodeConnectionType.AiAgent]),
@@ -78,7 +82,7 @@ export class LmChatOpenAi implements INodeType {
 						routing: {
 							request: {
 								method: 'GET',
-								url: '={{ $parameter.options?.baseURL?.split("/").slice(-1).pop() || "v1"  }}/models',
+								url: '={{ $parameter.options?.baseURL?.split("/").slice(-1).pop() || $credentials?.url?.split("/").slice(-1).pop() || "v1" }}/models',
 							},
 							output: {
 								postReceive: [
@@ -91,7 +95,14 @@ export class LmChatOpenAi implements INodeType {
 									{
 										type: 'filter',
 										properties: {
-											pass: "={{ $responseItem.id.startsWith('gpt-') && !$responseItem.id.includes('instruct') }}",
+											// If the baseURL is not set or is set to api.openai.com, include only chat models
+											pass: `={{
+												($parameter.options?.baseURL && !$parameter.options?.baseURL?.includes('api.openai.com')) ||
+												($credentials?.url && !$credentials.url.includes('api.openai.com')) ||
+												$responseItem.id.startsWith('ft:') ||
+												$responseItem.id.startsWith('o1') ||
+												($responseItem.id.startsWith('gpt-') && !$responseItem.id.includes('instruct'))
+											}}`,
 										},
 									},
 									{
@@ -118,7 +129,19 @@ export class LmChatOpenAi implements INodeType {
 						property: 'model',
 					},
 				},
-				default: 'gpt-3.5-turbo',
+				default: 'gpt-4o-mini',
+			},
+			{
+				displayName:
+					'When using non-OpenAI models via "Base URL" override, not all models might be chat-compatible or support other features, like tools calling or JSON response format',
+				name: 'notice',
+				type: 'notice',
+				default: '',
+				displayOptions: {
+					show: {
+						'/options.baseURL': [{ _cnd: { exists: true } }],
+					},
+				},
 			},
 			{
 				displayName: 'Options',
@@ -134,6 +157,11 @@ export class LmChatOpenAi implements INodeType {
 						default: 'https://api.openai.com/v1',
 						description: 'Override the default base URL for the API',
 						type: 'string',
+						displayOptions: {
+							hide: {
+								'@version': [{ _cnd: { gte: 1.1 } }],
+							},
+						},
 					},
 					{
 						displayName: 'Frequency Penalty',
@@ -220,7 +248,7 @@ export class LmChatOpenAi implements INodeType {
 		],
 	};
 
-	async supplyData(this: IExecuteFunctions, itemIndex: number): Promise<SupplyData> {
+	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
 		const credentials = await this.getCredentials('openAiApi');
 
 		const modelName = this.getNodeParameter('model', itemIndex) as string;
@@ -239,6 +267,8 @@ export class LmChatOpenAi implements INodeType {
 		const configuration: ClientOptions = {};
 		if (options.baseURL) {
 			configuration.baseURL = options.baseURL;
+		} else if (credentials.url) {
+			configuration.baseURL = credentials.url as string;
 		}
 
 		const model = new ChatOpenAI({
@@ -248,15 +278,17 @@ export class LmChatOpenAi implements INodeType {
 			timeout: options.timeout ?? 60000,
 			maxRetries: options.maxRetries ?? 2,
 			configuration,
+			callbacks: [new N8nLlmTracing(this)],
 			modelKwargs: options.responseFormat
 				? {
 						response_format: { type: options.responseFormat },
-				  }
+					}
 				: undefined,
+			onFailedAttempt: makeN8nLlmFailedAttemptHandler(this, openAiFailedAttemptHandler),
 		});
 
 		return {
-			response: logWrapper(model, this),
+			response: model,
 		};
 	}
 }

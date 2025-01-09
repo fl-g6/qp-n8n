@@ -1,20 +1,18 @@
-import { Service } from 'typedi';
-import { v4 as uuid } from 'uuid';
+import { Service } from '@n8n/di';
+import { Logger } from 'n8n-core';
 import { type INode, type INodeCredentialsDetails } from 'n8n-workflow';
+import { v4 as uuid } from 'uuid';
 
-import { Logger } from '@/Logger';
-import * as Db from '@/Db';
+import { Project } from '@/databases/entities/project';
+import { SharedWorkflow } from '@/databases/entities/shared-workflow';
+import type { TagEntity } from '@/databases/entities/tag-entity';
+import { WorkflowEntity } from '@/databases/entities/workflow-entity';
+import { WorkflowTagMapping } from '@/databases/entities/workflow-tag-mapping';
 import { CredentialsRepository } from '@/databases/repositories/credentials.repository';
 import { TagRepository } from '@/databases/repositories/tag.repository';
-import { SharedWorkflow } from '@/databases/entities/SharedWorkflow';
-import { RoleService } from '@/services/role.service';
-import { replaceInvalidCredentials } from '@/WorkflowHelpers';
-import { WorkflowEntity } from '@/databases/entities/WorkflowEntity';
-import { WorkflowTagMapping } from '@/databases/entities/WorkflowTagMapping';
-
-import type { TagEntity } from '@/databases/entities/TagEntity';
-import type { Role } from '@/databases/entities/Role';
-import type { ICredentialsDb } from '@/Interfaces';
+import * as Db from '@/db';
+import type { ICredentialsDb } from '@/interfaces';
+import { replaceInvalidCredentials } from '@/workflow-helpers';
 
 @Service()
 export class ImportService {
@@ -22,22 +20,18 @@ export class ImportService {
 
 	private dbTags: TagEntity[] = [];
 
-	private workflowOwnerRole: Role;
-
 	constructor(
 		private readonly logger: Logger,
 		private readonly credentialsRepository: CredentialsRepository,
 		private readonly tagRepository: TagRepository,
-		private readonly roleService: RoleService,
 	) {}
 
 	async initRecords() {
 		this.dbCredentials = await this.credentialsRepository.find();
 		this.dbTags = await this.tagRepository.find();
-		this.workflowOwnerRole = await this.roleService.findWorkflowOwnerRole();
 	}
 
-	async importWorkflows(workflows: WorkflowEntity[], userId: string) {
+	async importWorkflows(workflows: WorkflowEntity[], projectId: string) {
 		await this.initRecords();
 
 		for (const workflow of workflows) {
@@ -60,14 +54,21 @@ export class ImportService {
 					this.logger.info(`Deactivating workflow "${workflow.name}". Remember to activate later.`);
 				}
 
-				const upsertResult = await tx.upsert(WorkflowEntity, workflow, ['id']);
+				const exists = workflow.id ? await tx.existsBy(WorkflowEntity, { id: workflow.id }) : false;
 
+				const upsertResult = await tx.upsert(WorkflowEntity, workflow, ['id']);
 				const workflowId = upsertResult.identifiers.at(0)?.id as string;
 
-				await tx.upsert(SharedWorkflow, { workflowId, userId, roleId: this.workflowOwnerRole.id }, [
-					'workflowId',
-					'userId',
-				]);
+				const personalProject = await tx.findOneByOrFail(Project, { id: projectId });
+
+				// Create relationship if the workflow was inserted instead of updated.
+				if (!exists) {
+					await tx.upsert(
+						SharedWorkflow,
+						{ workflowId, projectId: personalProject.id, role: 'workflow:owner' },
+						['workflowId', 'projectId'],
+					);
+				}
 
 				if (!workflow.tags?.length) continue;
 
@@ -87,8 +88,7 @@ export class ImportService {
 		try {
 			await replaceInvalidCredentials(workflow);
 		} catch (e) {
-			const error = e instanceof Error ? e : new Error(`${e}`);
-			this.logger.error('Failed to replace invalid credential', error);
+			this.logger.error('Failed to replace invalid credential', { error: e });
 		}
 	}
 

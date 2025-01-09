@@ -1,3 +1,22 @@
+<script lang="ts" setup>
+import type { TextSize } from 'n8n-design-system/types/text';
+
+import N8nIcon from '../N8nIcon';
+
+const TYPE = ['dots', 'ring'] as const;
+
+interface SpinnerProps {
+	size?: Exclude<TextSize, 'mini' | 'xlarge'>;
+	type?: (typeof TYPE)[number];
+}
+
+defineOptions({ name: 'N8nSpinner' });
+withDefaults(defineProps<SpinnerProps>(), {
+	type: 'dots',
+	size: 'medium',
+});
+</script>
+
 <template>
 	<span class="n8n-spinner">
 		<div v-if="type === 'ring'" class="lds-ring">
@@ -9,34 +28,6 @@
 		<N8nIcon v-else icon="spinner" :size="size" spin />
 	</span>
 </template>
-
-<script lang="ts">
-import N8nIcon from '../N8nIcon';
-
-import { defineComponent } from 'vue';
-
-export default defineComponent({
-	name: 'N8nSpinner',
-	components: {
-		N8nIcon,
-	},
-	props: {
-		size: {
-			type: String,
-			validator(value: string): boolean {
-				return ['small', 'medium', 'large'].includes(value);
-			},
-		},
-		type: {
-			type: String,
-			validator(value: string): boolean {
-				return ['dots', 'ring'].includes(value);
-			},
-			default: 'dots',
-		},
-	},
-});
-</script>
 
 <style lang="scss">
 .lds-ring {

@@ -1,19 +1,27 @@
+import * as setupCredsModal from '../composables/modals/workflow-credential-setup-modal';
+import * as formStep from '../composables/setup-template-form-step';
+import { getSetupWorkflowCredentialsButton } from '../composables/setup-workflow-credentials-button';
+import TestTemplate1 from '../fixtures/Test_Template_1.json';
+import TestTemplate2 from '../fixtures/Test_Template_2.json';
+import { clearNotifications } from '../pages/notifications';
 import {
 	clickUseWorkflowButtonByTitle,
 	visitTemplateCollectionPage,
 	testData,
 } from '../pages/template-collection';
 import * as templateCredentialsSetupPage from '../pages/template-credential-setup';
-import { TemplateWorkflowPage } from '../pages/template-workflow';
 import { WorkflowPage } from '../pages/workflow';
-import * as formStep from '../composables/setup-template-form-step';
-import { getSetupWorkflowCredentialsButton } from '../composables/setup-workflow-credentials-button';
-import * as setupCredsModal from '../composables/modals/workflow-credential-setup-modal';
 
-const templateWorkflowPage = new TemplateWorkflowPage();
 const workflowPage = new WorkflowPage();
 
-const testTemplate = templateCredentialsSetupPage.testData.simpleTemplate;
+const testTemplate = {
+	id: 1205,
+	data: TestTemplate1,
+};
+const templateWithoutCredentials = {
+	id: 1344,
+	data: TestTemplate2,
+};
 
 // NodeView uses beforeunload listener that will show a browser
 // native popup, which will block cypress from continuing / exiting.
@@ -31,30 +39,28 @@ Cypress.on('window:before:load', (win) => {
 
 describe('Template credentials setup', () => {
 	beforeEach(() => {
-		cy.intercept('GET', `https://api.n8n.io/api/templates/workflows/${testTemplate.id}`, {
-			fixture: testTemplate.fixture,
+		cy.intercept(
+			'GET',
+			`https://api.n8n.io/api/templates/workflows/${testTemplate.id}`,
+			testTemplate.data,
+		).as('getTemplatePreview');
+		cy.intercept(
+			'GET',
+			`https://api.n8n.io/api/workflows/templates/${testTemplate.id}`,
+			testTemplate.data.workflow,
+		).as('getTemplate');
+		cy.overrideSettings({
+			templates: { enabled: true, host: 'https://api.n8n.io/api/' },
 		});
-	});
-
-	it('can be opened from template workflow page', () => {
-		templateWorkflowPage.actions.visit(testTemplate.id);
-		templateCredentialsSetupPage.enableTemplateCredentialSetupFeatureFlag();
-		templateWorkflowPage.getters.useTemplateButton().should('be.visible');
-		templateCredentialsSetupPage.enableTemplateCredentialSetupFeatureFlag();
-		templateWorkflowPage.actions.clickUseThisWorkflowButton();
-
-		templateCredentialsSetupPage.getters
-			.title(`Set up 'Promote new Shopify products on Twitter and Telegram' template`)
-			.should('be.visible');
 	});
 
 	it('can be opened from template collection page', () => {
 		visitTemplateCollectionPage(testData.ecommerceStarterPack);
 		templateCredentialsSetupPage.enableTemplateCredentialSetupFeatureFlag();
-		clickUseWorkflowButtonByTitle('Promote new Shopify products on Twitter and Telegram');
+		clickUseWorkflowButtonByTitle('Promote new Shopify products');
 
 		templateCredentialsSetupPage.getters
-			.title(`Set up 'Promote new Shopify products on Twitter and Telegram' template`)
+			.title("Set up 'Promote new Shopify products' template")
 			.should('be.visible');
 	});
 
@@ -62,7 +68,7 @@ describe('Template credentials setup', () => {
 		templateCredentialsSetupPage.visitTemplateCredentialSetupPage(testTemplate.id);
 
 		templateCredentialsSetupPage.getters
-			.title(`Set up 'Promote new Shopify products on Twitter and Telegram' template`)
+			.title("Set up 'Promote new Shopify products' template")
 			.should('be.visible');
 
 		templateCredentialsSetupPage.getters
@@ -106,21 +112,25 @@ describe('Template credentials setup', () => {
 		templateCredentialsSetupPage.fillInDummyCredentialsForAppWithConfirm('X (Formerly Twitter)');
 		templateCredentialsSetupPage.fillInDummyCredentialsForApp('Telegram');
 
+		clearNotifications();
+
 		templateCredentialsSetupPage.finishCredentialSetup();
 
 		workflowPage.getters.canvasNodes().should('have.length', 3);
 
+		cy.grantBrowserPermissions('clipboardReadWrite', 'clipboardSanitizedWrite');
+
 		// Focus the canvas so the copy to clipboard works
 		workflowPage.getters.canvasNodes().eq(0).realClick();
-		workflowPage.actions.selectAll();
+		workflowPage.actions.hitSelectAll();
 		workflowPage.actions.hitCopy();
 
-		cy.grantBrowserPermissions('clipboardReadWrite', 'clipboardSanitizedWrite');
 		// Check workflow JSON by copying it to clipboard
 		cy.readClipboard().then((workflowJSON) => {
 			const workflow = JSON.parse(workflowJSON);
 
 			expect(workflow.meta).to.haveOwnProperty('templateId', testTemplate.id.toString());
+			expect(workflow.meta).not.to.haveOwnProperty('templateCredsSetupCompleted');
 			workflow.nodes.forEach((node: any) => {
 				expect(Object.keys(node.credentials ?? {})).to.have.lengthOf(1);
 			});
@@ -128,11 +138,9 @@ describe('Template credentials setup', () => {
 	});
 
 	it('should work with a template that has no credentials (ADO-1603)', () => {
-		const templateWithoutCreds = templateCredentialsSetupPage.testData.templateWithoutCredentials;
-		cy.intercept('GET', `https://api.n8n.io/api/templates/workflows/${templateWithoutCreds.id}`, {
-			fixture: templateWithoutCreds.fixture,
-		});
-		templateCredentialsSetupPage.visitTemplateCredentialSetupPage(templateWithoutCreds.id);
+		const { id, data } = templateWithoutCredentials;
+		cy.intercept('GET', `https://api.n8n.io/api/templates/workflows/${id}`, data);
+		templateCredentialsSetupPage.visitTemplateCredentialSetupPage(id);
 
 		const expectedAppNames = ['1. Email (IMAP)', '2. Nextcloud'];
 		const expectedAppDescriptions = [
@@ -150,12 +158,14 @@ describe('Template credentials setup', () => {
 		templateCredentialsSetupPage.fillInDummyCredentialsForApp('Email (IMAP)');
 		templateCredentialsSetupPage.fillInDummyCredentialsForApp('Nextcloud');
 
+		clearNotifications();
+
 		templateCredentialsSetupPage.finishCredentialSetup();
 
 		workflowPage.getters.canvasNodes().should('have.length', 3);
 	});
 
-	describe('Credential setup from workflow editor', () => {
+	describe('Credential setup from workflow editor', { disableAutoLogin: true }, () => {
 		beforeEach(() => {
 			cy.resetDatabase();
 			cy.signinAsOwner();
@@ -171,6 +181,8 @@ describe('Template credentials setup', () => {
 		it('should allow credential setup from workflow editor if user fills in credentials partially during template setup', () => {
 			templateCredentialsSetupPage.visitTemplateCredentialSetupPage(testTemplate.id);
 			templateCredentialsSetupPage.fillInDummyCredentialsForApp('Shopify');
+
+			clearNotifications();
 
 			templateCredentialsSetupPage.finishCredentialSetup();
 
@@ -188,12 +200,14 @@ describe('Template credentials setup', () => {
 			templateCredentialsSetupPage.fillInDummyCredentialsForAppWithConfirm('X (Formerly Twitter)');
 			templateCredentialsSetupPage.fillInDummyCredentialsForApp('Telegram');
 
+			clearNotifications();
+
 			setupCredsModal.closeModalFromContinueButton();
 			setupCredsModal.getWorkflowCredentialsModal().should('not.exist');
 
 			// Focus the canvas so the copy to clipboard works
 			workflowPage.getters.canvasNodes().eq(0).realClick();
-			workflowPage.actions.selectAll();
+			workflowPage.actions.hitSelectAll();
 			workflowPage.actions.hitCopy();
 
 			cy.grantBrowserPermissions('clipboardReadWrite', 'clipboardSanitizedWrite');

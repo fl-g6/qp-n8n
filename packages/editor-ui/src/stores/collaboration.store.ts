@@ -1,53 +1,113 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
+import { useRoute } from 'vue-router';
+import type { Collaborator } from '@n8n/api-types';
+
+import { STORES, PLACEHOLDER_EMPTY_WORKFLOW_ID, TIME } from '@/constants';
+import { useBeforeUnload } from '@/composables/useBeforeUnload';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import { usePushConnectionStore } from '@/stores/pushConnection.store';
-import { STORES } from '@/constants';
-import type { IUser } from '@/Interface';
+import { useUsersStore } from '@/stores/users.store';
+import { useUIStore } from '@/stores/ui.store';
 
-type ActiveUsersForWorkflows = {
-	[workflowId: string]: Array<{ user: IUser; lastSeen: string }>;
-};
+const HEARTBEAT_INTERVAL = 5 * TIME.MINUTE;
 
+/**
+ * Store for tracking active users for workflows. I.e. to show
+ * who is collaboratively viewing/editing the workflow at the same time.
+ */
 export const useCollaborationStore = defineStore(STORES.COLLABORATION, () => {
 	const pushStore = usePushConnectionStore();
-	const workflowStore = useWorkflowsStore();
+	const workflowsStore = useWorkflowsStore();
+	const usersStore = useUsersStore();
+	const uiStore = useUIStore();
 
-	const usersForWorkflows = ref<ActiveUsersForWorkflows>({});
+	const route = useRoute();
+	const { addBeforeUnloadEventBindings, removeBeforeUnloadEventBindings, addBeforeUnloadHandler } =
+		useBeforeUnload({ route });
+	const unloadTimeout = ref<NodeJS.Timeout | null>(null);
 
-	pushStore.addEventListener((event) => {
-		if (event.type === 'activeWorkflowUsersChanged') {
-			const activeWorkflowId = workflowStore.workflowId;
-			if (event.data.workflowId === activeWorkflowId) {
-				usersForWorkflows.value[activeWorkflowId] = event.data.activeUsers;
-			}
+	addBeforeUnloadHandler(() => {
+		// Notify that workflow is closed straight away
+		notifyWorkflowClosed();
+		if (uiStore.stateIsDirty) {
+			// If user decided to stay on the page we notify that the workflow is opened again
+			unloadTimeout.value = setTimeout(() => notifyWorkflowOpened, 5 * TIME.SECOND);
 		}
 	});
 
-	const workflowUsersUpdated = (data: ActiveUsersForWorkflows) => {
-		usersForWorkflows.value = data;
+	const collaborators = ref<Collaborator[]>([]);
+
+	const heartbeatTimer = ref<number | null>(null);
+
+	const startHeartbeat = () => {
+		stopHeartbeat();
+		heartbeatTimer.value = window.setInterval(notifyWorkflowOpened, HEARTBEAT_INTERVAL);
 	};
 
-	const notifyWorkflowOpened = (workflowId: string) => {
-		pushStore.send({
-			type: 'workflowOpened',
-			workflowId,
+	const stopHeartbeat = () => {
+		if (heartbeatTimer.value !== null) {
+			clearInterval(heartbeatTimer.value);
+			heartbeatTimer.value = null;
+		}
+	};
+
+	const pushStoreEventListenerRemovalFn = ref<(() => void) | null>(null);
+
+	function initialize() {
+		if (pushStoreEventListenerRemovalFn.value) {
+			return;
+		}
+
+		pushStoreEventListenerRemovalFn.value = pushStore.addEventListener((event) => {
+			if (
+				event.type === 'collaboratorsChanged' &&
+				event.data.workflowId === workflowsStore.workflowId
+			) {
+				collaborators.value = event.data.collaborators;
+			}
 		});
-	};
 
-	const notifyWorkflowClosed = (workflowId: string) => {
+		addBeforeUnloadEventBindings();
+		notifyWorkflowOpened();
+		startHeartbeat();
+	}
+
+	function terminate() {
+		if (typeof pushStoreEventListenerRemovalFn.value === 'function') {
+			pushStoreEventListenerRemovalFn.value();
+			pushStoreEventListenerRemovalFn.value = null;
+		}
+		notifyWorkflowClosed();
+		stopHeartbeat();
+		pushStore.clearQueue();
+		removeBeforeUnloadEventBindings();
+		if (unloadTimeout.value) {
+			clearTimeout(unloadTimeout.value);
+		}
+	}
+
+	function notifyWorkflowOpened() {
+		const { workflowId } = workflowsStore;
+		if (workflowId === PLACEHOLDER_EMPTY_WORKFLOW_ID) return;
+		pushStore.send({ type: 'workflowOpened', workflowId });
+	}
+
+	function notifyWorkflowClosed() {
+		const { workflowId } = workflowsStore;
+		if (workflowId === PLACEHOLDER_EMPTY_WORKFLOW_ID) return;
 		pushStore.send({ type: 'workflowClosed', workflowId });
-	};
 
-	const getUsersForCurrentWorkflow = computed(() => {
-		return usersForWorkflows.value[workflowStore.workflowId];
-	});
+		collaborators.value = collaborators.value.filter(
+			({ user }) => user.id !== usersStore.currentUserId,
+		);
+	}
 
 	return {
-		usersForWorkflows,
-		notifyWorkflowOpened,
-		notifyWorkflowClosed,
-		workflowUsersUpdated,
-		getUsersForCurrentWorkflow,
+		collaborators,
+		initialize,
+		terminate,
+		startHeartbeat,
+		stopHeartbeat,
 	};
 });

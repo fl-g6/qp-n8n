@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import type { Router } from 'vue-router';
 import { useCredentialsStore } from '@/stores/credentials.store';
 import { useNodeTypesStore } from '@/stores/nodeTypes.store';
-import { useRootStore } from '@/stores/n8nRoot.store';
+import { useRootStore } from '@/stores/root.store';
 import { useTemplatesStore } from '@/stores/templates.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import type { INodeTypeDescription } from 'n8n-workflow';
@@ -13,6 +13,7 @@ import { createWorkflowFromTemplate } from '@/utils/templates/templateActions';
 import { useExternalHooks } from '@/composables/useExternalHooks';
 import { useTelemetry } from '@/composables/useTelemetry';
 import { useCredentialSetupState } from '@/views/SetupWorkflowFromTemplateView/useCredentialSetupState';
+import { tryToParseNumber } from '@/utils/typesUtils';
 
 export type NodeAndType = {
 	node: INodeUi;
@@ -200,14 +201,14 @@ export const useSetupTemplateStore = defineStore('setupTemplate', () => {
 				'User inserted workflow template',
 				{
 					source: 'workflow',
-					template_id: templateId.value,
+					template_id: tryToParseNumber(templateId.value),
 					wf_template_repo_session_id: templatesStore.currentSessionId,
 				},
 				{ withPostHog: true },
 			);
 
 			telemetry.track('User saved new workflow from template', {
-				template_id: templateId.value,
+				template_id: tryToParseNumber(templateId.value),
 				workflow_id: createdWorkflow.id,
 				wf_template_repo_session_id: templatesStore.currentSessionId,
 			});

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
-import type { IDataObject } from 'n8n-workflow';
-import type { WorkflowTestData } from '@test/nodes/types';
+import { NodeConnectionType, type IDataObject } from 'n8n-workflow';
+
 import { executeWorkflow } from '@test/nodes/ExecuteWorkflow';
 import * as Helpers from '@test/nodes/Helpers';
+import type { WorkflowTestData } from '@test/nodes/types';
 
 describe('Execute Stop and Error Node', () => {
 	const tests: WorkflowTestData[] = [
@@ -49,12 +50,12 @@ describe('Execute Stop and Error Node', () => {
 								[
 									{
 										node: 'Stop and Error1',
-										type: 'main',
+										type: NodeConnectionType.Main,
 										index: 0,
 									},
 									{
 										node: 'Stop and Error',
-										type: 'main',
+										type: NodeConnectionType.Main,
 										index: 0,
 									},
 								],

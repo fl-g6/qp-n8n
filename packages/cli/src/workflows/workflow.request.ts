@@ -1,10 +1,18 @@
-import type { IWorkflowDb } from '@/Interfaces';
-import type { AuthenticatedRequest } from '@/requests';
-import type { INode, IConnections, IWorkflowSettings, IRunData, IPinData } from 'n8n-workflow';
+import type {
+	INode,
+	IConnections,
+	IWorkflowSettings,
+	IRunData,
+	StartNodeData,
+	ITaskData,
+} from 'n8n-workflow';
+
+import type { IWorkflowDb } from '@/interfaces';
+import type { AuthenticatedRequest, ListQuery } from '@/requests';
 
 export declare namespace WorkflowRequest {
 	type CreateUpdatePayload = Partial<{
-		id: string; // delete if sent
+		id: string; // deleted if sent
 		name: string;
 		nodes: INode[];
 		connections: IConnections;
@@ -13,24 +21,33 @@ export declare namespace WorkflowRequest {
 		tags: string[];
 		hash: string;
 		meta: Record<string, unknown>;
+		projectId: string;
 	}>;
 
 	type ManualRunPayload = {
 		workflowData: IWorkflowDb;
 		runData: IRunData;
-		pinData: IPinData;
-		startNodes?: string[];
+		startNodes?: StartNodeData[];
 		destinationNode?: string;
+		dirtyNodeNames?: string[];
+		triggerToStartFrom?: {
+			name: string;
+			data?: ITaskData;
+		};
 	};
 
 	type Create = AuthenticatedRequest<{}, {}, CreateUpdatePayload>;
 
-	type Get = AuthenticatedRequest<{ id: string }>;
+	type Get = AuthenticatedRequest<{ workflowId: string }>;
+
+	type GetMany = AuthenticatedRequest<{}, {}, {}, ListQuery.Params & { includeScopes?: string }> & {
+		listQueryOptions: ListQuery.Options;
+	};
 
 	type Delete = Get;
 
 	type Update = AuthenticatedRequest<
-		{ id: string },
+		{ workflowId: string },
 		{},
 		CreateUpdatePayload,
 		{ forceSave?: string }
@@ -38,9 +55,18 @@ export declare namespace WorkflowRequest {
 
 	type NewName = AuthenticatedRequest<{}, {}, {}, { name?: string }>;
 
-	type ManualRun = AuthenticatedRequest<{}, {}, ManualRunPayload>;
+	type ManualRun = AuthenticatedRequest<
+		{ workflowId: string },
+		{},
+		ManualRunPayload,
+		{ partialExecutionVersion?: string }
+	>;
 
 	type Share = AuthenticatedRequest<{ workflowId: string }, {}, { shareWithIds: string[] }>;
 
-	type FromUrl = AuthenticatedRequest<{}, {}, {}, { url?: string }>;
+	type Transfer = AuthenticatedRequest<
+		{ workflowId: string },
+		{},
+		{ destinationProjectId: string }
+	>;
 }

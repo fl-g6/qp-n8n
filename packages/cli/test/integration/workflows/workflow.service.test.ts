@@ -1,30 +1,29 @@
-import Container from 'typedi';
+import { Container } from '@n8n/di';
 import { mock } from 'jest-mock-extended';
-import { ActiveWorkflowRunner } from '@/ActiveWorkflowRunner';
-import { SharedWorkflowRepository } from '@db/repositories/sharedWorkflow.repository';
-import { WorkflowRepository } from '@db/repositories/workflow.repository';
+
+import { ActiveWorkflowManager } from '@/active-workflow-manager';
+import { SharedWorkflowRepository } from '@/databases/repositories/shared-workflow.repository';
+import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
+import { MessageEventBus } from '@/eventbus/message-event-bus/message-event-bus';
+import { OrchestrationService } from '@/services/orchestration.service';
 import { Telemetry } from '@/telemetry';
-import { MultiMainSetup } from '@/services/orchestration/main/MultiMainSetup.ee';
 import { WorkflowService } from '@/workflows/workflow.service';
 
-import * as testDb from '../shared/testDb';
 import { mockInstance } from '../../shared/mocking';
 import { createOwner } from '../shared/db/users';
 import { createWorkflow } from '../shared/db/workflows';
+import * as testDb from '../shared/test-db';
 
 let workflowService: WorkflowService;
-let activeWorkflowRunner: ActiveWorkflowRunner;
-let multiMainSetup: MultiMainSetup;
+const activeWorkflowManager = mockInstance(ActiveWorkflowManager);
+const orchestrationService = mockInstance(OrchestrationService);
+mockInstance(MessageEventBus);
+mockInstance(Telemetry);
 
 beforeAll(async () => {
 	await testDb.init();
 
-	activeWorkflowRunner = mockInstance(ActiveWorkflowRunner);
-	multiMainSetup = mockInstance(MultiMainSetup);
-	mockInstance(Telemetry);
-
 	workflowService = new WorkflowService(
-		mock(),
 		mock(),
 		Container.get(SharedWorkflowRepository),
 		Container.get(WorkflowRepository),
@@ -33,9 +32,14 @@ beforeAll(async () => {
 		mock(),
 		mock(),
 		mock(),
-		multiMainSetup,
+		orchestrationService,
 		mock(),
-		activeWorkflowRunner,
+		activeWorkflowManager,
+		mock(),
+		mock(),
+		mock(),
+		mock(),
+		mock(),
 	);
 });
 
@@ -44,17 +48,13 @@ afterEach(async () => {
 	jest.restoreAllMocks();
 });
 
-afterAll(async () => {
-	await testDb.terminate();
-});
-
 describe('update()', () => {
 	test('should remove and re-add to active workflows on `active: true` payload', async () => {
 		const owner = await createOwner();
 		const workflow = await createWorkflow({ active: true }, owner);
 
-		const removeSpy = jest.spyOn(activeWorkflowRunner, 'remove');
-		const addSpy = jest.spyOn(activeWorkflowRunner, 'add');
+		const removeSpy = jest.spyOn(activeWorkflowManager, 'remove');
+		const addSpy = jest.spyOn(activeWorkflowManager, 'add');
 
 		await workflowService.update(owner, workflow, workflow.id);
 
@@ -72,8 +72,8 @@ describe('update()', () => {
 		const owner = await createOwner();
 		const workflow = await createWorkflow({ active: true }, owner);
 
-		const removeSpy = jest.spyOn(activeWorkflowRunner, 'remove');
-		const addSpy = jest.spyOn(activeWorkflowRunner, 'add');
+		const removeSpy = jest.spyOn(activeWorkflowManager, 'remove');
+		const addSpy = jest.spyOn(activeWorkflowManager, 'add');
 
 		workflow.active = false;
 		await workflowService.update(owner, workflow, workflow.id);
@@ -83,36 +83,5 @@ describe('update()', () => {
 		expect(removedWorkflowId).toBe(workflow.id);
 
 		expect(addSpy).not.toHaveBeenCalled();
-	});
-
-	test('should broadcast active workflow state change if state changed', async () => {
-		const owner = await createOwner();
-		const workflow = await createWorkflow({ active: true }, owner);
-
-		const publishSpy = jest.spyOn(multiMainSetup, 'publish');
-
-		workflow.active = false;
-		await workflowService.update(owner, workflow, workflow.id);
-
-		expect(publishSpy).toHaveBeenCalledTimes(1);
-		expect(publishSpy).toHaveBeenCalledWith(
-			'workflowActiveStateChanged',
-			expect.objectContaining({
-				newState: false,
-				oldState: true,
-				workflowId: workflow.id,
-			}),
-		);
-	});
-
-	test('should not broadcast active workflow state change if state did not change', async () => {
-		const owner = await createOwner();
-		const workflow = await createWorkflow({ active: true }, owner);
-
-		const publishSpy = jest.spyOn(multiMainSetup, 'publish');
-
-		await workflowService.update(owner, workflow, workflow.id);
-
-		expect(publishSpy).not.toHaveBeenCalled();
 	});
 });

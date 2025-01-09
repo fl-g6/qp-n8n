@@ -1,3 +1,7 @@
+import type { Document } from '@langchain/core/documents';
+import type { Embeddings } from '@langchain/core/embeddings';
+import { PineconeStore } from '@langchain/pinecone';
+import { Pinecone } from '@pinecone-database/pinecone';
 import {
 	type IExecuteFunctions,
 	type INodeType,
@@ -5,14 +9,12 @@ import {
 	type INodeExecutionData,
 	NodeConnectionType,
 } from 'n8n-workflow';
-import { PineconeStore } from 'langchain/vectorstores/pinecone';
-import { Pinecone } from '@pinecone-database/pinecone';
-import type { Embeddings } from 'langchain/embeddings/base';
-import type { Document } from 'langchain/document';
-import type { N8nJsonLoader } from '../../../utils/N8nJsonLoader';
-import { processDocuments } from '../shared/processDocuments';
+
+import type { N8nJsonLoader } from '@utils/N8nJsonLoader';
+
 import { pineconeIndexRLC } from '../shared/descriptions';
 import { pineconeIndexSearch } from '../shared/methods/listSearch';
+import { processDocuments } from '../shared/processDocuments';
 
 // This node is deprecated. Use VectorStorePinecone instead.
 export class VectorStorePineconeInsert implements INodeType {
@@ -96,7 +98,7 @@ export class VectorStorePineconeInsert implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData(0);
-		this.logger.verbose('Executing data for Pinecone Insert Vector Store');
+		this.logger.debug('Executing data for Pinecone Insert Vector Store');
 
 		const namespace = this.getNodeParameter('pineconeNamespace', 0) as string;
 		const index = this.getNodeParameter('pineconeIndex', 0, '', { extractValue: true }) as string;
@@ -115,7 +117,6 @@ export class VectorStorePineconeInsert implements INodeType {
 
 		const client = new Pinecone({
 			apiKey: credentials.apiKey as string,
-			environment: credentials.environment as string,
 		});
 
 		const pineconeIndex = client.Index(index);
@@ -134,6 +135,6 @@ export class VectorStorePineconeInsert implements INodeType {
 			pineconeIndex,
 		});
 
-		return this.prepareOutputData(serializedDocuments);
+		return [serializedDocuments];
 	}
 }

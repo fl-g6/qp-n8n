@@ -1,5 +1,5 @@
 import type { IDataObject } from 'n8n-workflow';
-import type { Context } from '../GenericFunctions';
+
 import {
 	CloseHandler,
 	CreateHandler,
@@ -11,6 +11,7 @@ import {
 	SyncHandler,
 	UpdateHandler,
 } from './OperationHandler';
+import type { Context } from '../GenericFunctions';
 
 export class TodoistService implements Service {
 	async execute(
@@ -18,7 +19,7 @@ export class TodoistService implements Service {
 		operation: OperationType,
 		itemIndex: number,
 	): Promise<TodoistResponse> {
-		return this.handlers[operation].handleOperation(ctx, itemIndex);
+		return await this.handlers[operation].handleOperation(ctx, itemIndex);
 	}
 
 	private handlers = {

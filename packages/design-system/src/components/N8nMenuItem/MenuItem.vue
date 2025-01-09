@@ -1,3 +1,68 @@
+<script lang="ts" setup>
+import { ElSubMenu, ElMenuItem } from 'element-plus';
+import { computed, useCssModule } from 'vue';
+import { useRoute } from 'vue-router';
+
+import { doesMenuItemMatchCurrentRoute } from './routerUtil';
+import type { IMenuItem } from '../../types';
+import { getInitials } from '../../utils/labelUtil';
+import ConditionalRouterLink from '../ConditionalRouterLink';
+import N8nIcon from '../N8nIcon';
+import N8nTooltip from '../N8nTooltip';
+
+interface MenuItemProps {
+	item: IMenuItem;
+	compact?: boolean;
+	tooltipDelay?: number;
+	popperClass?: string;
+	mode?: 'router' | 'tabs';
+	activeTab?: string;
+	handleSelect?: (item: IMenuItem) => void;
+}
+
+const props = withDefaults(defineProps<MenuItemProps>(), {
+	compact: false,
+	tooltipDelay: 300,
+	popperClass: '',
+	mode: 'router',
+});
+
+const $style = useCssModule();
+const $route = useRoute();
+
+const availableChildren = computed((): IMenuItem[] =>
+	Array.isArray(props.item.children)
+		? props.item.children.filter((child) => child.available !== false)
+		: [],
+);
+
+const currentRoute = computed(() => {
+	return $route ?? { name: '', path: '' };
+});
+
+const submenuPopperClass = computed((): string => {
+	const popperClass = [$style.submenuPopper, props.popperClass];
+	if (props.compact) {
+		popperClass.push($style.compact);
+	}
+	return popperClass.join(' ');
+});
+
+const isActive = (item: IMenuItem): boolean => {
+	if (props.mode === 'router') {
+		return doesMenuItemMatchCurrentRoute(item, currentRoute.value);
+	} else {
+		return item.id === props.activeTab;
+	}
+};
+
+const isItemActive = (item: IMenuItem): boolean => {
+	const hasActiveChild =
+		Array.isArray(item.children) && item.children.some((child) => isActive(child));
+	return isActive(item) || hasActiveChild;
+};
+</script>
+
 <template>
 	<div :class="['n8n-menu-item', $style.item]">
 		<ElSubMenu
@@ -19,9 +84,12 @@
 					:icon="item.icon"
 					:size="item.customIconSize || 'large'"
 				/>
-				<span :class="$style.label">{{ item.label }}</span>
+				<span v-if="!compact" :class="$style.label">{{ item.label }}</span>
+				<span v-if="!item.icon && compact" :class="[$style.label, $style.compactLabel]">{{
+					getInitials(item.label)
+				}}</span>
 			</template>
-			<n8n-menu-item
+			<N8nMenuItem
 				v-for="child in availableChildren"
 				:key="child.id"
 				:item="child"
@@ -36,7 +104,7 @@
 		<N8nTooltip
 			v-else
 			placement="right"
-			:content="item.label"
+			:content="compact ? item.label : ''"
 			:disabled="!compact"
 			:show-after="tooltipDelay"
 		>
@@ -52,6 +120,7 @@
 					}"
 					data-test-id="menu-item"
 					:index="item.id"
+<<<<<<< HEAD
 					@click="handleSelect(item)"
 				>
 					<N8nIcon
@@ -61,6 +130,26 @@
 						:size="item.customIconSize || 'large'"
 					/>
 					<span :class="$style.label">{{ item.label }}</span>
+=======
+					:disabled="item.disabled"
+					@click="handleSelect?.(item)"
+				>
+					<div v-if="item.icon">
+						<N8nIcon
+							v-if="typeof item.icon === 'string' || item.icon.type === 'icon'"
+							:class="$style.icon"
+							:icon="typeof item.icon === 'object' ? item.icon.value : item.icon"
+							:size="item.customIconSize || 'large'"
+						/>
+						<span v-else-if="item.icon.type === 'emoji'" :class="$style.icon">{{
+							item.icon.value
+						}}</span>
+					</div>
+					<span v-if="!compact" :class="$style.label">{{ item.label }}</span>
+					<span v-if="!item.icon && compact" :class="[$style.label, $style.compactLabel]">{{
+						getInitials(item.label)
+					}}</span>
+>>>>>>> tags/n8n@1.74.1
 					<N8nTooltip
 						v-if="item.secondaryIcon"
 						:placement="item.secondaryIcon?.tooltip?.placement || 'right'"
@@ -74,12 +163,17 @@
 							:size="item.secondaryIcon.size || 'small'"
 						/>
 					</N8nTooltip>
+<<<<<<< HEAD
+=======
+					<N8nSpinner v-if="item.isLoading" :class="$style.loading" size="small" />
+>>>>>>> tags/n8n@1.74.1
 				</ElMenuItem>
 			</ConditionalRouterLink>
 		</N8nTooltip>
 	</div>
 </template>
 
+<<<<<<< HEAD
 <script lang="ts">
 import { ElSubMenu, ElMenuItem } from 'element-plus';
 import N8nTooltip from '../N8nTooltip';
@@ -170,6 +264,8 @@ export default defineComponent({
 });
 </script>
 
+=======
+>>>>>>> tags/n8n@1.74.1
 <style module lang="scss">
 // Element menu-item overrides
 :global(.el-menu-item),
@@ -264,12 +360,21 @@ export default defineComponent({
 	margin: 0 !important;
 	border-radius: var(--border-radius-base) !important;
 	overflow: hidden;
+
+	&.compact {
+		padding: var(--spacing-2xs) 0 !important;
+		justify-content: center;
+	}
 }
 
 .icon {
 	min-width: var(--spacing-s);
 	margin-right: var(--spacing-xs);
 	text-align: center;
+}
+
+.loading {
+	margin-left: var(--spacing-xs);
 }
 
 .secondaryIcon {
@@ -286,6 +391,10 @@ export default defineComponent({
 	user-select: none;
 }
 
+.compactLabel {
+	text-overflow: unset;
+}
+
 .item + .item {
 	margin-top: 8px !important;
 }
@@ -297,9 +406,6 @@ export default defineComponent({
 		visibility: visible !important;
 		width: initial !important;
 		height: initial !important;
-	}
-	.label {
-		display: none;
 	}
 	.secondaryIcon {
 		display: none;

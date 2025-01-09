@@ -2,7 +2,7 @@ import type { Server, Request } from 'miragejs';
 import { Response } from 'miragejs';
 import { jsonParse } from 'n8n-workflow';
 import type { AppSchema } from '@/__tests__/server/types';
-import type { SourceControlPreferences } from '@/Interface';
+import type { SourceControlPreferences } from '@/types/sourceControl.types';
 
 export function routesForSourceControl(server: Server) {
 	const sourceControlApiRoot = '/rest/source-control';
@@ -17,7 +17,7 @@ export function routesForSourceControl(server: Server) {
 		keyGeneratorType: 'ed25519',
 	};
 
-	server.get(`${sourceControlApiRoot}/preferences`, (schema: AppSchema, request: Request) => {
+	server.get(`${sourceControlApiRoot}/preferences`, () => {
 		return new Response(
 			200,
 			{},
@@ -27,7 +27,7 @@ export function routesForSourceControl(server: Server) {
 		);
 	});
 
-	server.post(`${sourceControlApiRoot}/preferences`, (schema: AppSchema, request: Request) => {
+	server.post(`${sourceControlApiRoot}/preferences`, (_schema: AppSchema, request: Request) => {
 		const requestBody: Partial<SourceControlPreferences> = jsonParse(request.requestBody);
 
 		return new Response(
@@ -42,7 +42,7 @@ export function routesForSourceControl(server: Server) {
 		);
 	});
 
-	server.patch(`${sourceControlApiRoot}/preferences`, (schema: AppSchema, request: Request) => {
+	server.patch(`${sourceControlApiRoot}/preferences`, (_schema: AppSchema, request: Request) => {
 		const requestBody: Partial<SourceControlPreferences> = jsonParse(request.requestBody);
 
 		return new Response(

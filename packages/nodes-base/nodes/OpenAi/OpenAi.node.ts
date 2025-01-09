@@ -1,13 +1,17 @@
 import type { INodeType, INodeTypeDescription } from 'n8n-workflow';
+import { NodeConnectionType } from 'n8n-workflow';
+
+import { chatFields, chatOperations } from './ChatDescription';
 import { imageFields, imageOperations } from './ImageDescription';
 import { textFields, textOperations } from './TextDescription';
-import { chatFields, chatOperations } from './ChatDescription';
+import { oldVersionNotice } from '../../utils/descriptions';
 
 export class OpenAi implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'OpenAI',
 		name: 'openAi',
-		icon: 'file:openAi.svg',
+		hidden: true,
+		icon: { light: 'file:openAi.svg', dark: 'file:openAi.dark.svg' },
 		group: ['transform'],
 		version: [1, 1.1],
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
@@ -15,8 +19,8 @@ export class OpenAi implements INodeType {
 		defaults: {
 			name: 'OpenAI',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'openAiApi',
@@ -25,16 +29,11 @@ export class OpenAi implements INodeType {
 		],
 		requestDefaults: {
 			ignoreHttpStatusErrors: true,
-			baseURL: 'https://api.openai.com',
+			baseURL:
+				'={{ $credentials.url?.split("/").slice(0,-1).join("/") ?? "https://api.openai.com" }}',
 		},
 		properties: [
-			{
-				displayName:
-					'For more advanced uses, consider using an <a data-action="openSelectiveNodeCreator" data-action-parameter-creatorview="AI">advanced AI</a> node',
-				name: 'noticeAdvanceAi',
-				type: 'notice',
-				default: '',
-			},
+			oldVersionNotice,
 			{
 				displayName: 'Resource',
 				name: 'resource',

@@ -4,26 +4,27 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
+import { NodeConnectionType } from 'n8n-workflow';
 
+import * as iCall from './actions/iCall.operation';
 import * as spreadsheet from './actions/spreadsheet.operation';
 import * as toBinary from './actions/toBinary.operation';
 import * as toJson from './actions/toJson.operation';
-import * as iCall from './actions/iCall.operation';
+import * as toText from './actions/toText.operation';
 
 export class ConvertToFile implements INodeType {
-	// eslint-disable-next-line n8n-nodes-base/node-class-description-missing-subtitle
 	description: INodeTypeDescription = {
 		displayName: 'Convert to File',
 		name: 'convertToFile',
-		icon: 'file:convertToFile.svg',
+		icon: { light: 'file:convertToFile.svg', dark: 'file:convertToFile.dark.svg' },
 		group: ['input'],
-		version: 1,
+		version: [1, 1.1],
 		description: 'Convert JSON data to binary data',
 		defaults: {
 			name: 'Convert to File',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		properties: [
 			{
 				displayName: 'Operation',
@@ -44,9 +45,9 @@ export class ConvertToFile implements INodeType {
 						description: 'Transform input data into a table in an HTML file',
 					},
 					{
-						name: 'Convert to iCal',
+						name: 'Convert to ICS',
 						value: 'iCal',
-						action: 'Convert to iCal',
+						action: 'Convert to ICS',
 						description: 'Converts each input item to an ICS event file',
 					},
 					{
@@ -66,6 +67,12 @@ export class ConvertToFile implements INodeType {
 						value: 'rtf',
 						action: 'Convert to RTF',
 						description: 'Transform input data into a table in an RTF file',
+					},
+					{
+						name: 'Convert to Text File',
+						value: 'toText',
+						action: 'Convert to text file',
+						description: 'Transform input data string into a file',
 					},
 					{
 						name: 'Convert to XLS',
@@ -90,6 +97,7 @@ export class ConvertToFile implements INodeType {
 			},
 			...spreadsheet.description,
 			...toBinary.description,
+			...toText.description,
 			...toJson.description,
 			...iCall.description,
 		],
@@ -110,6 +118,10 @@ export class ConvertToFile implements INodeType {
 
 		if (operation === 'toBinary') {
 			returnData = await toBinary.execute.call(this, items);
+		}
+
+		if (operation === 'toText') {
+			returnData = await toText.execute.call(this, items);
 		}
 
 		if (operation === 'iCal') {

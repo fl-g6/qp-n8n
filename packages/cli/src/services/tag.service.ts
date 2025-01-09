@@ -1,9 +1,10 @@
-import { TagRepository } from '@db/repositories/tag.repository';
-import { Service } from 'typedi';
-import { validateEntity } from '@/GenericHelpers';
-import type { ITagWithCountDb } from '@/Interfaces';
-import type { TagEntity } from '@db/entities/TagEntity';
-import { ExternalHooks } from '@/ExternalHooks';
+import { Service } from '@n8n/di';
+
+import type { TagEntity } from '@/databases/entities/tag-entity';
+import { TagRepository } from '@/databases/repositories/tag.repository';
+import { ExternalHooks } from '@/external-hooks';
+import { validateEntity } from '@/generic-helpers';
+import type { ITagWithCountDb } from '@/interfaces';
 
 type GetAllResult<T> = T extends { withUsageCount: true } ? ITagWithCountDb[] : TagEntity[];
 
@@ -27,11 +28,11 @@ export class TagService {
 
 		await this.externalHooks.run(`tag.before${action}`, [tag]);
 
-		const savedTag = this.tagRepository.save(tag);
+		const savedTag = this.tagRepository.save(tag, { transaction: false });
 
 		await this.externalHooks.run(`tag.after${action}`, [tag]);
 
-		return savedTag;
+		return await savedTag;
 	}
 
 	async delete(id: string) {
@@ -41,7 +42,7 @@ export class TagService {
 
 		await this.externalHooks.run('tag.afterDelete', [id]);
 
-		return deleteResult;
+		return await deleteResult;
 	}
 
 	async getAll<T extends { withUsageCount: boolean }>(options?: T): Promise<GetAllResult<T>> {
@@ -59,9 +60,15 @@ export class TagService {
 			}) as GetAllResult<T>;
 		}
 
-		return this.tagRepository.find({
+		return await (this.tagRepository.find({
 			select: ['id', 'name', 'createdAt', 'updatedAt'],
-		}) as Promise<GetAllResult<T>>;
+		}) as Promise<GetAllResult<T>>);
+	}
+
+	async getById(id: string) {
+		return await this.tagRepository.findOneOrFail({
+			where: { id },
+		});
 	}
 
 	/**

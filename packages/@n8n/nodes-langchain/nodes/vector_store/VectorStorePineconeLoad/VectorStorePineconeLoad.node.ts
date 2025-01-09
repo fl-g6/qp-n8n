@@ -1,17 +1,19 @@
+import type { Embeddings } from '@langchain/core/embeddings';
+import type { PineconeStoreParams } from '@langchain/pinecone';
+import { PineconeStore } from '@langchain/pinecone';
+import { Pinecone } from '@pinecone-database/pinecone';
 import {
 	NodeConnectionType,
-	type IExecuteFunctions,
 	type INodeType,
 	type INodeTypeDescription,
+	type ISupplyDataFunctions,
 	type SupplyData,
 } from 'n8n-workflow';
-import type { PineconeLibArgs } from 'langchain/vectorstores/pinecone';
-import { PineconeStore } from 'langchain/vectorstores/pinecone';
-import { Pinecone } from '@pinecone-database/pinecone';
-import type { Embeddings } from 'langchain/embeddings/base';
-import { logWrapper } from '../../../utils/logWrapper';
-import { metadataFilterField } from '../../../utils/sharedFields';
-import { getMetadataFiltersValues } from '../../../utils/helpers';
+
+import { getMetadataFiltersValues } from '@utils/helpers';
+import { logWrapper } from '@utils/logWrapper';
+import { metadataFilterField } from '@utils/sharedFields';
+
 import { pineconeIndexRLC } from '../shared/descriptions';
 import { pineconeIndexSearch } from '../shared/methods/listSearch';
 
@@ -83,8 +85,8 @@ export class VectorStorePineconeLoad implements INodeType {
 		},
 	};
 
-	async supplyData(this: IExecuteFunctions, itemIndex: number): Promise<SupplyData> {
-		this.logger.verbose('Supplying data for Pinecone Load Vector Store');
+	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
+		this.logger.debug('Supplying data for Pinecone Load Vector Store');
 
 		const namespace = this.getNodeParameter('pineconeNamespace', itemIndex) as string;
 		const index = this.getNodeParameter('pineconeIndex', itemIndex, '', {
@@ -99,11 +101,10 @@ export class VectorStorePineconeLoad implements INodeType {
 
 		const client = new Pinecone({
 			apiKey: credentials.apiKey as string,
-			environment: credentials.environment as string,
 		});
 
 		const pineconeIndex = client.Index(index);
-		const config: PineconeLibArgs = {
+		const config: PineconeStoreParams = {
 			namespace: namespace || undefined,
 			pineconeIndex,
 			filter: getMetadataFiltersValues(this, itemIndex),
