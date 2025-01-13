@@ -1,7 +1,7 @@
 import merge from 'lodash/merge';
 import { DateTime } from 'luxon';
 
-import type { FilterConditionValue, FilterValue } from '@/Interfaces';
+import type { FilterConditionValue, FilterValue } from '@/interfaces';
 import { arrayContainsValue, executeFilter } from '@/NodeParameters/FilterParameter';
 
 type DeepPartial<T> = {

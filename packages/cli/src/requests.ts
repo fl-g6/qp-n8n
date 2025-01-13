@@ -17,6 +17,7 @@ import type { WorkflowHistory } from '@/databases/entities/workflow-history';
 import type { SecretsProvider, SecretsProviderState } from '@/interfaces';
 
 import type { ProjectRole } from './databases/entities/project-relation';
+import type { QpJwt } from './middlewares/external-jwt-auth';
 import type { ScopesField } from './services/role.service';
 
 export type APIRequest<
@@ -26,6 +27,7 @@ export type APIRequest<
 	RequestQuery = {},
 > = express.Request<RouteParams, ResponseBody, RequestBody, RequestQuery> & {
 	browserId?: string;
+	jwt?: QpJwt;
 };
 
 export type AuthlessRequest<

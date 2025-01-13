@@ -7,7 +7,7 @@ import { DateTime, Duration, Interval } from 'luxon';
 import { ExpressionError } from '@/errors/expression.error';
 import { setDifferEnabled, setEvaluator } from '@/ExpressionEvaluatorProxy';
 import { extendSyntax } from '@/Extensions/ExpressionExtension';
-import type { INodeExecutionData } from '@/Interfaces';
+import type { INodeExecutionData } from '@/interfaces';
 import { Workflow } from '@/Workflow';
 
 import { workflow } from './ExpressionExtensions/Helpers';

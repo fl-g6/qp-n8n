@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 
-import type { INodeTypes } from '@/Interfaces';
+import type { INodeTypes } from '@/interfaces';
 
 import { NodeTypes as NodeTypesClass } from './NodeTypes';
 

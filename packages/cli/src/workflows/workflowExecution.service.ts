@@ -17,7 +17,7 @@ import type {
 	IWorkflowDb,
 	IWorkflowErrorData,
 	IWorkflowExecutionDataProcess,
-} from '@/Interfaces';
+} from '@/interfaces';
 import { NodeTypes } from '@/NodeTypes';
 import { WorkflowRunner } from '@/WorkflowRunner';
 import * as WorkflowExecuteAdditionalData from '@/WorkflowExecuteAdditionalData';

@@ -7,7 +7,7 @@ import {
 	type IRun,
 	type IWorkflowBase,
 	type WorkflowExecuteMode,
-} from '@/Interfaces';
+} from '@/interfaces';
 import { Workflow } from '@/Workflow';
 import { WorkflowDataProxy } from '@/WorkflowDataProxy';
 

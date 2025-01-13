@@ -9,7 +9,7 @@ import { License } from '@/License';
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import { getWebhookBaseUrl } from '@/WebhookHelpers';
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '@db/entities/User';
-import type { CurrentUser, PublicUser, WhereClause } from '@/Interfaces';
+import type { CurrentUser, PublicUser, WhereClause } from '@/interfaces';
 import { PostHogClient } from '@/posthog';
 export function isEmailSetUp(): boolean {
 	const smtp = config.getEnv('userManagement.emails.mode') === 'smtp';

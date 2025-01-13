@@ -6,7 +6,7 @@ import {
 	type INodeProperties,
 	type INodeType,
 	type INodeTypeDescription,
-} from '@/Interfaces';
+} from '@/interfaces';
 import {
 	getNodeParameters,
 	getNodeHints,

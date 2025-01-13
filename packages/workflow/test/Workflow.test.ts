@@ -1,7 +1,7 @@
 import { mock } from 'jest-mock-extended';
 
-import { NodeConnectionType } from '@/Interfaces';
-import type { IConnection } from '@/Interfaces';
+import { NodeConnectionType } from '@/interfaces';
+import type { IConnection } from '@/interfaces';
 import type {
 	IBinaryKeyData,
 	IConnections,
@@ -12,7 +12,7 @@ import type {
 	INodeTypes,
 	IRunExecutionData,
 	NodeParameterValueType,
-} from '@/Interfaces';
+} from '@/interfaces';
 import { Workflow } from '@/Workflow';
 
 process.env.TEST_VARIABLE_1 = 'valueEnvVariable1';

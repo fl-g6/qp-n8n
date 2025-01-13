@@ -1,4 +1,4 @@
-import type { IDataObject } from '@/Interfaces';
+import type { IDataObject } from '@/interfaces';
 import { Workflow } from '@/Workflow';
 
 import * as Helpers from '../Helpers';

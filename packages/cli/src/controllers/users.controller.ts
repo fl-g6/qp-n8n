@@ -89,6 +89,8 @@ export class UsersController {
 		return publicUsers;
 	}
 
+
+	/* --> Moved to /rest/invitations
 	@Post('/')
 	@RequireGlobalScope('user:create')
 	async sendEmailInvites(req: UserRequest.Invite) {
@@ -267,11 +269,13 @@ export class UsersController {
 		return emailingResults;
 	}
 
+	*/
+
 	/**
 	 * Fill out user shell with first name, last name, and password.
 	 */
 	@Post('/:id')
-	@RequireGlobalScope('user:update')
+	@GlobalScope('user:update')
 	async updateUser(req: UserRequest.Update, res: Response) {
 		const { id: inviteeId } = req.params;
 

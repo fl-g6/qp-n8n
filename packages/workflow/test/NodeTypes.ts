@@ -8,7 +8,7 @@ import {
 	type INodeTypes,
 	type IVersionedNodeType,
 	type LoadedClass,
-} from '@/Interfaces';
+} from '@/interfaces';
 import * as NodeHelpers from '@/NodeHelpers';
 
 const stickyNode: LoadedClass<INodeType> = {

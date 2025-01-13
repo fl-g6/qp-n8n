@@ -5,11 +5,11 @@ import { Response } from 'express';
 import type { User } from '@db/entities/User';
 import type { PostHogClient } from '@/posthog';
 
-import { QpJwtRequest } from '@/middlewares/externalJWTAuth';
+import { QpJwtRequest } from '@/middlewares/external-jwt-auth';
 import { UserService } from '@/services/user.service';
 import { UserRepository } from '@/databases/repositories/user.repository';
 import { RoleRepository } from '@/databases/repositories/role.repository';
-import { PublicUser } from '@/Interfaces';
+import { PublicUser } from '@/interfaces';
 import { AuthError } from '@/errors/response-errors/auth.error';
 import { Service } from 'typedi';
 import { License } from '@/License';

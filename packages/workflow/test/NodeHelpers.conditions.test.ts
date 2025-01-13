@@ -1,4 +1,4 @@
-import type { INodeParameters, INodeProperties } from '@/Interfaces';
+import type { INodeParameters, INodeProperties } from '@/interfaces';
 import { getNodeParameters } from '@/NodeHelpers';
 
 describe('NodeHelpers', () => {

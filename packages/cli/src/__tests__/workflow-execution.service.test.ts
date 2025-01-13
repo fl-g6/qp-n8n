@@ -1,6 +1,6 @@
 import type { INode } from 'n8n-workflow';
 import { WorkflowExecutionService } from '@/workflows/workflowExecution.service';
-import type { IWorkflowDb } from '@/Interfaces';
+import type { IWorkflowDb } from '@/interfaces';
 import { mock } from 'jest-mock-extended';
 
 const webhookNode: INode = {

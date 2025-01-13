@@ -1,9 +1,10 @@
 import { GlobalConfig } from '@n8n/config';
-import { Container, Service } from '@n8n/di';
+import { contains } from 'class-validator';
 import { createHash } from 'crypto';
 import type { NextFunction, Response } from 'express';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { Logger } from 'n8n-core';
+import { JWT_AUTH_HEADER } from 'n8n-core';
+import Container, { Service } from 'typedi';
 
 import config from '@/config';
 import { AUTH_COOKIE_NAME, RESPONSE_ERROR_MESSAGES, Time } from '@/constants';
@@ -13,9 +14,14 @@ import { UserRepository } from '@/databases/repositories/user.repository';
 import { AuthError } from '@/errors/response-errors/auth.error';
 import { ForbiddenError } from '@/errors/response-errors/forbidden.error';
 import { License } from '@/license';
+import { Logger } from '@/logging/logger.service';
+import type { QpJwt } from '@/middlewares/external-jwt-auth';
 import type { AuthenticatedRequest } from '@/requests';
 import { JwtService } from '@/services/jwt.service';
 import { UrlService } from '@/services/url.service';
+
+import { QPAuthService } from './qpauth.service';
+import { IntegerType } from '@n8n/typeorm';
 
 interface AuthJwtPayload {
 	/** User Id */
@@ -24,6 +30,7 @@ interface AuthJwtPayload {
 	hash: string;
 	/** This is a client generated unique string to prevent session hijacking */
 	browserId?: string;
+	email: string;
 }
 
 interface IssuedJWT extends AuthJwtPayload {
@@ -31,8 +38,8 @@ interface IssuedJWT extends AuthJwtPayload {
 }
 
 interface PasswordResetToken {
-	sub: string;
-	hash: string;
+	sub?: string;
+	hash?: string;
 }
 
 const restEndpoint = Container.get(GlobalConfig).endpoints.rest;
@@ -44,10 +51,6 @@ const skipBrowserIdCheckEndpoints = [
 
 	// We need to exclude binary-data downloading endpoint because we can't send custom headers on `<embed>` tags
 	`/${restEndpoint}/binary-data/`,
-
-	// oAuth callback urls aren't called by the frontend. therefore we can't send custom header on these requests
-	`/${restEndpoint}/oauth1-credential/callback`,
-	`/${restEndpoint}/oauth2-credential/callback`,
 ];
 
 @Service()
@@ -59,6 +62,7 @@ export class AuthService {
 		private readonly urlService: UrlService,
 		private readonly userRepository: UserRepository,
 		private readonly invalidAuthTokenRepository: InvalidAuthTokenRepository,
+		private jwtAuthHeader: string,
 	) {
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 		this.authMiddleware = this.authMiddleware.bind(this);
@@ -70,7 +74,9 @@ export class AuthService {
 			try {
 				const isInvalid = await this.invalidAuthTokenRepository.existsBy({ token });
 				if (isInvalid) throw new AuthError('Unauthorized');
-				req.user = await this.resolveJwt(token, req, res);
+				req.user = await this.resolveJwt(token, req, res, next);
+				if (req.user) next();
+				else res.status(401).json({ status: 'error', message: 'Unauthorized' });
 			} catch (error) {
 				if (error instanceof JsonWebTokenError || error instanceof AuthError) {
 					this.clearCookie(res);
@@ -79,9 +85,22 @@ export class AuthService {
 				}
 			}
 		}
+		// this.jwtAuthHeader = process.env.JWT_AUTH_HEADER ?? '';
+		// const tokenHeader = req.header(this.jwtAuthHeader) as string;
+		// else if(tokenHeader){
+		// 	next();
+		// }
+		else {
+			res.status(401).json({ status: 'error', message: 'Unauthorized' });
+		}
+		// else if (tokenHeader){
+		// 	const isInvalid = await this.invalidAuthTokenRepository.existsBy({ token });
+		// 	if (isInvalid) throw new AuthError('Unauthorized');
+		// 		await Container.get(QPAuthService).qpAuthMiddleware(req as QpJwtRequest,res, next);
+		// 		// next();
+		// 		//req.user = await this.resolveJwt(tokenHeader, req, res);
 
-		if (req.user) next();
-		else res.status(401).json({ status: 'error', message: 'Unauthorized' });
+		// }
 	}
 
 	clearCookie(res: Response) {
@@ -130,29 +149,57 @@ export class AuthService {
 			id: user.id,
 			hash: this.createJWTHash(user),
 			browserId: browserId && this.hash(browserId),
+			email: user.email,
 		};
 		return this.jwtService.sign(payload, {
 			expiresIn: this.jwtExpiration,
 		});
 	}
 
-	async resolveJwt(token: string, req: AuthenticatedRequest, res: Response): Promise<User> {
-		const jwtPayload: IssuedJWT = this.jwtService.verify(token, {
-			algorithms: ['HS256'],
+	async resolveJwt(
+		token: string,
+		req: AuthenticatedRequest,
+		res: Response,
+		next: NextFunction,
+	): Promise<User> {
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+		const jwtPayload: QpJwt = this.jwtService.verify(token, {
+			algorithms: ['HS256', 'RS256', 'ES256'],
 		});
+
+		if (contains(req.baseUrl, '/rest/quickplay')) {
+			// Set JWT Payload
+
+			req.jwt = await Container.get(QPAuthService).verifyJwtToken(token, res);
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+			// await Container.get(QPAuthService).qpAuthMiddleware(req as QpJwtRequest,res, next);
+			// next();
+		}
 
 		// TODO: Use an in-memory ttl-cache to cache the User object for upto a minute
 		const user = await this.userRepository.findOne({
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 			where: { id: jwtPayload.id },
 		});
 
+		// if (
+		// 	// If not user is found
+		// 	!user ||
+		// 	// or, If the user has been deactivated (i.e. LDAP users)
+		// 	user.disabled ||
+		// 	// or, If the email or password has been updated
+		// 	jwtPayload.hash !== this.createJWTHash(user)
+		// ) {
+		// 	throw new AuthError('Unauthorized');
+		// }
+
+		//// or, If the user has been deactivated (i.e. LDAP users)
+		//user.disabled ||
 		if (
 			// If not user is found
 			!user ||
-			// or, If the user has been deactivated (i.e. LDAP users)
-			user.disabled ||
 			// or, If the email or password has been updated
-			jwtPayload.hash !== this.createJWTHash(user)
+			jwtPayload.email !== user.email
 		) {
 			throw new AuthError('Unauthorized');
 		}
@@ -169,7 +216,7 @@ export class AuthService {
 			throw new AuthError('Unauthorized');
 		}
 
-		if (jwtPayload.exp * 1000 - Date.now() < this.jwtRefreshTimeout) {
+		if ((jwtPayload.exp as number) * 1000 - Date.now() < this.jwtRefreshTimeout) {
 			this.logger.debug('JWT about to expire. Will be refreshed');
 			this.issueCookie(res, user, req.browserId);
 		}
