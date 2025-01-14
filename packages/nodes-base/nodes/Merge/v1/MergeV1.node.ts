@@ -11,7 +11,6 @@ import type {
 import { NodeConnectionType, deepCopy } from 'n8n-workflow';
 
 import { oldVersionNotice } from '@utils/descriptions';
-import { generatePairedItemData } from '../../../utils/utilities';
 
 import { generatePairedItemData } from '../../../utils/utilities';
 

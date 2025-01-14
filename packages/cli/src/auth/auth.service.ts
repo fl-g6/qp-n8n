@@ -3,7 +3,8 @@ import { contains } from 'class-validator';
 import { createHash } from 'crypto';
 import type { NextFunction, Response } from 'express';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { JWT_AUTH_HEADER } from 'n8n-core';
+import { Logger } from 'n8n-core';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import Container, { Service } from 'typedi';
 
 import config from '@/config';
@@ -14,14 +15,12 @@ import { UserRepository } from '@/databases/repositories/user.repository';
 import { AuthError } from '@/errors/response-errors/auth.error';
 import { ForbiddenError } from '@/errors/response-errors/forbidden.error';
 import { License } from '@/license';
-import { Logger } from '@/logging/logger.service';
 import type { QpJwt } from '@/middlewares/external-jwt-auth';
 import type { AuthenticatedRequest } from '@/requests';
 import { JwtService } from '@/services/jwt.service';
 import { UrlService } from '@/services/url.service';
 
 import { QPAuthService } from './qpauth.service';
-import { IntegerType } from '@n8n/typeorm';
 
 interface AuthJwtPayload {
 	/** User Id */

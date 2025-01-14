@@ -14,7 +14,7 @@ import {
 	validateFieldType,
 } from 'n8n-workflow';
 
-import type { ExtendedValidationResult } from '@/interfaces';
+import type { ExtendedValidationResult } from '@/Interfaces';
 
 const validateResourceMapperValue = (
 	parameterName: string,

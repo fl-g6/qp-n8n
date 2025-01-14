@@ -50,7 +50,7 @@ export class UsersController {
 		private readonly eventService: EventService,
 	) {}
 
-	private readonly postHog?: PostHogClient;
+	// private readonly postHog?: PostHogClient;
 
 	static ERROR_MESSAGES = {
 		CHANGE_ROLE: {
@@ -88,7 +88,6 @@ export class UsersController {
 
 		return publicUsers;
 	}
-
 
 	/* --> Moved to /rest/invitations
 	@Post('/')
@@ -271,70 +270,70 @@ export class UsersController {
 
 	*/
 
-	/**
-	 * Fill out user shell with first name, last name, and password.
-	 */
-	@Post('/:id')
-	@GlobalScope('user:update')
-	async updateUser(req: UserRequest.Update, res: Response) {
-		const { id: inviteeId } = req.params;
+	// /**
+	//  * Fill out user shell with first name, last name, and password.
+	//  */
+	// @Post('/:id')
+	// @GlobalScope('user:update')
+	// async updateUser(req: UserRequest.Update, res: Response) {
+	// 	const { id: inviteeId } = req.params;
 
-		const { inviterId, firstName, lastName, password } = req.body;
+	// 	const { inviterId, firstName, lastName, password } = req.body;
 
-		if (!inviterId || !inviteeId || !firstName || !lastName || !password) {
-			this.logger.debug(
-				'Request to fill out a user shell failed because of missing properties in payload',
-				{ payload: req.body },
-			);
-			throw new BadRequestError('Invalid payload');
-		}
+	// 	if (!inviterId || !inviteeId || !firstName || !lastName || !password) {
+	// 		this.logger.debug(
+	// 			'Request to fill out a user shell failed because of missing properties in payload',
+	// 			{ payload: req.body },
+	// 		);
+	// 		throw new BadRequestError('Invalid payload');
+	// 	}
 
-		const validPassword = validatePassword(password);
+	// 	const validPassword = validatePassword(password);
 
-		const users = await this.userRepository.find({
-			where: { id: In([inviterId, inviteeId]) },
-			relations: ['globalRole'],
-		});
+	// 	const users = await this.userRepository.find({
+	// 		where: { id: In([inviterId, inviteeId]) },
+	// 		relations: ['globalRole'],
+	// 	});
 
-		if (users.length !== 2) {
-			this.logger.debug(
-				'Request to fill out a user shell failed because the inviter ID and/or invitee ID were not found in database',
-				{
-					inviterId,
-					inviteeId,
-				},
-			);
-			throw new BadRequestError('Invalid payload or URL');
-		}
+	// 	if (users.length !== 2) {
+	// 		this.logger.debug(
+	// 			'Request to fill out a user shell failed because the inviter ID and/or invitee ID were not found in database',
+	// 			{
+	// 				inviterId,
+	// 				inviteeId,
+	// 			},
+	// 		);
+	// 		throw new BadRequestError('Invalid payload or URL');
+	// 	}
 
-		const invitee = users.find((user) => user.id === inviteeId) as User;
+	// 	const invitee = users.find((user) => user.id === inviteeId) as User;
 
-		if (invitee.password) {
-			this.logger.debug(
-				'Request to fill out a user shell failed because the invite had already been accepted',
-				{ inviteeId },
-			);
-			throw new BadRequestError('This invite has been accepted already');
-		}
+	// 	if (invitee.password) {
+	// 		this.logger.debug(
+	// 			'Request to fill out a user shell failed because the invite had already been accepted',
+	// 			{ inviteeId },
+	// 		);
+	// 		throw new BadRequestError('This invite has been accepted already');
+	// 	}
 
-		invitee.firstName = firstName;
-		invitee.lastName = lastName;
-		invitee.password = await hashPassword(validPassword);
+	// 	invitee.firstName = firstName;
+	// 	invitee.lastName = lastName;
+	// 	invitee.password = await hashPassword(validPassword);
 
-		const updatedUser = await this.userRepository.save(invitee);
+	// 	const updatedUser = await this.userRepository.save(invitee);
 
-		await issueCookie(res, updatedUser);
+	// 	await issueCookie(res, updatedUser);
 
-		void this.internalHooks.onUserSignup(updatedUser, {
-			user_type: 'email',
-			was_disabled_ldap_user: false,
-		});
+	// 	void this.internalHooks.onUserSignup(updatedUser, {
+	// 		user_type: 'email',
+	// 		was_disabled_ldap_user: false,
+	// 	});
 
-		await this.externalHooks.run('user.profile.update', [invitee.email, sanitizeUser(invitee)]);
-		await this.externalHooks.run('user.password.update', [invitee.email, invitee.password]);
+	// 	await this.externalHooks.run('user.profile.update', [invitee.email, sanitizeUser(invitee)]);
+	// 	await this.externalHooks.run('user.password.update', [invitee.email, invitee.password]);
 
-		return withFeatureFlags(this.postHog, sanitizeUser(updatedUser));
-	}
+	// 	return withFeatureFlags(this.postHog, sanitizeUser(updatedUser));
+	// }
 
 	@Get('/', { middlewares: listQueryMiddleware })
 	@GlobalScope('user:list')
