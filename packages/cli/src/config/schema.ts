@@ -35,6 +35,12 @@ export const schema = {
 				default: -1,
 				env: 'N8N_CONCURRENCY_PRODUCTION_LIMIT',
 			},
+			evaluationLimit: {
+				doc: 'Max evaluation executions allowed to run concurrently.',
+				format: Number,
+				default: -1,
+				env: 'N8N_CONCURRENCY_EVALUATION_LIMIT',
+			},
 		},
 
 		// A Workflow times out and gets canceled after this time (seconds).
@@ -137,36 +143,6 @@ export const schema = {
 		default: '',
 		env: 'N8N_EDITOR_BASE_URL',
 		doc: 'Public URL where the editor is accessible. Also used for emails sent from n8n.',
-	},
-
-	publicApi: {
-		disabled: {
-			format: Boolean,
-			default: false,
-			env: 'N8N_PUBLIC_API_DISABLED',
-			doc: 'Whether to disable the Public API',
-		},
-		path: {
-			format: String,
-			default: 'api',
-			env: 'N8N_PUBLIC_API_ENDPOINT',
-			doc: 'Path for the public api endpoints',
-		},
-		swaggerUi: {
-			disabled: {
-				format: Boolean,
-				default: false,
-				env: 'N8N_PUBLIC_API_SWAGGERUI_DISABLED',
-				doc: 'Whether to disable the Swagger UI for the Public API',
-			},
-		},
-	},
-
-	workflowTagsDisabled: {
-		format: Boolean,
-		default: false,
-		env: 'N8N_WORKFLOW_TAGS_DISABLED',
-		doc: 'Disable workflow tags.',
 	},
 
 	userManagement: {
@@ -376,15 +352,6 @@ export const schema = {
 			format: Boolean,
 			default: false,
 			env: 'N8N_EXPRESSION_REPORT_DIFFERENCE',
-		},
-	},
-
-	sourceControl: {
-		defaultKeyPairType: {
-			doc: 'Default SSH key type to use when generating SSH keys',
-			format: ['rsa', 'ed25519'] as const,
-			default: 'ed25519',
-			env: 'N8N_SOURCECONTROL_DEFAULT_SSH_KEY_TYPE',
 		},
 	},
 
