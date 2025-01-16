@@ -7,7 +7,11 @@
 ```
 pnpm install
 pnpm run build
-pnpm start
+pnpm run dev || pnpm start
+
+Clean, Install, Build & Run
+
+rm -rf node_modules pnpm-lock.yaml dist build out && pnpm store prune && pnpm install && pnpm run build && pnpm start
 ```
 
 ## Hiding UI components
