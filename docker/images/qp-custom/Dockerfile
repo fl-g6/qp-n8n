@@ -18,8 +18,9 @@ FROM n8nio/base:${NODE_VERSION} AS builder
 WORKDIR /src
 COPY . /src
 COPY ./packages/design-system/src/css/_tokens.quickplay.scss _tokens.scss
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store --mount=type=cache,id=pnpm-metadata,target=/root/.cache/pnpm/metadata DOCKER_BUILD=true pnpm install --frozen-lockfile
-# RUN NODE_ENV=production pnpm install --prod --no-optional
+# Docker Local run with Cache
+# RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store --mount=type=cache,id=pnpm-metadata,target=/root/.cache/pnpm/metadata DOCKER_BUILD=true pnpm install --frozen-lockfile
+RUN NODE_ENV=production pnpm install --prod --no-optional
 
 RUN pnpm build
 #RUN rm -rf node_modules

@@ -173,7 +173,7 @@ export const setupExternalJWTAuth = (app: Application, authIgnoreRegex: RegExp) 
 			}
 		} else {
 			jwt.verify(token, getKey, jwtVerifyOptions, (error: jwt.VerifyErrors, decoded: QpJwt) => {
-				console.log('jwt %s', decoded);
+				// console.log('jwt %s', decoded);
 				if (error) {
 					console.log('error %s', error);
 					jwtAuthAuthorizationError(res, 'Invalid token');
