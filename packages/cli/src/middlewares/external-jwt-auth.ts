@@ -10,7 +10,11 @@ import {
 	JWT_ISSUER,
 	JWT_NAMESPACE,
 } from 'n8n-core';
+import * as jose from 'jose';
+import axios from 'axios';
+
 import { ApplicationError } from 'n8n-workflow';
+const awsCognitoPubKey = new Map<string, jose.KeyLike>();
 
 export function jwtAuthAuthorizationError(resp: Response, message?: string) {
 	resp.statusCode = 403;
@@ -88,7 +92,7 @@ export const setupExternalJWTAuth = (app: Application, authIgnoreRegex: RegExp) 
 	}
 
 	// eslint-disable-next-line consistent-return
-	app.use((req: QpJwtRequest, res, next) => {
+	app.use(async (req: QpJwtRequest, res, next) => {
 		if (authIgnoreRegex.exec(req.url)) {
 			return next();
 		}
@@ -118,15 +122,68 @@ export const setupExternalJWTAuth = (app: Application, authIgnoreRegex: RegExp) 
 			ignoreExpiration: false,
 		};
 
-		jwt.verify(token, getKey, jwtVerifyOptions, (error: jwt.VerifyErrors, decoded: QpJwt) => {
-			if (error) {
-				jwtAuthAuthorizationError(res, 'Invalid token error');
-			} else if (!isTenantAllowed(decoded)) {
-				jwtAuthAuthorizationError(res, 'Tenant not allowed');
-			} else {
-				req.jwt = decoded;
+		// https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#user-claims-encoding
+		if (process.env.PROVIDER === 'AWS') {
+			try {
+				const alg = 'ES256';
+				const jwt_headers = token.split('.')[0];
+				const decoded_jwt_headers = Buffer.from(jwt_headers, 'base64').toString('utf-8');
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+				const jwtJson = JSON.parse(decoded_jwt_headers);
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/dot-notation
+				const kid: string = jwtJson['kid'] as string;
+				if (!awsCognitoPubKey.has(kid)) {
+					const pubKeyUrl =
+						'https://public-keys.auth.elb.' + process.env.AWS_REGION + '.amazonaws.com/' + kid;
+					const pubKeyRes = await axios.get(pubKeyUrl);
+					console.log('public key url %s', pubKeyUrl);
+					console.log('public key %s', pubKeyRes.data);
+					const publicKeyTmp = await jose.importSPKI(pubKeyRes.data as string, alg);
+					awsCognitoPubKey.set(kid, publicKeyTmp);
+				}
+				const pubKey = awsCognitoPubKey.get(kid);
+				if (pubKey === undefined) {
+					throw new ApplicationError('Public key is missing');
+				}
+				const { payload, protectedHeader } = await jose.jwtVerify(token, pubKey);
+				console.log('Token is valid. Payload:%s, Header: %s', payload, protectedHeader);
+				if (!isTenantAllowed(payload)) {
+					jwtAuthAuthorizationError(res, 'Tenant not allowed');
+				}
+				const isAdmin = payload['custom:is-super-admin'] as boolean;
+				let adminRole = 'cms-default';
+				if (isAdmin) {
+					adminRole = 'admin';
+				}
+				const qpJwt: QpJwt = {
+					gcip: {
+						x_qp_entitlements: {
+							workflow: payload['custom:x-qp-wf-id'] as string,
+							api_roles: [payload['custom:x-qp-role-id'] as string, adminRole],
+							service_id: payload['custom:x-qp-service-id'] as string,
+						},
+					},
+				};
+				req.jwt = qpJwt;
 				next();
+			} catch (e) {
+				console.log('Token not valid!');
+				console.log('Token %s error %s', token, e);
+				jwtAuthAuthorizationError(res, 'Invalid token');
 			}
-		});
+		} else {
+			jwt.verify(token, getKey, jwtVerifyOptions, (error: jwt.VerifyErrors, decoded: QpJwt) => {
+				console.log('jwt %s', decoded);
+				if (error) {
+					console.log('error %s', error);
+					jwtAuthAuthorizationError(res, 'Invalid token');
+				} else if (!isTenantAllowed(decoded)) {
+					jwtAuthAuthorizationError(res, 'Tenant not allowed');
+				} else {
+					req.jwt = decoded;
+					next();
+				}
+			});
+		}
 	});
 };

@@ -7,18 +7,25 @@ import { Config, Env, Nested } from '../decorators';
 export class JWTAuthConfig {
 	@Env('N8N_JWT_AUTH_ACTIVE')
 	active: boolean = false;
+
 	@Env('N8N_JWT_AUTH_HEADER')
 	jwtHeader: string = '';
+
 	@Env('N8N_JWT_AUTH_HEADER_VALUE_PREFIX')
 	jwtHeaderValuePrefix: string = '';
+
 	@Env('N8N_JWKS_URI')
 	jwksUri: string = '';
+
 	@Env('N8N_JWT_ISSUER')
 	jwtIssuer: string = '';
+
 	@Env('N8N_JWT_NAMESPACE')
 	jwtNamespace: string = '';
+
 	@Env('N8N_JWT_ALLOWED_TENANT_KEY')
 	jwtAllowedTenantKey: string = '';
+
 	@Env('N8N_JWT_ALLOWED_TENANT')
 	jwtAllowedTenant: string = '';
 }
