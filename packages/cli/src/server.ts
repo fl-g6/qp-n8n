@@ -56,6 +56,7 @@ import '@/controllers/users.controller';
 import '@/controllers/user-settings.controller';
 import '@/controllers/workflow-statistics.controller';
 import '@/controllers/api-keys.controller';
+import '@/controllers/quickplay.controller';
 import '@/credentials/credentials.controller';
 import '@/eventbus/event-bus.controller';
 import '@/events/events.controller';
@@ -165,7 +166,7 @@ export class Server extends AbstractServer {
 		}
 	}
 
-	setupQPJwt(publicApiEndpoint : string){
+	setupQPJwt(publicApiEndpoint: string) {
 		// Route all UI urls to index.html to support history-api
 
 		const nonUIRoutes: Readonly<string[]> = [

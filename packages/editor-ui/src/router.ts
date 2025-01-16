@@ -550,9 +550,6 @@ export const routes: RouteRecordRaw[] = [
 				},
 				meta: {
 					middleware: ['authenticated'],
-					middlewareOptions: {
-						role: [ROLE.Owner],
-					},
 					telemetry: {
 						pageCategory: 'settings',
 						getProperties() {
@@ -593,10 +590,7 @@ export const routes: RouteRecordRaw[] = [
 					settingsView: SettingsApiView,
 				},
 				meta: {
-					middleware: ['authenticated', 'role'],
-					middlewareOptions: {
-						role: [ROLE.Owner],
-					},
+					middleware: ['authenticated'],
 					telemetry: {
 						pageCategory: 'settings',
 						getProperties() {

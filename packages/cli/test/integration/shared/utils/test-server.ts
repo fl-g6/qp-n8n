@@ -280,6 +280,10 @@ export const setupTestServer = ({
 						await import('@/controllers/api-keys.controller');
 						break;
 
+					case 'quickplay':
+						await import('@/controllers/quickplay.controller');
+						break;
+
 					case 'evaluation':
 						await import('@/evaluation.ee/metrics.controller');
 						await import('@/evaluation.ee/test-definitions.controller.ee');
