@@ -1,4 +1,5 @@
 import { GlobalConfig } from '@n8n/config';
+import { Container, Service } from '@n8n/di';
 import { createHash } from 'crypto';
 import type { NextFunction, Response } from 'express';
 import { TokenExpiredError } from 'jsonwebtoken';
@@ -15,7 +16,6 @@ import {
 	Logger,
 } from 'n8n-core';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import Container, { Service } from 'typedi';
 
 import config from '@/config';
 import { AUTH_COOKIE_NAME, RESPONSE_ERROR_MESSAGES, Time } from '@/constants';

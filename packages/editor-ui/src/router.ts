@@ -11,7 +11,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTemplatesStore } from '@/stores/templates.store';
 import { useUIStore } from '@/stores/ui.store';
 import { useSSOStore } from '@/stores/sso.store';
-import { EnterpriseEditionFeature, VIEWS, EDITABLE_CANVAS_VIEWS } from '@/constants';
+import { EnterpriseEditionFeature, VIEWS, EDITABLE_CANVAS_VIEWS, ROLE } from '@/constants';
 import { useTelemetry } from '@/composables/useTelemetry';
 import { middleware } from '@/utils/rbac/middleware';
 import type { RouterMiddleware } from '@/types/router';
@@ -550,6 +550,9 @@ export const routes: RouteRecordRaw[] = [
 				},
 				meta: {
 					middleware: ['authenticated'],
+					middlewareOptions: {
+						role: [ROLE.Owner],
+					},
 					telemetry: {
 						pageCategory: 'settings',
 						getProperties() {
@@ -590,7 +593,10 @@ export const routes: RouteRecordRaw[] = [
 					settingsView: SettingsApiView,
 				},
 				meta: {
-					middleware: ['authenticated'],
+					middleware: ['authenticated', 'role'],
+					middlewareOptions: {
+						role: [ROLE.Owner],
+					},
 					telemetry: {
 						pageCategory: 'settings',
 						getProperties() {
