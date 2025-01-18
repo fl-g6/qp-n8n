@@ -81,7 +81,10 @@ const mainMenuItems = computed(() => [
 		icon: 'box-open',
 		label: i18n.baseText('mainSidebar.templates'),
 		position: 'bottom',
-		available: settingsStore.isTemplatesEnabled && templatesStore.hasCustomTemplatesHost,
+		available:
+			settingsStore.isTemplatesEnabled &&
+			templatesStore.hasCustomTemplatesHost &&
+			hasPermission(['instanceOwner']),
 		route: { to: { name: VIEWS.TEMPLATES } },
 	},
 	{
@@ -90,78 +93,14 @@ const mainMenuItems = computed(() => [
 		icon: 'box-open',
 		label: i18n.baseText('mainSidebar.templates'),
 		position: 'bottom',
-		available: settingsStore.isTemplatesEnabled && !templatesStore.hasCustomTemplatesHost,
+		available:
+			settingsStore.isTemplatesEnabled &&
+			!templatesStore.hasCustomTemplatesHost &&
+			hasPermission(['instanceOwner']),
 		link: {
 			href: templatesStore.websiteTemplateRepositoryURL,
 			target: '_blank',
 		},
-	},
-	{
-		id: 'variables',
-		icon: 'variable',
-		label: i18n.baseText('mainSidebar.variables'),
-		customIconSize: 'medium',
-		position: 'bottom',
-		route: { to: { name: VIEWS.VARIABLES } },
-	},
-	{
-		id: 'help',
-		icon: 'question',
-		label: i18n.baseText('mainSidebar.help'),
-		position: 'bottom',
-		children: [
-			{
-				id: 'quickstart',
-				icon: 'video',
-				label: i18n.baseText('mainSidebar.helpMenuItems.quickstart'),
-				link: {
-					href: 'https://www.youtube.com/watch?v=1MwSoB0gnM4',
-					target: '_blank',
-				},
-			},
-			{
-				id: 'docs',
-				icon: 'book',
-				label: i18n.baseText('mainSidebar.helpMenuItems.documentation'),
-				link: {
-					href: 'https://docs.n8n.io?utm_source=n8n_app&utm_medium=app_sidebar',
-					target: '_blank',
-				},
-			},
-			{
-				id: 'forum',
-				icon: 'users',
-				label: i18n.baseText('mainSidebar.helpMenuItems.forum'),
-				link: {
-					href: 'https://community.n8n.io?utm_source=n8n_app&utm_medium=app_sidebar',
-					target: '_blank',
-				},
-			},
-			{
-				id: 'examples',
-				icon: 'graduation-cap',
-				label: i18n.baseText('mainSidebar.helpMenuItems.course'),
-				link: {
-					href: 'https://docs.n8n.io/courses/',
-					target: '_blank',
-				},
-			},
-			{
-				id: 'report-bug',
-				icon: 'bug',
-				label: i18n.baseText('mainSidebar.helpMenuItems.reportBug'),
-				link: {
-					href: getReportingURL(),
-					target: '_blank',
-				},
-			},
-			{
-				id: 'about',
-				icon: 'info',
-				label: i18n.baseText('mainSidebar.aboutN8n'),
-				position: 'bottom',
-			},
-		],
 	},
 ]);
 const createBtn = ref<InstanceType<typeof N8nNavigationDropdown>>();
@@ -415,10 +354,10 @@ onClickOutside(createBtn as Ref<VueInstance>, () => {
 					<MainSidebarSourceControl :is-collapsed="isCollapsed" />
 				</div>
 			</template>
-			<template v-if="showUserArea" #footer>
+			<!-- <template v-if="showUserArea" #footer>
 				<div ref="user" :class="$style.userArea">
 					<div class="ml-3xs" data-test-id="main-sidebar-user-menu">
-						<!-- This dropdown is only enabled when sidebar is collapsed -->
+						// This dropdown is only enabled when sidebar is collapsed
 						<ElDropdown placement="right-end" trigger="click" @command="onUserActionToggle">
 							<div :class="{ [$style.avatar]: true, ['clickable']: isCollapsed }">
 								<N8nAvatar
@@ -455,7 +394,7 @@ onClickOutside(createBtn as Ref<VueInstance>, () => {
 						/>
 					</div>
 				</div>
-			</template>
+			</template> -->
 		</N8nMenu>
 	</div>
 </template>

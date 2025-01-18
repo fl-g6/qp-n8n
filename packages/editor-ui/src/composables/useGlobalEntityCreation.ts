@@ -80,11 +80,11 @@ export const useGlobalEntityCreation = () => {
 						},
 					},
 				},
-				{
-					id: CREATE_PROJECT_ID,
-					title: 'Project',
-					disabled: true,
-				},
+				// {
+				// 	id: CREATE_PROJECT_ID,
+				// 	title: 'Project',
+				// 	disabled: true,
+				// },
 			];
 		}
 
