@@ -1,4 +1,4 @@
-import type { IDataObject } from '@/Interfaces';
+import type { IDataObject } from '@/interfaces';
 import * as ObservableObject from '@/ObservableObject';
 
 describe('ObservableObject', () => {

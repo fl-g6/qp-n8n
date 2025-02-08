@@ -1,9 +1,10 @@
-import { Service } from 'typedi';
-import type { EntityManager } from 'typeorm';
-import { DataSource, In, Repository } from 'typeorm';
-import { TagEntity } from '../entities/TagEntity';
-import type { WorkflowEntity } from '../entities/WorkflowEntity';
+import { Service } from '@n8n/di';
+import type { EntityManager } from '@n8n/typeorm';
+import { DataSource, In, Repository } from '@n8n/typeorm';
 import intersection from 'lodash/intersection';
+
+import { TagEntity } from '../entities/tag-entity';
+import type { WorkflowEntity } from '../entities/workflow-entity';
 
 @Service()
 export class TagRepository extends Repository<TagEntity> {
@@ -12,7 +13,7 @@ export class TagRepository extends Repository<TagEntity> {
 	}
 
 	async findMany(tagIds: string[]) {
-		return this.find({
+		return await this.find({
 			select: ['id', 'name'],
 			where: { id: In(tagIds) },
 		});

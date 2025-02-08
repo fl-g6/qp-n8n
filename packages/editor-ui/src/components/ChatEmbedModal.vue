@@ -1,28 +1,34 @@
 <script lang="ts" setup>
-import type { PropType } from 'vue';
 import { computed, ref } from 'vue';
 import type { EventBus } from 'n8n-design-system/utils';
 import { createEventBus } from 'n8n-design-system/utils';
 import Modal from './Modal.vue';
 import { CHAT_EMBED_MODAL_KEY, CHAT_TRIGGER_NODE_TYPE, WEBHOOK_NODE_TYPE } from '../constants';
-import { useRootStore } from '@/stores/n8nRoot.store';
+import { useRootStore } from '@/stores/root.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import HtmlEditor from '@/components/HtmlEditor/HtmlEditor.vue';
-import CodeNodeEditor from '@/components/CodeNodeEditor/CodeNodeEditor.vue';
+import JsEditor from '@/components/JsEditor/JsEditor.vue';
 import { useI18n } from '@/composables/useI18n';
 
-const props = defineProps({
-	modalBus: {
-		type: Object as PropType<EventBus>,
-		default: () => createEventBus(),
+const props = withDefaults(
+	defineProps<{
+		modalBus?: EventBus;
+	}>(),
+	{
+		modalBus: () => createEventBus(),
 	},
-});
+);
 
 const i18n = useI18n();
 const rootStore = useRootStore();
 const workflowsStore = useWorkflowsStore();
 
-const tabs = ref([
+type ChatEmbedModalTabValue = 'cdn' | 'vue' | 'react' | 'other';
+type ChatEmbedModalTab = {
+	label: string;
+	value: ChatEmbedModalTabValue;
+};
+const tabs = ref<ChatEmbedModalTab[]>([
 	{
 		label: 'CDN Embed',
 		value: 'cdn',
@@ -40,7 +46,7 @@ const tabs = ref([
 		value: 'other',
 	},
 ]);
-const currentTab = ref('cdn');
+const currentTab = ref<ChatEmbedModalTabValue>('cdn');
 
 const webhookNode = computed(() => {
 	for (const type of [CHAT_TRIGGER_NODE_TYPE, WEBHOOK_NODE_TYPE]) {
@@ -62,7 +68,7 @@ const webhookNode = computed(() => {
 });
 
 const webhookUrl = computed(() => {
-	const url = `${rootStore.getWebhookUrl}${
+	const url = `${rootStore.webhookUrl}${
 		webhookNode.value ? `/${webhookNode.value.node.webhookId}` : ''
 	}`;
 
@@ -87,9 +93,9 @@ ${importCode} { createChat } from '@n8n/chat';`,
 }));
 
 const cdnCode = computed(
-	() => `<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/style.css" rel="stylesheet" />
+	() => `<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
 <script type="module">
-${importCode} { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/chat.bundle.es.js';
+${importCode} { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
 
 ${commonCode.value.createChat}
 </${'script'}>`,
@@ -150,7 +156,7 @@ function closeDialog() {
 							{{ i18n.baseText('chatEmbed.install') }}
 						</n8n-text>
 					</div>
-					<CodeNodeEditor :model-value="commonCode.install" is-read-only />
+					<HtmlEditor :model-value="commonCode.install" is-read-only />
 				</div>
 
 				<div class="mb-s">
@@ -165,8 +171,8 @@ function closeDialog() {
 
 				<HtmlEditor v-if="currentTab === 'cdn'" :model-value="cdnCode" is-read-only />
 				<HtmlEditor v-if="currentTab === 'vue'" :model-value="vueCode" is-read-only />
-				<CodeNodeEditor v-if="currentTab === 'react'" :model-value="reactCode" is-read-only />
-				<CodeNodeEditor v-if="currentTab === 'other'" :model-value="otherCode" is-read-only />
+				<JsEditor v-if="currentTab === 'react'" :model-value="reactCode" is-read-only />
+				<JsEditor v-if="currentTab === 'other'" :model-value="otherCode" is-read-only />
 
 				<n8n-text>
 					{{ i18n.baseText('chatEmbed.packageInfo.description') }}

@@ -1,3 +1,40 @@
+<script lang="ts" setup>
+import { ElDropdown, ElDropdownMenu, ElDropdownItem, type Placement } from 'element-plus';
+
+import type { UserAction } from 'n8n-design-system/types';
+import type { IconOrientation, IconSize } from 'n8n-design-system/types/icon';
+
+import N8nIcon from '../N8nIcon';
+
+const SIZE = ['mini', 'small', 'medium'] as const;
+const THEME = ['default', 'dark'] as const;
+
+interface ActionToggleProps {
+	actions?: UserAction[];
+	placement?: Placement;
+	size?: (typeof SIZE)[number];
+	iconSize?: IconSize;
+	theme?: (typeof THEME)[number];
+	iconOrientation?: IconOrientation;
+}
+
+defineOptions({ name: 'N8nActionToggle' });
+withDefaults(defineProps<ActionToggleProps>(), {
+	actions: () => [],
+	placement: 'bottom',
+	size: 'medium',
+	theme: 'default',
+	iconOrientation: 'vertical',
+});
+
+const emit = defineEmits<{
+	action: [value: string];
+	'visible-change': [value: boolean];
+}>();
+const onCommand = (value: string) => emit('action', value);
+const onVisibleChange = (value: boolean) => emit('visible-change', value);
+</script>
+
 <template>
 	<span :class="$style.container" data-test-id="action-toggle" @click.stop.prevent>
 		<ElDropdown
@@ -40,62 +77,6 @@
 		</ElDropdown>
 	</span>
 </template>
-
-<script lang="ts">
-import type { PropType } from 'vue';
-import { defineComponent } from 'vue';
-import { ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus';
-import N8nIcon from '../N8nIcon';
-import type { UserAction } from '@/types';
-
-export default defineComponent({
-	name: 'N8nActionToggle',
-	components: {
-		ElDropdown,
-		ElDropdownMenu,
-		ElDropdownItem,
-		N8nIcon,
-	},
-	props: {
-		actions: {
-			type: Array as PropType<UserAction[]>,
-			default: () => [],
-		},
-		placement: {
-			type: String,
-			default: 'bottom',
-			validator: (value: string): boolean =>
-				['top', 'top-end', 'top-start', 'bottom', 'bottom-end', 'bottom-start'].includes(value),
-		},
-		size: {
-			type: String,
-			default: 'medium',
-			validator: (value: string): boolean => ['mini', 'small', 'medium'].includes(value),
-		},
-		iconSize: {
-			type: String,
-		},
-		theme: {
-			type: String,
-			default: 'default',
-			validator: (value: string): boolean => ['default', 'dark'].includes(value),
-		},
-		iconOrientation: {
-			type: String,
-			default: 'vertical',
-			validator: (value: string): boolean => ['horizontal', 'vertical'].includes(value),
-		},
-	},
-	methods: {
-		onCommand(value: string) {
-			this.$emit('action', value);
-		},
-		onVisibleChange(value: boolean) {
-			this.$emit('visible-change', value);
-		},
-	},
-});
-</script>
 
 <style lang="scss" module>
 .container > * {

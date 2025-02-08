@@ -1,5 +1,5 @@
-import type { IDataObject } from '@/Interfaces';
 import { augmentArray, augmentObject } from '@/AugmentObject';
+import type { IDataObject } from '@/interfaces';
 import { deepCopy } from '@/utils';
 
 describe('AugmentObject', () => {
@@ -290,7 +290,7 @@ describe('AugmentObject', () => {
 		});
 
 		test('should work with complex values on first level', () => {
-			const originalObject = {
+			const originalObject: any = {
 				a: {
 					b: {
 						cc: '3',
@@ -483,7 +483,7 @@ describe('AugmentObject', () => {
 
 		test('should be faster than doing a deepCopy', () => {
 			const iterations = 100;
-			const originalObject: IDataObject = {
+			const originalObject: any = {
 				a: {
 					b: {
 						c: {
@@ -530,7 +530,7 @@ describe('AugmentObject', () => {
 		});
 
 		test('should return property descriptors', () => {
-			const originalObject = {
+			const originalObject: any = {
 				x: {
 					y: {},
 					z: {},
@@ -559,7 +559,7 @@ describe('AugmentObject', () => {
 		});
 
 		test('should return valid values on `has` calls', () => {
-			const originalObject = {
+			const originalObject: any = {
 				x: {
 					y: {},
 				},
@@ -571,6 +571,23 @@ describe('AugmentObject', () => {
 			augmentedObject.x.z = 5;
 			expect('z' in augmentedObject.x).toBe(true);
 			expect('y' in augmentedObject.x).toBe(true);
+		});
+
+		test('should ignore non-enumerable keys', () => {
+			const originalObject: { toString?: string } = { toString: '123' };
+			const augmentedObject = augmentObject(originalObject);
+			expect('toString' in augmentedObject).toBe(true);
+			expect(Object.keys(augmentedObject)).toEqual(['toString']);
+			expect(Object.getOwnPropertyDescriptor(augmentedObject, 'toString')?.value).toEqual(
+				originalObject.toString,
+			);
+			expect(augmentedObject.toString).toEqual(originalObject.toString);
+
+			augmentedObject.toString = '456';
+			expect(augmentedObject.toString).toBe('456');
+
+			delete augmentedObject.toString;
+			expect(augmentedObject.toString).toBeUndefined();
 		});
 	});
 });

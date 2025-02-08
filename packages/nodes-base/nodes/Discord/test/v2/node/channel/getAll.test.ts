@@ -1,13 +1,15 @@
 import type { INodeTypes } from 'n8n-workflow';
 import nock from 'nock';
-import * as transport from '../../../../v2/transport/discord.api';
+
+import { executeWorkflow } from '@test/nodes/ExecuteWorkflow';
 import { getResultNodeData, setup, workflowToTests } from '@test/nodes/Helpers';
 import type { WorkflowTestData } from '@test/nodes/types';
-import { executeWorkflow } from '@test/nodes/ExecuteWorkflow';
+
+import * as transport from '../../../../v2/transport/discord.api';
 
 const discordApiRequestSpy = jest.spyOn(transport, 'discordApiRequest');
 
-discordApiRequestSpy.mockImplementation(async (method: string, endpoint) => {
+discordApiRequestSpy.mockImplementation(async (method: string) => {
 	if (method === 'GET') {
 		return [
 			{
@@ -136,6 +138,6 @@ describe('Test DiscordV2, channel => getAll', () => {
 	};
 
 	for (const testData of tests) {
-		test(testData.description, async () => testNode(testData, nodeTypes));
+		test(testData.description, async () => await testNode(testData, nodeTypes));
 	}
 });

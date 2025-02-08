@@ -1,5 +1,18 @@
-import { DateTime } from 'luxon';
+type ObjectLiteral = { [key: string | symbol]: unknown };
 
-export function toUtcDate(datetime: Date, tz: string) {
-	return DateTime.fromISO(datetime.toISOString().slice(0, -1), { zone: tz }).toUTC().toJSDate();
+/**
+ * Checks if the provided value is a plain object literal (not null, not an array, not a class instance, and not a primitive).
+ * This function serves as a type guard.
+ *
+ * @param candidate - The value to check
+ * @returns {boolean} True if the value is an object literal, false otherwise
+ */
+export function isObjectLiteral(candidate: unknown): candidate is ObjectLiteral {
+	return (
+		typeof candidate === 'object' &&
+		candidate !== null &&
+		!Array.isArray(candidate) &&
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		(Object.getPrototypeOf(candidate) as Object)?.constructor?.name === 'Object'
+	);
 }

@@ -1,3 +1,117 @@
+<script lang="ts" setup>
+import type { IAiData, IAiDataContent } from '@/Interface';
+import { useNodeTypesStore } from '@/stores/nodeTypes.store';
+import { useWorkflowsStore } from '@/stores/workflows.store';
+import type {
+	INodeExecutionData,
+	INodeTypeDescription,
+	NodeConnectionType,
+	NodeError,
+} from 'n8n-workflow';
+import { computed } from 'vue';
+import NodeIcon from '@/components/NodeIcon.vue';
+import AiRunContentBlock from './AiRunContentBlock.vue';
+import { useExecutionHelpers } from '@/composables/useExecutionHelpers';
+import { useI18n } from '@/composables/useI18n';
+
+interface RunMeta {
+	startTimeMs: number;
+	executionTimeMs: number;
+	node: INodeTypeDescription | null;
+	type: 'input' | 'output';
+	connectionType: NodeConnectionType;
+	subExecution?: {
+		workflowId: string;
+		executionId: string;
+	};
+}
+const props = defineProps<{
+	inputData: IAiData;
+	contentIndex: number;
+}>();
+
+const nodeTypesStore = useNodeTypesStore();
+const workflowsStore = useWorkflowsStore();
+
+const { trackOpeningRelatedExecution, resolveRelatedExecutionUrl } = useExecutionHelpers();
+const i18n = useI18n();
+
+type TokenUsageData = {
+	completionTokens: number;
+	promptTokens: number;
+	totalTokens: number;
+};
+
+const consumedTokensSum = computed(() => {
+	// eslint-disable-next-line @typescript-eslint/no-use-before-define
+	const tokenUsage = outputRun.value?.data?.reduce(
+		(acc: TokenUsageData, curr: INodeExecutionData) => {
+			const tokenUsageData = (curr.json?.tokenUsage ??
+				curr.json?.tokenUsageEstimate) as TokenUsageData;
+
+			if (!tokenUsageData) return acc;
+
+			return {
+				completionTokens: acc.completionTokens + tokenUsageData.completionTokens,
+				promptTokens: acc.promptTokens + tokenUsageData.promptTokens,
+				totalTokens: acc.totalTokens + tokenUsageData.totalTokens,
+			};
+		},
+		{
+			completionTokens: 0,
+			promptTokens: 0,
+			totalTokens: 0,
+		},
+	);
+
+	return tokenUsage;
+});
+
+const usingTokensEstimates = computed(() => {
+	return outputRun.value?.data?.some((d) => d.json?.tokenUsageEstimate);
+});
+
+function formatTokenUsageCount(count: number) {
+	return usingTokensEstimates.value ? `~${count}` : count.toString();
+}
+function extractRunMeta(run: IAiDataContent) {
+	const uiNode = workflowsStore.getNodeByName(props.inputData.node);
+	const nodeType = nodeTypesStore.getNodeType(uiNode?.type ?? '');
+
+	const runMeta: RunMeta = {
+		startTimeMs: run.metadata.startTime,
+		executionTimeMs: run.metadata.executionTime,
+		node: nodeType,
+		type: run.inOut,
+		connectionType: run.type,
+		subExecution: run.metadata?.subExecution,
+	};
+
+	return runMeta;
+}
+
+const outputRun = computed(() => {
+	return props.inputData.data.find((r) => r.inOut === 'output');
+});
+
+const runMeta = computed(() => {
+	if (outputRun.value === undefined) {
+		return;
+	}
+	return extractRunMeta(outputRun.value);
+});
+
+const executionRunData = computed(() => {
+	return workflowsStore.getWorkflowExecution?.data?.resultData?.runData;
+});
+
+const outputError = computed(() => {
+	return executionRunData.value?.[props.inputData.node]?.[props.inputData.runIndex]?.error as
+		| NodeError
+		| undefined;
+});
+</script>
+
 <template>
 	<div :class="$style.container">
 		<header :class="$style.header">
@@ -19,7 +133,7 @@
 								{{ new Date(runMeta?.startTimeMs).toLocaleString() }}
 							</template>
 							{{
-								$locale.baseText('runData.aiContentBlock.startedAt', {
+								i18n.baseText('runData.aiContentBlock.startedAt', {
 									interpolate: {
 										startTime: new Date(runMeta?.startTimeMs).toLocaleTimeString(),
 									},
@@ -27,33 +141,43 @@
 							}}
 						</n8n-tooltip>
 					</li>
-					<li v-if="(consumedTokensSum?.totalTokens ?? 0) > 0">
+					<li v-if="runMeta?.subExecution">
+						<a
+							:href="resolveRelatedExecutionUrl(runMeta)"
+							target="_blank"
+							@click.stop="trackOpeningRelatedExecution(runMeta, 'ai')"
+						>
+							<N8nIcon icon="external-link-alt" size="xsmall" />
+							{{ i18n.baseText('runData.openSubExecutionSingle') }}
+						</a>
+					</li>
+					<li v-if="(consumedTokensSum?.totalTokens ?? 0) > 0" :class="$style.tokensUsage">
 						{{
-							$locale.baseText('runData.aiContentBlock.tokens', {
+							i18n.baseText('runData.aiContentBlock.tokens', {
 								interpolate: {
-									count: consumedTokensSum?.totalTokens.toString()!,
+									count: formatTokenUsageCount(consumedTokensSum?.totalTokens ?? 0),
 								},
 							})
 						}}
 						<n8n-info-tip type="tooltip" theme="info-light" tooltip-placement="right">
 							<div>
 								<n8n-text :bold="true" size="small">
-									{{ $locale.baseText('runData.aiContentBlock.tokens.prompt') }}
+									{{ i18n.baseText('runData.aiContentBlock.tokens.prompt') }}
 									{{
-										$locale.baseText('runData.aiContentBlock.tokens', {
+										i18n.baseText('runData.aiContentBlock.tokens', {
 											interpolate: {
-												count: consumedTokensSum?.promptTokens.toString()!,
+												count: formatTokenUsageCount(consumedTokensSum?.promptTokens ?? 0),
 											},
 										})
 									}}
 								</n8n-text>
 								<br />
 								<n8n-text :bold="true" size="small">
-									{{ $locale.baseText('runData.aiContentBlock.tokens.completion') }}
+									{{ i18n.baseText('runData.aiContentBlock.tokens.completion') }}
 									{{
-										$locale.baseText('runData.aiContentBlock.tokens', {
+										i18n.baseText('runData.aiContentBlock.tokens', {
 											interpolate: {
-												count: consumedTokensSum?.completionTokens.toString()!,
+												count: formatTokenUsageCount(consumedTokensSum?.completionTokens ?? 0),
 											},
 										})
 									}}
@@ -66,96 +190,13 @@
 		</header>
 
 		<main v-for="(run, index) in props.inputData.data" :key="index" :class="$style.content">
-			<AiRunContentBlock :run-data="run" />
+			<AiRunContentBlock
+				:run-data="run"
+				:error="run.inOut === 'output' ? outputError : undefined"
+			/>
 		</main>
 	</div>
 </template>
-
-<script lang="ts" setup>
-import type { IAiData, IAiDataContent } from '@/Interface';
-import { useNodeTypesStore } from '@/stores/nodeTypes.store';
-import { useWorkflowsStore } from '@/stores/workflows.store';
-import type {
-	IDataObject,
-	INodeExecutionData,
-	INodeTypeDescription,
-	NodeConnectionType,
-} from 'n8n-workflow';
-import { computed } from 'vue';
-import NodeIcon from '@/components/NodeIcon.vue';
-import AiRunContentBlock from './AiRunContentBlock.vue';
-
-interface RunMeta {
-	startTimeMs: number;
-	executionTimeMs: number;
-	node: INodeTypeDescription | null;
-	type: 'input' | 'output';
-	connectionType: NodeConnectionType;
-}
-const props = defineProps<{
-	inputData: IAiData;
-	contentIndex: number;
-}>();
-
-const nodeTypesStore = useNodeTypesStore();
-const workflowsStore = useWorkflowsStore();
-
-type TokenUsageData = {
-	completionTokens: number;
-	promptTokens: number;
-	totalTokens: number;
-};
-const consumedTokensSum = computed(() => {
-	// eslint-disable-next-line @typescript-eslint/no-use-before-define
-	const consumedTokensSum1 = outputRun.value?.data?.reduce(
-		(acc: TokenUsageData, curr: INodeExecutionData) => {
-			const response = curr.json?.response as IDataObject;
-			const tokenUsageData = (response?.llmOutput as IDataObject)?.tokenUsage as TokenUsageData;
-
-			if (!tokenUsageData) return acc;
-
-			return {
-				completionTokens: acc.completionTokens + tokenUsageData.completionTokens,
-				promptTokens: acc.promptTokens + tokenUsageData.promptTokens,
-				totalTokens: acc.totalTokens + tokenUsageData.totalTokens,
-			};
-		},
-		{
-			completionTokens: 0,
-			promptTokens: 0,
-			totalTokens: 0,
-		},
-	);
-
-	return consumedTokensSum1;
-});
-
-function extractRunMeta(run: IAiDataContent) {
-	const uiNode = workflowsStore.getNodeByName(props.inputData.node);
-	const nodeType = nodeTypesStore.getNodeType(uiNode?.type ?? '');
-
-	const runMeta: RunMeta = {
-		startTimeMs: run.metadata.startTime,
-		executionTimeMs: run.metadata.executionTime,
-		node: nodeType,
-		type: run.inOut,
-		connectionType: run.type,
-	};
-
-	return runMeta;
-}
-
-const outputRun = computed(() => {
-	return props.inputData.data.find((r) => r.inOut === 'output');
-});
-
-const runMeta = computed(() => {
-	if (outputRun.value === undefined) {
-		return;
-	}
-	return extractRunMeta(outputRun.value);
-});
-</script>
 
 <style type="scss" module>
 .container {
@@ -196,5 +237,10 @@ const runMeta = computed(() => {
 	& > li:not(:first-child) {
 		padding-left: var(--spacing-3xs);
 	}
+}
+.tokensUsage {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-3xs);
 }
 </style>

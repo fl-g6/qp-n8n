@@ -22,7 +22,7 @@ export class SwitchV2 implements INodeType {
 				name: 'Switch',
 				color: '#506000',
 			},
-			inputs: ['main'],
+			inputs: [NodeConnectionType.Main],
 
 			outputs: `={{
 					((parameters) => {
@@ -182,7 +182,7 @@ export class SwitchV2 implements INodeType {
 										},
 									],
 									default: 'equal',
-									description: 'Operation to decide where the the data should be mapped to',
+									description: 'Operation to decide where the data should be mapped to',
 								},
 								{
 									displayName: 'Value 2',
@@ -257,7 +257,7 @@ export class SwitchV2 implements INodeType {
 										},
 									],
 									default: 'after',
-									description: 'Operation to decide where the the data should be mapped to',
+									description: 'Operation to decide where the data should be mapped to',
 								},
 								{
 									displayName: 'Value 2',
@@ -348,7 +348,7 @@ export class SwitchV2 implements INodeType {
 										},
 									],
 									default: 'smaller',
-									description: 'Operation to decide where the the data should be mapped to',
+									description: 'Operation to decide where the data should be mapped to',
 								},
 								{
 									displayName: 'Value 2',
@@ -455,7 +455,7 @@ export class SwitchV2 implements INodeType {
 										},
 									],
 									default: 'equal',
-									description: 'Operation to decide where the the data should be mapped to',
+									description: 'Operation to decide where the data should be mapped to',
 								},
 								{
 									displayName: 'Value 2',
@@ -510,7 +510,7 @@ export class SwitchV2 implements INodeType {
 					},
 					default: -1,
 					description:
-						'The output to which to route all items which do not match any of the rules. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+						'The output to which to route all items which do not match any of the rules. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				},
 			],
 		};

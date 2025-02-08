@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
-import { createHash } from 'node:crypto';
-import axios from 'axios';
-import { Service } from 'typedi';
+import { Service } from '@n8n/di';
 import { sign } from 'aws4';
-import { isStream, parseXml, writeBlockedMessage } from './utils';
-import { ApplicationError, LoggerProxy as Logger } from 'n8n-workflow';
-
-import type { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig, Method } from 'axios';
 import type { Request as Aws4Options, Credentials as Aws4Credentials } from 'aws4';
+import axios from 'axios';
+import type { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig, Method } from 'axios';
+import { ApplicationError } from 'n8n-workflow';
+import { createHash } from 'node:crypto';
+import type { Readable } from 'stream';
+
+import { Logger } from '@/logging/logger';
+
 import type {
 	Bucket,
 	ConfigSchemaCredentials,
@@ -17,7 +17,7 @@ import type {
 	RawListPage,
 	RequestOptions,
 } from './types';
-import type { Readable } from 'stream';
+import { isStream, parseXml, writeBlockedMessage } from './utils';
 import type { BinaryData } from '../BinaryData/types';
 
 @Service()
@@ -32,7 +32,7 @@ export class ObjectStoreService {
 
 	private isReadOnly = false;
 
-	private logger = Logger;
+	constructor(private readonly logger: Logger) {}
 
 	async init(host: string, bucket: Bucket, credentials: ConfigSchemaCredentials) {
 		this.host = host;
@@ -65,7 +65,7 @@ export class ObjectStoreService {
 	async checkConnection() {
 		if (this.isReady) return;
 
-		return this.request('HEAD', this.host, this.bucket.name);
+		return await this.request('HEAD', this.host, this.bucket.name);
 	}
 
 	/**
@@ -74,7 +74,7 @@ export class ObjectStoreService {
 	 * @doc https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html
 	 */
 	async put(filename: string, buffer: Buffer, metadata: BinaryData.PreWriteMetadata = {}) {
-		if (this.isReadOnly) return this.blockWrite(filename);
+		if (this.isReadOnly) return await this.blockWrite(filename);
 
 		const headers: Record<string, string | number> = {
 			'Content-Length': buffer.length,
@@ -86,7 +86,7 @@ export class ObjectStoreService {
 
 		const path = `/${this.bucket.name}/${filename}`;
 
-		return this.request('PUT', this.host, path, { headers, body: buffer });
+		return await this.request('PUT', this.host, path, { headers, body: buffer });
 	}
 
 	/**
@@ -131,7 +131,7 @@ export class ObjectStoreService {
 	async deleteOne(fileId: string) {
 		const path = `${this.bucket.name}/${fileId}`;
 
-		return this.request('DELETE', this.host, path);
+		return await this.request('DELETE', this.host, path);
 	}
 
 	/**
@@ -156,7 +156,7 @@ export class ObjectStoreService {
 
 		const path = `${this.bucket.name}/?delete`;
 
-		return this.request('POST', this.host, path, { headers, body });
+		return await this.request('POST', this.host, path, { headers, body });
 	}
 
 	/**

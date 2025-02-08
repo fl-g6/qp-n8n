@@ -8,6 +8,7 @@ export const DEFAULT_FILTER_OPTIONS: FilterOptionsValue = {
 	caseSensitive: true,
 	leftValue: '',
 	typeValidation: 'strict',
+	version: 1,
 };
 
 export const OPERATORS_BY_ID = {
@@ -21,6 +22,18 @@ export const OPERATORS_BY_ID = {
 		type: 'string',
 		operation: 'notExists',
 		name: 'filter.operator.notExists',
+		singleValue: true,
+	},
+	'string:empty': {
+		type: 'string',
+		operation: 'empty',
+		name: 'filter.operator.empty',
+		singleValue: true,
+	},
+	'string:notEmpty': {
+		type: 'string',
+		operation: 'notEmpty',
+		name: 'filter.operator.notEmpty',
 		singleValue: true,
 	},
 	'string:equals': { type: 'string', operation: 'equals', name: 'filter.operator.equals' },
@@ -61,6 +74,18 @@ export const OPERATORS_BY_ID = {
 		name: 'filter.operator.notExists',
 		singleValue: true,
 	},
+	'number:empty': {
+		type: 'number',
+		operation: 'empty',
+		name: 'filter.operator.empty',
+		singleValue: true,
+	},
+	'number:notEmpty': {
+		type: 'number',
+		operation: 'notEmpty',
+		name: 'filter.operator.notEmpty',
+		singleValue: true,
+	},
 	'number:equals': { type: 'number', operation: 'equals', name: 'filter.operator.equals' },
 	'number:notEquals': { type: 'number', operation: 'notEquals', name: 'filter.operator.notEquals' },
 	'number:gt': { type: 'number', operation: 'gt', name: 'filter.operator.gt' },
@@ -77,6 +102,18 @@ export const OPERATORS_BY_ID = {
 		type: 'dateTime',
 		operation: 'notExists',
 		name: 'filter.operator.notExists',
+		singleValue: true,
+	},
+	'dateTime:empty': {
+		type: 'dateTime',
+		operation: 'empty',
+		name: 'filter.operator.empty',
+		singleValue: true,
+	},
+	'dateTime:notEmpty': {
+		type: 'dateTime',
+		operation: 'notEmpty',
+		name: 'filter.operator.notEmpty',
 		singleValue: true,
 	},
 	'dateTime:equals': { type: 'dateTime', operation: 'equals', name: 'filter.operator.equals' },
@@ -107,6 +144,18 @@ export const OPERATORS_BY_ID = {
 		type: 'boolean',
 		operation: 'notExists',
 		name: 'filter.operator.notExists',
+		singleValue: true,
+	},
+	'boolean:empty': {
+		type: 'boolean',
+		operation: 'empty',
+		name: 'filter.operator.empty',
+		singleValue: true,
+	},
+	'boolean:notEmpty': {
+		type: 'boolean',
+		operation: 'notEmpty',
+		name: 'filter.operator.notEmpty',
 		singleValue: true,
 	},
 	'boolean:true': {
@@ -235,37 +284,37 @@ export const DEFAULT_OPERATOR_VALUE: FilterConditionValue['operator'] =
 export const OPERATOR_GROUPS: FilterOperatorGroup[] = [
 	{
 		id: 'string',
-		name: 'filter.operatorGroup.string',
+		name: 'type.string',
 		icon: 'font',
 		children: OPERATORS.filter((operator) => operator.type === 'string'),
 	},
 	{
 		id: 'number',
-		name: 'filter.operatorGroup.number',
+		name: 'type.number',
 		icon: 'hashtag',
 		children: OPERATORS.filter((operator) => operator.type === 'number'),
 	},
 	{
 		id: 'dateTime',
-		name: 'filter.operatorGroup.date',
+		name: 'type.dateTime',
 		icon: 'calendar',
 		children: OPERATORS.filter((operator) => operator.type === 'dateTime'),
 	},
 	{
 		id: 'boolean',
-		name: 'filter.operatorGroup.boolean',
+		name: 'type.boolean',
 		icon: 'check-square',
 		children: OPERATORS.filter((operator) => operator.type === 'boolean'),
 	},
 	{
 		id: 'array',
-		name: 'filter.operatorGroup.array',
+		name: 'type.array',
 		icon: 'list',
 		children: OPERATORS.filter((operator) => operator.type === 'array'),
 	},
 	{
 		id: 'object',
-		name: 'filter.operatorGroup.object',
+		name: 'type.object',
 		icon: 'cube',
 		children: OPERATORS.filter((operator) => operator.type === 'object'),
 	},

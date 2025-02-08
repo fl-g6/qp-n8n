@@ -6,23 +6,18 @@ import type {
 	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
+	IHttpRequestMethods,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
-
-import { wrapData } from '../../utils/utilities';
-import { apiRequest } from './GenericFunctions';
+import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
 import { boardFields, boardOperations } from './BoardDescription';
-
-import { cardFields, cardOperations } from './CardDescription';
-
 import { cardCommentFields, cardCommentOperations } from './CardCommentDescription';
-
+import { cardFields, cardOperations } from './CardDescription';
 import { checklistFields, checklistOperations } from './ChecklistDescription';
-
 import { checklistItemFields, checklistItemOperations } from './ChecklistItemDescription';
-
+import { apiRequest } from './GenericFunctions';
 import { listFields, listOperations } from './ListDescription';
+import { wrapData } from '../../utils/utilities';
 
 // https://wekan.github.io/api/v4.41/
 
@@ -30,8 +25,8 @@ export class Wekan implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Wekan',
 		name: 'wekan',
-		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
-		icon: 'file:wekan.png',
+
+		icon: 'file:wekan.svg',
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
@@ -39,8 +34,8 @@ export class Wekan implements INodeType {
 		defaults: {
 			name: 'Wekan',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'wekanApi',
@@ -247,7 +242,7 @@ export class Wekan implements INodeType {
 		// For Query string
 		let qs: IDataObject;
 
-		let requestMethod: string;
+		let requestMethod: IHttpRequestMethods;
 		let endpoint: string;
 
 		for (let i = 0; i < items.length; i++) {

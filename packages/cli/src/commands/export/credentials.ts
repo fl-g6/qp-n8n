@@ -1,12 +1,14 @@
-import { flags } from '@oclif/command';
+import { Container } from '@n8n/di';
+import { Flags } from '@oclif/core';
 import fs from 'fs';
-import path from 'path';
 import { Credentials } from 'n8n-core';
-import type { ICredentialsDb, ICredentialsDecryptedDb } from '@/Interfaces';
-import { BaseCommand } from '../BaseCommand';
-import { CredentialsRepository } from '@db/repositories/credentials.repository';
-import Container from 'typedi';
 import { ApplicationError } from 'n8n-workflow';
+import path from 'path';
+
+import { CredentialsRepository } from '@/databases/repositories/credentials.repository';
+import type { ICredentialsDb, ICredentialsDecryptedDb } from '@/interfaces';
+
+import { BaseCommand } from '../base-command';
 
 export class ExportCredentialsCommand extends BaseCommand {
 	static description = 'Export credentials';
@@ -20,37 +22,37 @@ export class ExportCredentialsCommand extends BaseCommand {
 	];
 
 	static flags = {
-		help: flags.help({ char: 'h' }),
-		all: flags.boolean({
+		help: Flags.help({ char: 'h' }),
+		all: Flags.boolean({
 			description: 'Export all credentials',
 		}),
-		backup: flags.boolean({
+		backup: Flags.boolean({
 			description:
 				'Sets --all --pretty --separate for simple backups. Only --output has to be set additionally.',
 		}),
-		id: flags.string({
+		id: Flags.string({
 			description: 'The ID of the credential to export',
 		}),
-		output: flags.string({
+		output: Flags.string({
 			char: 'o',
 			description: 'Output file name or directory if using separate files',
 		}),
-		pretty: flags.boolean({
+		pretty: Flags.boolean({
 			description: 'Format the output in an easier to read fashion',
 		}),
-		separate: flags.boolean({
+		separate: Flags.boolean({
 			description:
 				'Exports one file per credential (useful for versioning). Must inform a directory via --output.',
 		}),
-		decrypted: flags.boolean({
+		decrypted: Flags.boolean({
 			description:
 				'Exports data decrypted / in plain text. ALL SENSITIVE INFORMATION WILL BE VISIBLE IN THE FILES. Use to migrate from a installation to another that have a different secret key (in the config file).',
 		}),
 	};
 
+	// eslint-disable-next-line complexity
 	async run() {
-		// eslint-disable-next-line @typescript-eslint/no-shadow
-		const { flags } = this.parse(ExportCredentialsCommand);
+		const { flags } = await this.parse(ExportCredentialsCommand);
 
 		if (flags.backup) {
 			flags.all = true;
@@ -112,9 +114,9 @@ export class ExportCredentialsCommand extends BaseCommand {
 
 		if (flags.decrypted) {
 			for (let i = 0; i < credentials.length; i++) {
-				const { name, type, nodesAccess, data } = credentials[i];
+				const { name, type, data } = credentials[i];
 				const id = credentials[i].id;
-				const credential = new Credentials({ id, name }, type, nodesAccess, data);
+				const credential = new Credentials({ id, name }, type, data);
 				const plainData = credential.getData();
 				(credentials[i] as ICredentialsDecryptedDb).data = plainData;
 			}

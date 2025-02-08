@@ -1,16 +1,17 @@
 /* eslint-disable n8n-nodes-base/node-dirname-against-convention */
+import type { TextSplitter } from '@langchain/textsplitters';
 import {
 	NodeConnectionType,
-	type IExecuteFunctions,
 	type INodeType,
 	type INodeTypeDescription,
+	type ISupplyDataFunctions,
 	type SupplyData,
 } from 'n8n-workflow';
 
-import type { TextSplitter } from 'langchain/text_splitter';
-import { logWrapper } from '../../../utils/logWrapper';
-import { N8nBinaryLoader } from '../../../utils/N8nBinaryLoader';
-import { metadataFilterField } from '../../../utils/sharedFields';
+import { logWrapper } from '@utils/logWrapper';
+import { N8nBinaryLoader } from '@utils/N8nBinaryLoader';
+import { N8nJsonLoader } from '@utils/N8nJsonLoader';
+import { metadataFilterField } from '@utils/sharedFields';
 
 // Dependencies needed underneath the hood for the loaders. We add them
 // here only to track where what dependency is sued
@@ -18,7 +19,6 @@ import { metadataFilterField } from '../../../utils/sharedFields';
 import 'mammoth'; // for docx
 import 'epub2'; // for epub
 import 'pdf-parse'; // for pdf
-import { N8nJsonLoader } from '../../../utils/N8nJsonLoader';
 
 export class DocumentDefaultDataLoader implements INodeType {
 	description: INodeTypeDescription = {
@@ -110,6 +110,30 @@ export class DocumentDefaultDataLoader implements INodeType {
 				],
 			},
 			{
+				displayName: 'Mode',
+				name: 'binaryMode',
+				type: 'options',
+				default: 'allInputData',
+				required: true,
+				displayOptions: {
+					show: {
+						dataType: ['binary'],
+					},
+				},
+				options: [
+					{
+						name: 'Load All Input Data',
+						value: 'allInputData',
+						description: 'Use all Binary data that flows into the parent agent or chain',
+					},
+					{
+						name: 'Load Specific Data',
+						value: 'specificField',
+						description: 'Load data from a specific field in the parent agent or chain',
+					},
+				],
+			},
+			{
 				displayName: 'Data Format',
 				name: 'loader',
 				type: 'options',
@@ -187,6 +211,9 @@ export class DocumentDefaultDataLoader implements INodeType {
 					show: {
 						dataType: ['binary'],
 					},
+					hide: {
+						binaryMode: ['allInputData'],
+					},
 				},
 			},
 			{
@@ -256,7 +283,7 @@ export class DocumentDefaultDataLoader implements INodeType {
 		],
 	};
 
-	async supplyData(this: IExecuteFunctions, itemIndex: number): Promise<SupplyData> {
+	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
 		const dataType = this.getNodeParameter('dataType', itemIndex, 'json') as 'json' | 'binary';
 		const textSplitter = (await this.getInputConnectionData(
 			NodeConnectionType.AiTextSplitter,

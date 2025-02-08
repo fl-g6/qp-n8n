@@ -12,9 +12,9 @@ export function useClipboard(
 	},
 ) {
 	const { debounce } = useDebounce();
-	const { copy, copied, isSupported, text } = useClipboardCore();
+	const { copy, copied, isSupported, text } = useClipboardCore({ legacy: true });
 
-	const ignoreClasses = ['el-messsage-box', 'ignore-key-press'];
+	const ignoreClasses = ['el-messsage-box', 'ignore-key-press-canvas'];
 	const initialized = ref(false);
 
 	const onPasteCallback = ref<ClipboardEventFn | null>(options.onPaste || null);

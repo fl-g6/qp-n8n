@@ -1,7 +1,9 @@
 import type { IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
-import { microsoftApiRequest } from '../../transport';
-import { attachmentRLC, messageRLC } from '../../descriptions';
+
 import { updateDisplayOptions } from '@utils/utilities';
+
+import { attachmentRLC, messageRLC } from '../../descriptions';
+import { microsoftApiRequest } from '../../transport';
 
 export const properties: INodeProperties[] = [
 	messageRLC,
@@ -49,7 +51,7 @@ export async function execute(this: IExecuteFunctions, index: number, items: INo
 	if (attachmentDetails.contentType) {
 		mimeType = attachmentDetails.contentType;
 	}
-	const fileName = attachmentDetails.name;
+	const fileName = attachmentDetails.name as string;
 
 	const response = await microsoftApiRequest.call(
 		this,
@@ -74,13 +76,17 @@ export async function execute(this: IExecuteFunctions, index: number, items: INo
 		Object.assign(newItem.binary!, items[index].binary);
 	}
 
-	items[index] = newItem;
 	const data = Buffer.from(response.body as string, 'utf8');
-	items[index].binary![dataPropertyNameDownload] = await this.helpers.prepareBinaryData(
-		data as unknown as Buffer,
-		fileName as string,
+	newItem.binary![dataPropertyNameDownload] = await this.helpers.prepareBinaryData(
+		data,
+		fileName,
 		mimeType,
 	);
 
-	return items;
+	const executionData = this.helpers.constructExecutionMetaData(
+		this.helpers.returnJsonArray(newItem),
+		{ itemData: { item: index } },
+	);
+
+	return executionData;
 }

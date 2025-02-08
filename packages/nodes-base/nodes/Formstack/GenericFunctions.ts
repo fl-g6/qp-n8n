@@ -6,10 +6,10 @@ import type {
 	IWebhookFunctions,
 	INodePropertyOptions,
 	JsonObject,
+	IHttpRequestMethods,
+	IRequestOptions,
 } from 'n8n-workflow';
 import { ApplicationError, NodeApiError } from 'n8n-workflow';
-
-import type { OptionsWithUri } from 'request';
 
 export interface IFormstackFieldDefinitionType {
 	id: string;
@@ -51,14 +51,14 @@ export const enum FormstackFieldFormat {
  */
 export async function apiRequest(
 	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions | IWebhookFunctions,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
 	body: IDataObject = {},
 	query: IDataObject = {},
 ): Promise<any> {
 	const authenticationMethod = this.getNodeParameter('authentication', 0);
 
-	const options: OptionsWithUri = {
+	const options: IRequestOptions = {
 		headers: {},
 		method,
 		body,
@@ -73,7 +73,7 @@ export async function apiRequest(
 
 	try {
 		if (authenticationMethod === 'accessToken') {
-			const credentials = (await this.getCredentials('formstackApi')) as IDataObject;
+			const credentials = await this.getCredentials<{ accessToken: string }>('formstackApi');
 
 			options.headers!.Authorization = `Bearer ${credentials.accessToken}`;
 			return await this.helpers.request(options);
@@ -93,7 +93,7 @@ export async function apiRequest(
  */
 export async function apiRequestAllItems(
 	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions | IWebhookFunctions,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
 	body: IDataObject,
 	dataKey: string,

@@ -1,9 +1,10 @@
+import { Service } from '@n8n/di';
+import { ApplicationError } from 'n8n-workflow';
 import type WebSocket from 'ws';
-import { Service } from 'typedi';
-import { Logger } from '@/Logger';
+
+import type { User } from '@/databases/entities/user';
+
 import { AbstractPush } from './abstract.push';
-import type { User } from '@db/entities/User';
-import { MultiMainSetup } from '@/services/orchestration/main/MultiMainSetup.ee';
 
 function heartbeat(this: WebSocket) {
 	this.isAlive = true;
@@ -11,28 +12,30 @@ function heartbeat(this: WebSocket) {
 
 @Service()
 export class WebSocketPush extends AbstractPush<WebSocket> {
-	constructor(logger: Logger, multiMainSetup: MultiMainSetup) {
-		super(logger, multiMainSetup);
-
-		// Ping all connected clients every 60 seconds
-		setInterval(() => this.pingAll(), 60 * 1000);
-	}
-
-	add(sessionId: string, userId: User['id'], connection: WebSocket) {
+	add(pushRef: string, userId: User['id'], connection: WebSocket) {
 		connection.isAlive = true;
 		connection.on('pong', heartbeat);
 
-		super.add(sessionId, userId, connection);
+		super.add(pushRef, userId, connection);
 
 		const onMessage = (data: WebSocket.RawData) => {
 			try {
 				const buffer = Array.isArray(data) ? Buffer.concat(data) : Buffer.from(data);
 
-				this.onMessageReceived(sessionId, JSON.parse(buffer.toString('utf8')));
+				this.onMessageReceived(pushRef, JSON.parse(buffer.toString('utf8')));
 			} catch (error) {
+				this.errorReporter.error(
+					new ApplicationError('Error parsing push message', {
+						extra: {
+							userId,
+							data,
+						},
+						cause: error,
+					}),
+				);
 				this.logger.error("Couldn't parse message from editor-UI", {
 					error: error as unknown,
-					sessionId,
+					pushRef,
 					data,
 				});
 			}
@@ -42,7 +45,7 @@ export class WebSocketPush extends AbstractPush<WebSocket> {
 		connection.once('close', () => {
 			connection.off('pong', heartbeat);
 			connection.off('message', onMessage);
-			this.remove(sessionId);
+			this.remove(pushRef);
 		});
 
 		connection.on('message', onMessage);
@@ -56,17 +59,12 @@ export class WebSocketPush extends AbstractPush<WebSocket> {
 		connection.send(data);
 	}
 
-	private pingAll() {
-		for (const sessionId in this.connections) {
-			const connection = this.connections[sessionId];
-			// If a connection did not respond with a `PONG` in the last 60 seconds, disconnect
-			if (!connection.isAlive) {
-				delete this.connections[sessionId];
-				return connection.terminate();
-			}
-
-			connection.isAlive = false;
-			connection.ping();
+	protected ping(connection: WebSocket): void {
+		// If a connection did not respond with a `PONG` in the last 60 seconds, disconnect
+		if (!connection.isAlive) {
+			return connection.terminate();
 		}
+		connection.isAlive = false;
+		connection.ping();
 	}
 }

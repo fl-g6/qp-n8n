@@ -1,7 +1,9 @@
 import type { IDataObject, IExecuteFunctions, INode, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
-import type { ExcelResponse, SheetData, UpdateSummary } from './interfaces';
+
 import { generatePairedItemData, wrapData } from '@utils/utilities';
+
+import type { ExcelResponse, SheetData, UpdateSummary } from './interfaces';
 
 type PrepareOutputConfig = {
 	rawData: boolean;
@@ -206,3 +208,14 @@ export function updateByAutoMaping(
 
 	return summary;
 }
+
+export const checkRange = (node: INode, range: string) => {
+	const rangeRegex = /^[A-Z]+:[A-Z]+$/i;
+
+	if (rangeRegex.test(range)) {
+		throw new NodeOperationError(
+			node,
+			`Specify the range more precisely e.g. A1:B5, generic ranges like ${range} are not supported`,
+		);
+	}
+};

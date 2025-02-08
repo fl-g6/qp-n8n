@@ -1,11 +1,8 @@
-import { Service } from 'typedi';
-import { CronJob } from 'cron';
-
+import { Service } from '@n8n/di';
 import type {
 	IGetExecutePollFunctions,
 	IGetExecuteTriggerFunctions,
 	INode,
-	IPollResponse,
 	ITriggerResponse,
 	IWorkflowExecuteAdditionalData,
 	TriggerTime,
@@ -15,16 +12,27 @@ import type {
 } from 'n8n-workflow';
 import {
 	ApplicationError,
-	LoggerProxy as Logger,
 	toCronExpression,
+	TriggerCloseError,
 	WorkflowActivationError,
 	WorkflowDeactivationError,
 } from 'n8n-workflow';
 
+import { ErrorReporter } from './error-reporter';
 import type { IWorkflowData } from './Interfaces';
+import { Logger } from './logging/logger';
+import { ScheduledTaskManager } from './ScheduledTaskManager';
+import { TriggersAndPollers } from './TriggersAndPollers';
 
 @Service()
 export class ActiveWorkflows {
+	constructor(
+		private readonly logger: Logger,
+		private readonly scheduledTaskManager: ScheduledTaskManager,
+		private readonly triggersAndPollers: TriggersAndPollers,
+		private readonly errorReporter: ErrorReporter,
+	) {}
+
 	private activeWorkflows: { [workflowId: string]: IWorkflowData } = {};
 
 	/**
@@ -64,16 +72,14 @@ export class ActiveWorkflows {
 		getTriggerFunctions: IGetExecuteTriggerFunctions,
 		getPollFunctions: IGetExecutePollFunctions,
 	) {
-		this.activeWorkflows[workflowId] = {};
 		const triggerNodes = workflow.getTriggerNodes();
 
-		let triggerResponse: ITriggerResponse | undefined;
-
-		this.activeWorkflows[workflowId].triggerResponses = [];
+		const triggerResponses: ITriggerResponse[] = [];
 
 		for (const triggerNode of triggerNodes) {
 			try {
-				triggerResponse = await workflow.runTrigger(
+				const triggerResponse = await this.triggersAndPollers.runTrigger(
+					workflow,
 					triggerNode,
 					getTriggerFunctions,
 					additionalData,
@@ -81,9 +87,7 @@ export class ActiveWorkflows {
 					activation,
 				);
 				if (triggerResponse !== undefined) {
-					// If a response was given save it
-
-					this.activeWorkflows[workflowId].triggerResponses!.push(triggerResponse);
+					triggerResponses.push(triggerResponse);
 				}
 			} catch (e) {
 				const error = e instanceof Error ? e : new Error(`${e}`);
@@ -95,25 +99,28 @@ export class ActiveWorkflows {
 			}
 		}
 
+		this.activeWorkflows[workflowId] = { triggerResponses };
+
 		const pollingNodes = workflow.getPollNodes();
 
 		if (pollingNodes.length === 0) return;
 
-		this.activeWorkflows[workflowId].pollResponses = [];
-
 		for (const pollNode of pollingNodes) {
 			try {
-				this.activeWorkflows[workflowId].pollResponses!.push(
-					await this.activatePolling(
-						pollNode,
-						workflow,
-						additionalData,
-						getPollFunctions,
-						mode,
-						activation,
-					),
+				await this.activatePolling(
+					pollNode,
+					workflow,
+					additionalData,
+					getPollFunctions,
+					mode,
+					activation,
 				);
 			} catch (e) {
+				// Do not mark this workflow as active if there are no triggerResponses, and any polling activation failed
+				if (triggerResponses.length === 0) {
+					delete this.activeWorkflows[workflowId];
+				}
+
 				const error = e instanceof Error ? e : new Error(`${e}`);
 
 				throw new WorkflowActivationError(
@@ -127,14 +134,14 @@ export class ActiveWorkflows {
 	/**
 	 * Activates polling for the given node
 	 */
-	async activatePolling(
+	private async activatePolling(
 		node: INode,
 		workflow: Workflow,
 		additionalData: IWorkflowExecuteAdditionalData,
 		getPollFunctions: IGetExecutePollFunctions,
 		mode: WorkflowExecuteMode,
 		activation: WorkflowActivateMode,
-	): Promise<IPollResponse> {
+	): Promise<void> {
 		const pollFunctions = getPollFunctions(workflow, node, additionalData, mode, activation);
 
 		const pollTimes = pollFunctions.getNodeParameter('pollTimes') as unknown as {
@@ -145,19 +152,19 @@ export class ActiveWorkflows {
 		const cronTimes = (pollTimes.item || []).map(toCronExpression);
 		// The trigger function to execute when the cron-time got reached
 		const executeTrigger = async (testingTrigger = false) => {
-			Logger.debug(`Polling trigger initiated for workflow "${workflow.name}"`, {
+			this.logger.debug(`Polling trigger initiated for workflow "${workflow.name}"`, {
 				workflowName: workflow.name,
 				workflowId: workflow.id,
 			});
 
 			try {
-				const pollResponse = await workflow.runPoll(node, pollFunctions);
+				const pollResponse = await this.triggersAndPollers.runPoll(workflow, node, pollFunctions);
 
 				if (pollResponse !== null) {
 					pollFunctions.__emit(pollResponse);
 				}
 			} catch (error) {
-				// If the poll function failes in the first activation
+				// If the poll function fails in the first activation
 				// throw the error back so we let the user know there is
 				// an issue with the trigger.
 				if (testingTrigger) {
@@ -170,32 +177,16 @@ export class ActiveWorkflows {
 		// Execute the trigger directly to be able to know if it works
 		await executeTrigger(true);
 
-		const timezone = pollFunctions.getTimezone();
-
-		// Start the cron-jobs
-		const cronJobs: CronJob[] = [];
-
 		for (const cronTime of cronTimes) {
 			const cronTimeParts = cronTime.split(' ');
 			if (cronTimeParts.length > 0 && cronTimeParts[0].includes('*')) {
 				throw new ApplicationError(
-					'The polling interval is too short. It has to be at least a minute!',
+					'The polling interval is too short. It has to be at least a minute.',
 				);
 			}
 
-			cronJobs.push(new CronJob(cronTime, executeTrigger, undefined, true, timezone));
+			this.scheduledTaskManager.registerCron(workflow, cronTime, executeTrigger);
 		}
-
-		// Stop the cron-jobs
-		async function closeFunction() {
-			for (const cronJob of cronJobs) {
-				cronJob.stop();
-			}
-		}
-
-		return {
-			closeFunction,
-		};
 	}
 
 	/**
@@ -203,14 +194,16 @@ export class ActiveWorkflows {
 	 */
 	async remove(workflowId: string) {
 		if (!this.isActive(workflowId)) {
-			Logger.warn(`Cannot deactivate already inactive workflow ID "${workflowId}"`);
+			this.logger.warn(`Cannot deactivate already inactive workflow ID "${workflowId}"`);
 			return false;
 		}
 
-		const w = this.activeWorkflows[workflowId];
+		this.scheduledTaskManager.deregisterCrons(workflowId);
 
-		w.triggerResponses?.forEach(async (r) => this.close(r, workflowId, 'trigger'));
-		w.pollResponses?.forEach(async (r) => this.close(r, workflowId, 'poller'));
+		const w = this.activeWorkflows[workflowId];
+		for (const r of w.triggerResponses ?? []) {
+			await this.closeTrigger(r, workflowId);
+		}
 
 		delete this.activeWorkflows[workflowId];
 
@@ -219,27 +212,28 @@ export class ActiveWorkflows {
 
 	async removeAllTriggerAndPollerBasedWorkflows() {
 		for (const workflowId of Object.keys(this.activeWorkflows)) {
-			const w = this.activeWorkflows[workflowId];
-
-			w.triggerResponses?.forEach(async (r) => this.close(r, workflowId, 'trigger'));
-			w.pollResponses?.forEach(async (r) => this.close(r, workflowId, 'poller'));
+			await this.remove(workflowId);
 		}
 	}
 
-	private async close(
-		response: ITriggerResponse | IPollResponse,
-		workflowId: string,
-		target: 'trigger' | 'poller',
-	) {
+	private async closeTrigger(response: ITriggerResponse, workflowId: string) {
 		if (!response.closeFunction) return;
 
 		try {
 			await response.closeFunction();
 		} catch (e) {
+			if (e instanceof TriggerCloseError) {
+				this.logger.error(
+					`There was a problem calling "closeFunction" on "${e.node.name}" in workflow "${workflowId}"`,
+				);
+				this.errorReporter.error(e, { extra: { workflowId } });
+				return;
+			}
+
 			const error = e instanceof Error ? e : new Error(`${e}`);
 
 			throw new WorkflowDeactivationError(
-				`Failed to deactivate ${target} of workflow ID "${workflowId}": "${error.message}"`,
+				`Failed to deactivate trigger of workflow ID "${workflowId}": "${error.message}"`,
 				{ cause: error, workflowId },
 			);
 		}

@@ -1,13 +1,5 @@
-<template>
-	<div :class="$style.editor">
-		<div ref="htmlEditor"></div>
-		<slot name="suffix" />
-	</div>
-</template>
-
-<script lang="ts">
-import { autocompletion } from '@codemirror/autocomplete';
-import { history, redo, undo } from '@codemirror/commands';
+<script setup lang="ts">
+import { history } from '@codemirror/commands';
 import {
 	LanguageSupport,
 	bracketMatching,
@@ -15,292 +7,258 @@ import {
 	foldGutter,
 	indentOnInput,
 } from '@codemirror/language';
-import type { Extension } from '@codemirror/state';
-import { EditorState, Prec } from '@codemirror/state';
-import type { ViewUpdate } from '@codemirror/view';
+import { Prec } from '@codemirror/state';
 import {
-	EditorView,
 	dropCursor,
 	highlightActiveLine,
 	highlightActiveLineGutter,
 	keymap,
 	lineNumbers,
 } from '@codemirror/view';
-import { autoCloseTags, html, htmlLanguage } from 'codemirror-lang-html-n8n';
 import { format } from 'prettier';
 import jsParser from 'prettier/plugins/babel';
 import * as estree from 'prettier/plugins/estree';
 import htmlParser from 'prettier/plugins/html';
 import cssParser from 'prettier/plugins/postcss';
-import { defineComponent } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, toRaw, toValue, watch } from 'vue';
 
+import { useExpressionEditor } from '@/composables/useExpressionEditor';
 import { htmlEditorEventBus } from '@/event-bus';
-import { expressionManager } from '@/mixins/expressionManager';
 import { n8nCompletionSources } from '@/plugins/codemirror/completions/addCompletions';
 import { expressionInputHandler } from '@/plugins/codemirror/inputHandlers/expression.inputHandler';
-import { highlighter } from '@/plugins/codemirror/resolvableHighlighter';
-import { enterKeyMap, tabKeyMap } from '../CodeNodeEditor/baseExtensions';
-import { codeNodeEditorTheme } from '../CodeNodeEditor/theme';
+import { editorKeymap } from '@/plugins/codemirror/keymap';
+import { n8nAutocompletion } from '@/plugins/codemirror/n8nLang';
+import { autoCloseTags, htmlLanguage } from 'codemirror-lang-html-n8n';
+import { codeEditorTheme } from '../CodeNodeEditor/theme';
 import type { Range, Section } from './types';
 import { nonTakenRanges } from './utils';
+import { dropInExpressionEditor, mappingDropCursor } from '@/plugins/codemirror/dragAndDrop';
 
-export default defineComponent({
-	name: 'HtmlEditor',
-	mixins: [expressionManager],
-	props: {
-		modelValue: {
-			type: String,
-			required: true,
-		},
-		isReadOnly: {
-			type: Boolean,
-			default: false,
-		},
-		fillParent: {
-			type: Boolean,
-			default: false,
-		},
-		rows: {
-			type: Number,
-			default: 4,
-		},
-		disableExpressionColoring: {
-			type: Boolean,
-			default: false,
-		},
-		disableExpressionCompletions: {
-			type: Boolean,
-			default: false,
-		},
-	},
-	data() {
-		return {
-			editor: null as EditorView | null,
-			editorState: null as EditorState | null,
-		};
-	},
-	computed: {
-		doc(): string {
-			return this.editor.state.doc.toString();
-		},
+type Props = {
+	modelValue: string;
+	rows?: number;
+	isReadOnly?: boolean;
+	fullscreen?: boolean;
+};
 
-		extensions(): Extension[] {
-			function htmlWithCompletions() {
-				return new LanguageSupport(
-					htmlLanguage,
-					n8nCompletionSources().map((source) => htmlLanguage.data.of(source)),
-				);
-			}
+const props = withDefaults(defineProps<Props>(), {
+	rows: 4,
+	isReadOnly: false,
+	fullscreen: false,
+});
 
-			return [
-				bracketMatching(),
-				autocompletion(),
-				this.disableExpressionCompletions ? html() : htmlWithCompletions(),
-				autoCloseTags,
-				expressionInputHandler(),
-				Prec.highest(
-					keymap.of([
-						...tabKeyMap,
-						...enterKeyMap,
-						{ key: 'Mod-z', run: undo },
-						{ key: 'Mod-Shift-z', run: redo },
-					]),
-				),
-				indentOnInput(),
-				codeNodeEditorTheme({
-					isReadOnly: this.isReadOnly,
-					maxHeight: this.fillParent ? '100%' : '40vh',
-					minHeight: '20vh',
-					rows: this.rows,
-					highlightColors: 'html',
-				}),
-				lineNumbers(),
-				highlightActiveLineGutter(),
-				history(),
-				foldGutter(),
-				dropCursor(),
-				indentOnInput(),
-				highlightActiveLine(),
-				EditorView.editable.of(!this.isReadOnly),
-				EditorState.readOnly.of(this.isReadOnly),
-				EditorView.updateListener.of((viewUpdate: ViewUpdate) => {
-					if (!viewUpdate.docChanged) return;
+const emit = defineEmits<{
+	'update:model-value': [value: string];
+}>();
 
-					this.getHighlighter()?.removeColor(this.editor, this.htmlSegments);
-					this.getHighlighter()?.addColor(this.editor, this.resolvableSegments);
+const htmlEditor = ref<HTMLElement>();
+const editorValue = ref<string>(props.modelValue);
+const extensions = computed(() => [
+	bracketMatching(),
+	n8nAutocompletion(),
+	new LanguageSupport(
+		htmlLanguage,
+		n8nCompletionSources().map((source) => htmlLanguage.data.of(source)),
+	),
+	autoCloseTags,
+	expressionInputHandler(),
+	Prec.highest(keymap.of(editorKeymap)),
+	indentOnInput(),
+	codeEditorTheme({
+		isReadOnly: props.isReadOnly,
+		maxHeight: props.fullscreen ? '100%' : '40vh',
+		minHeight: '20vh',
+		rows: props.rows,
+	}),
+	lineNumbers(),
+	highlightActiveLineGutter(),
+	history(),
+	foldGutter(),
+	dropCursor(),
+	indentOnInput(),
+	highlightActiveLine(),
+	mappingDropCursor(),
+]);
+const {
+	editor: editorRef,
+	segments,
+	readEditorValue,
+	isDirty,
+} = useExpressionEditor({
+	editorRef: htmlEditor,
+	editorValue,
+	extensions,
+});
 
-					// eslint-disable-next-line @typescript-eslint/no-base-to-string
-					this.$emit('update:modelValue', this.editor?.state.doc.toString());
-				}),
-			];
-		},
+const sections = computed(() => {
+	const editor = toValue(editorRef);
+	if (!editor) return [];
+	const { state } = editor;
 
-		sections(): Section[] {
-			const { state } = this.editor;
+	const fullTree = ensureSyntaxTree(state, state.doc.length);
 
-			const fullTree = ensureSyntaxTree(this.editor.state, this.doc.length);
+	if (fullTree === null) {
+		throw new Error('Failed to parse syntax tree');
+	}
 
-			if (fullTree === null) {
-				throw new Error(`Failed to parse syntax tree for: ${this.doc}`);
-			}
+	let documentRange: Range = [-1, -1];
+	const styleRanges: Range[] = [];
+	const scriptRanges: Range[] = [];
 
-			let documentRange: Range = [-1, -1];
-			const styleRanges: Range[] = [];
-			const scriptRanges: Range[] = [];
-
-			fullTree.cursor().iterate((node) => {
-				if (node.type.name === 'Document') {
-					documentRange = [node.from, node.to];
-				}
-
-				if (node.type.name === 'StyleSheet') {
-					styleRanges.push([node.from - '<style>'.length, node.to + '</style>'.length]);
-				}
-
-				if (node.type.name === 'Script') {
-					scriptRanges.push([node.from - '<script>'.length, node.to + ('<' + '/script>').length]);
-					// typing the closing script tag in full causes ESLint, Prettier and Vite to crash
-				}
-			});
-
-			const htmlRanges = nonTakenRanges(documentRange, [...styleRanges, ...scriptRanges]);
-
-			const styleSections: Section[] = styleRanges.map(([start, end]) => ({
-				kind: 'style' as const,
-				range: [start, end],
-				content: state.sliceDoc(start, end).replace(/<\/?style>/g, ''),
-			}));
-
-			const scriptSections: Section[] = scriptRanges.map(([start, end]) => ({
-				kind: 'script' as const,
-				range: [start, end],
-				content: state.sliceDoc(start, end).replace(/<\/?script>/g, ''),
-			}));
-
-			const htmlSections: Section[] = htmlRanges.map(([start, end]) => ({
-				kind: 'html' as const,
-				range: [start, end] as Range,
-				content: state.sliceDoc(start, end).replace(/<\/html>/g, ''),
-				// opening tag may contain attributes, e.g. <html lang="en">
-			}));
-
-			return [...styleSections, ...scriptSections, ...htmlSections].sort(
-				(a, b) => a.range[0] - b.range[0],
-			);
-		},
-	},
-
-	mounted() {
-		htmlEditorEventBus.on('format-html', this.format);
-
-		let doc = this.modelValue;
-
-		if (this.modelValue === '' && this.rows > 0) {
-			doc = '\n'.repeat(this.rows - 1);
+	fullTree.cursor().iterate((node) => {
+		if (node.type.name === 'Document') {
+			documentRange = [node.from, node.to];
 		}
 
-		const state = EditorState.create({ doc, extensions: this.extensions });
+		if (node.type.name === 'StyleSheet') {
+			styleRanges.push([node.from - '<style>'.length, node.to + '</style>'.length]);
+		}
 
-		this.editor = new EditorView({ parent: this.root(), state });
-		this.editorState = this.editor.state;
+		if (node.type.name === 'Script') {
+			scriptRanges.push([node.from - '<script>'.length, node.to + ('<' + '/script>').length]);
+			// typing the closing script tag in full causes ESLint, Prettier and Vite to crash
+		}
+	});
 
-		this.getHighlighter()?.addColor(this.editor, this.resolvableSegments);
-	},
+	const htmlRanges = nonTakenRanges(documentRange, [...styleRanges, ...scriptRanges]);
 
-	beforeUnmount() {
-		htmlEditorEventBus.off('format-html', this.format);
-	},
+	const styleSections: Section[] = styleRanges.map(([start, end]) => ({
+		kind: 'style' as const,
+		range: [start, end],
+		content: state.sliceDoc(start, end).replace(/<\/?style>/g, ''),
+	}));
 
-	methods: {
-		root() {
-			const rootRef = this.$refs.htmlEditor as HTMLDivElement | undefined;
-			if (!rootRef) {
-				throw new Error('Expected div with ref "htmlEditor"');
-			}
+	const scriptSections: Section[] = scriptRanges.map(([start, end]) => ({
+		kind: 'script' as const,
+		range: [start, end],
+		content: state.sliceDoc(start, end).replace(/<\/?script>/g, ''),
+	}));
 
-			return rootRef;
-		},
+	const htmlSections: Section[] = htmlRanges.map(([start, end]) => ({
+		kind: 'html' as const,
+		range: [start, end] as Range,
+		content: state.sliceDoc(start, end).replace(/<\/html>/g, ''),
+		// opening tag may contain attributes, e.g. <html lang="en">
+	}));
 
-		isMissingHtmlTags() {
-			const zerothSection = this.sections.at(0);
-
-			return (
-				!zerothSection?.content.trim().startsWith('<html') &&
-				!zerothSection?.content.trim().endsWith('</html>')
-			);
-		},
-
-		async format() {
-			if (this.sections.length === 1 && this.isMissingHtmlTags()) {
-				const zerothSection = this.sections.at(0) as Section;
-
-				const formatted = (
-					await format(zerothSection.content, {
-						parser: 'html',
-						plugins: [htmlParser],
-					})
-				).trim();
-
-				return this.editor.dispatch({
-					changes: { from: 0, to: this.doc.length, insert: formatted },
-				});
-			}
-
-			const formatted = [];
-
-			for (const { kind, content } of this.sections) {
-				if (kind === 'style') {
-					const formattedStyle = await format(content, {
-						parser: 'css',
-						plugins: [cssParser],
-					});
-
-					formatted.push(`<style>\n${formattedStyle}</style>`);
-				}
-
-				if (kind === 'script') {
-					const formattedScript = await format(content, {
-						parser: 'babel',
-						plugins: [jsParser, estree],
-					});
-
-					formatted.push(`<script>\n${formattedScript}<` + '/script>');
-					// typing the closing script tag in full causes ESLint, Prettier and Vite to crash
-				}
-
-				if (kind === 'html') {
-					const match = content.match(/(?<pre>[\s\S]*<html[\s\S]*?>)(?<rest>[\s\S]*)/);
-
-					if (!match?.groups?.pre || !match.groups?.rest) continue;
-
-					// Prettier cannot format pre-HTML section, e.g. <!DOCTYPE html>, so keep as is
-
-					const { pre, rest } = match.groups;
-
-					const formattedRest = await format(rest, {
-						parser: 'html',
-						plugins: [htmlParser],
-					});
-
-					formatted.push(`${pre}\n${formattedRest}</html>`);
-				}
-			}
-
-			if (formatted.length === 0) return;
-
-			this.editor.dispatch({
-				changes: { from: 0, to: this.doc.length, insert: formatted.join('\n\n') },
-			});
-		},
-
-		getHighlighter() {
-			if (this.disableExpressionColoring) return;
-
-			return highlighter;
-		},
-	},
+	return [...styleSections, ...scriptSections, ...htmlSections].sort(
+		(a, b) => a.range[0] - b.range[0],
+	);
 });
+
+function isMissingHtmlTags() {
+	const zerothSection = sections.value.at(0);
+
+	return (
+		!zerothSection?.content.trim().startsWith('<html') &&
+		!zerothSection?.content.trim().endsWith('</html>')
+	);
+}
+
+async function formatHtml() {
+	const editor = toValue(editorRef);
+	if (!editor) return;
+
+	const sectionToFormat = sections.value;
+	if (sectionToFormat.length === 1 && isMissingHtmlTags()) {
+		const zerothSection = sectionToFormat.at(0) as Section;
+
+		const formatted = (
+			await format(zerothSection.content, {
+				parser: 'html',
+				plugins: [htmlParser],
+			})
+		).trim();
+
+		return editor.dispatch({
+			changes: { from: 0, to: editor.state.doc.length, insert: formatted },
+		});
+	}
+
+	const formatted = [];
+
+	for (const { kind, content } of sections.value) {
+		if (kind === 'style') {
+			const formattedStyle = await format(content, {
+				parser: 'css',
+				plugins: [cssParser],
+			});
+
+			formatted.push(`<style>\n${formattedStyle}</style>`);
+		}
+
+		if (kind === 'script') {
+			const formattedScript = await format(content, {
+				parser: 'babel',
+				plugins: [jsParser, estree],
+			});
+
+			formatted.push(`<script>\n${formattedScript}<` + '/script>');
+			// typing the closing script tag in full causes ESLint, Prettier and Vite to crash
+		}
+
+		if (kind === 'html') {
+			const match = content.match(/(?<pre>[\s\S]*<html[\s\S]*?>)(?<rest>[\s\S]*)/);
+
+			if (!match?.groups?.pre || !match.groups?.rest) continue;
+
+			// Prettier cannot format pre-HTML section, e.g. <!DOCTYPE html>, so keep as is
+
+			const { pre, rest } = match.groups;
+
+			const formattedRest = await format(rest, {
+				parser: 'html',
+				plugins: [htmlParser],
+			});
+
+			formatted.push(`${pre}\n${formattedRest}</html>`);
+		}
+	}
+
+	if (formatted.length === 0) return;
+
+	editor.dispatch({
+		changes: { from: 0, to: editor.state.doc.length, insert: formatted.join('\n\n') },
+	});
+}
+
+watch(segments.display, () => {
+	emit('update:model-value', readEditorValue());
+});
+
+onMounted(() => {
+	htmlEditorEventBus.on('format-html', formatHtml);
+});
+
+onBeforeUnmount(() => {
+	if (isDirty.value) emit('update:model-value', readEditorValue());
+	htmlEditorEventBus.off('format-html', formatHtml);
+});
+
+async function onDrop(value: string, event: MouseEvent) {
+	if (!editorRef.value) return;
+
+	await dropInExpressionEditor(toRaw(editorRef.value), event, value);
+}
 </script>
+
+<template>
+	<div :class="$style.editor">
+		<DraggableTarget type="mapping" :disabled="isReadOnly" @drop="onDrop">
+			<template #default="{ activeDrop, droppable }">
+				<div
+					ref="htmlEditor"
+					:class="[
+						$style.fillHeight,
+						{ [$style.activeDrop]: activeDrop, [$style.droppable]: droppable },
+					]"
+					data-test-id="html-editor-container"
+				></div
+			></template>
+		</DraggableTarget>
+		<slot name="suffix" />
+	</div>
+</template>
 
 <style lang="scss" module>
 .editor {
@@ -308,6 +266,27 @@ export default defineComponent({
 
 	& > div {
 		height: 100%;
+	}
+}
+
+.fillHeight {
+	height: 100%;
+}
+
+.droppable {
+	:global(.cm-editor) {
+		border-color: var(--color-ndv-droppable-parameter);
+		border-style: dashed;
+		border-width: 1.5px;
+	}
+}
+
+.activeDrop {
+	:global(.cm-editor) {
+		border-color: var(--color-success);
+		border-style: solid;
+		cursor: grabbing;
+		border-width: 1px;
 	}
 }
 </style>

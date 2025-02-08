@@ -1,16 +1,21 @@
-/* eslint-disable n8n-nodes-base/node-filename-against-convention */
-
 import type {
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeBaseDescription,
 	INodeTypeDescription,
+	IRequestOptions,
 } from 'n8n-workflow';
-import { jsonParse, NodeApiError, NodeOperationError, sleep } from 'n8n-workflow';
+import {
+	jsonParse,
+	NodeApiError,
+	NodeConnectionType,
+	NodeOperationError,
+	sleep,
+} from 'n8n-workflow';
 
-import { oldVersionNotice } from '../../../utils/descriptions';
 import type { DiscordAttachment, DiscordWebhook } from './Interfaces';
+import { oldVersionNotice } from '../../../utils/descriptions';
 
 const versionDescription: INodeTypeDescription = {
 	displayName: 'Discord',
@@ -22,8 +27,8 @@ const versionDescription: INodeTypeDescription = {
 	defaults: {
 		name: 'Discord',
 	},
-	inputs: ['main'],
-	outputs: ['main'],
+	inputs: [NodeConnectionType.Main],
+	outputs: [NodeConnectionType.Main],
 	properties: [
 		oldVersionNotice,
 		{
@@ -48,7 +53,7 @@ const versionDescription: INodeTypeDescription = {
 			displayName: 'Additional Fields',
 			name: 'options',
 			type: 'collection',
-			placeholder: 'Add Option',
+			placeholder: 'Add option',
 			default: {},
 			options: [
 				{
@@ -216,7 +221,7 @@ export class DiscordV1 implements INodeType {
 			if (!body.payload_json) delete body.payload_json;
 			if (!body.attachments) delete body.attachments;
 
-			let requestOptions;
+			let requestOptions: IRequestOptions;
 
 			if (!body.payload_json) {
 				requestOptions = {

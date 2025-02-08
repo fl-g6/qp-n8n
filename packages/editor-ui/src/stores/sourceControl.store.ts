@@ -2,17 +2,18 @@ import { computed, reactive } from 'vue';
 import { defineStore } from 'pinia';
 import { EnterpriseEditionFeature } from '@/constants';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useRootStore } from '@/stores/n8nRoot.store';
+import { useRootStore } from '@/stores/root.store';
 import * as vcApi from '@/api/sourceControl';
-import type { SourceControlPreferences, SshKeyTypes } from '@/Interface';
+import type { SourceControlPreferences, SshKeyTypes } from '@/types/sourceControl.types';
 import type { TupleToUnion } from '@/utils/typeHelpers';
+import type { SourceControlledFile } from '@n8n/api-types';
 
 export const useSourceControlStore = defineStore('sourceControl', () => {
 	const rootStore = useRootStore();
 	const settingsStore = useSettingsStore();
 
-	const isEnterpriseSourceControlEnabled = computed(() =>
-		settingsStore.isEnterpriseFeatureEnabled(EnterpriseEditionFeature.SourceControl),
+	const isEnterpriseSourceControlEnabled = computed(
+		() => settingsStore.isEnterpriseFeatureEnabled[EnterpriseEditionFeature.SourceControl],
 	);
 
 	const sshKeyTypes: SshKeyTypes = ['ed25519', 'rsa'];
@@ -39,28 +40,19 @@ export const useSourceControlStore = defineStore('sourceControl', () => {
 
 	const pushWorkfolder = async (data: {
 		commitMessage: string;
-		fileNames?: Array<{
-			conflict: boolean;
-			file: string;
-			id: string;
-			location: string;
-			name: string;
-			status: string;
-			type: string;
-			updatedAt?: string | undefined;
-		}>;
+		fileNames: SourceControlledFile[];
 		force: boolean;
 	}) => {
 		state.commitMessage = data.commitMessage;
-		await vcApi.pushWorkfolder(rootStore.getRestApiContext, {
+		await vcApi.pushWorkfolder(rootStore.restApiContext, {
 			force: data.force,
-			message: data.commitMessage,
-			...(data.fileNames ? { fileNames: data.fileNames } : {}),
+			commitMessage: data.commitMessage,
+			fileNames: data.fileNames,
 		});
 	};
 
 	const pullWorkfolder = async (force: boolean) => {
-		return vcApi.pullWorkfolder(rootStore.getRestApiContext, { force });
+		return await vcApi.pullWorkfolder(rootStore.restApiContext, { force });
 	};
 
 	const setPreferences = (data: Partial<SourceControlPreferences>) => {
@@ -70,17 +62,17 @@ export const useSourceControlStore = defineStore('sourceControl', () => {
 	const makePreferencesAction =
 		(action: typeof vcApi.savePreferences) =>
 		async (preferences: Partial<SourceControlPreferences>) => {
-			const data = await action(rootStore.getRestApiContext, preferences);
+			const data = await action(rootStore.restApiContext, preferences);
 			setPreferences(data);
 		};
 
 	const getBranches = async () => {
-		const data = await vcApi.getBranches(rootStore.getRestApiContext);
+		const data = await vcApi.getBranches(rootStore.restApiContext);
 		setPreferences(data);
 	};
 
 	const getPreferences = async () => {
-		const data = await vcApi.getPreferences(rootStore.getRestApiContext);
+		const data = await vcApi.getPreferences(rootStore.restApiContext);
 		setPreferences(data);
 	};
 
@@ -89,13 +81,13 @@ export const useSourceControlStore = defineStore('sourceControl', () => {
 	const updatePreferences = makePreferencesAction(vcApi.updatePreferences);
 
 	const disconnect = async (keepKeyPair: boolean) => {
-		await vcApi.disconnect(rootStore.getRestApiContext, keepKeyPair);
+		await vcApi.disconnect(rootStore.restApiContext, keepKeyPair);
 		setPreferences({ connected: false, branches: [] });
 	};
 
 	const generateKeyPair = async (keyGeneratorType?: TupleToUnion<SshKeyTypes>) => {
-		await vcApi.generateKeyPair(rootStore.getRestApiContext, keyGeneratorType);
-		const data = await vcApi.getPreferences(rootStore.getRestApiContext); // To be removed once the API is updated
+		await vcApi.generateKeyPair(rootStore.restApiContext, keyGeneratorType);
+		const data = await vcApi.getPreferences(rootStore.restApiContext); // To be removed once the API is updated
 
 		preferences.publicKey = data.publicKey;
 
@@ -103,11 +95,11 @@ export const useSourceControlStore = defineStore('sourceControl', () => {
 	};
 
 	const getStatus = async () => {
-		return vcApi.getStatus(rootStore.getRestApiContext);
+		return await vcApi.getStatus(rootStore.restApiContext);
 	};
 
 	const getAggregatedStatus = async () => {
-		return vcApi.getAggregatedStatus(rootStore.getRestApiContext);
+		return await vcApi.getAggregatedStatus(rootStore.restApiContext);
 	};
 
 	return {

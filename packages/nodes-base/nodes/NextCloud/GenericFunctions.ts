@@ -1,6 +1,11 @@
-import { NodeOperationError, type IExecuteFunctions, type IHookFunctions } from 'n8n-workflow';
-
-import type { OptionsWithUri } from 'request';
+import {
+	NodeOperationError,
+	type IExecuteFunctions,
+	type IHookFunctions,
+	type IHttpRequestMethods,
+	type IRequestOptions,
+	type IDataObject,
+} from 'n8n-workflow';
 
 /**
  * Make an API request to NextCloud
@@ -8,12 +13,12 @@ import type { OptionsWithUri } from 'request';
  */
 export async function nextCloudApiRequest(
 	this: IHookFunctions | IExecuteFunctions,
-	method: string,
+	method: IHttpRequestMethods,
 	endpoint: string,
 	body: object | string | Buffer,
-	headers?: object,
+	headers?: IDataObject,
 	encoding?: null | undefined,
-	query?: object,
+	query?: IDataObject,
 ) {
 	const resource = this.getNodeParameter('resource', 0);
 	const operation = this.getNodeParameter('operation', 0);
@@ -22,12 +27,12 @@ export async function nextCloudApiRequest(
 	let credentials;
 
 	if (authenticationMethod === 'accessToken') {
-		credentials = (await this.getCredentials('nextCloudApi')) as { webDavUrl: string };
+		credentials = await this.getCredentials<{ webDavUrl: string }>('nextCloudApi');
 	} else {
-		credentials = (await this.getCredentials('nextCloudOAuth2Api')) as { webDavUrl: string };
+		credentials = await this.getCredentials<{ webDavUrl: string }>('nextCloudOAuth2Api');
 	}
 
-	const options: OptionsWithUri = {
+	const options: IRequestOptions = {
 		headers,
 		method,
 		body,

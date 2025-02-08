@@ -1,15 +1,24 @@
 /* eslint-disable n8n-nodes-base/node-dirname-against-convention */
-import {
-	NodeConnectionType,
-	type IExecuteFunctions,
-	type INodeType,
-	type INodeTypeDescription,
-	type SupplyData,
-} from 'n8n-workflow';
 import type { BufferWindowMemoryInput } from 'langchain/memory';
 import { BufferWindowMemory } from 'langchain/memory';
-import { logWrapper } from '../../../utils/logWrapper';
-import { getConnectionHintNoticeField } from '../../../utils/sharedFields';
+import {
+	NodeConnectionType,
+	type INodeType,
+	type INodeTypeDescription,
+	type ISupplyDataFunctions,
+	type SupplyData,
+} from 'n8n-workflow';
+
+import { getSessionId } from '@utils/helpers';
+import { logWrapper } from '@utils/logWrapper';
+import { getConnectionHintNoticeField } from '@utils/sharedFields';
+
+import {
+	sessionIdOption,
+	sessionKeyProperty,
+	contextWindowLengthProperty,
+	expressionSessionKeyProperty,
+} from '../descriptions';
 
 class MemoryChatBufferSingleton {
 	private static instance: MemoryChatBufferSingleton;
@@ -23,14 +32,14 @@ class MemoryChatBufferSingleton {
 		this.memoryBuffer = new Map();
 	}
 
-	public static getInstance(): MemoryChatBufferSingleton {
+	static getInstance(): MemoryChatBufferSingleton {
 		if (!MemoryChatBufferSingleton.instance) {
 			MemoryChatBufferSingleton.instance = new MemoryChatBufferSingleton();
 		}
 		return MemoryChatBufferSingleton.instance;
 	}
 
-	public async getMemory(
+	async getMemory(
 		sessionKey: string,
 		memoryParams: BufferWindowMemoryInput,
 	): Promise<BufferWindowMemory> {
@@ -69,8 +78,9 @@ export class MemoryBufferWindow implements INodeType {
 		displayName: 'Window Buffer Memory (easiest)',
 		name: 'memoryBufferWindow',
 		icon: 'fa:database',
+		iconColor: 'black',
 		group: ['transform'],
-		version: [1, 1.1],
+		version: [1, 1.1, 1.2, 1.3],
 		description: 'Stores in n8n memory, so no credentials required',
 		defaults: {
 			name: 'Window Buffer Memory',
@@ -120,22 +130,35 @@ export class MemoryBufferWindow implements INodeType {
 				},
 			},
 			{
-				displayName: 'Context Window Length',
-				name: 'contextWindowLength',
-				type: 'number',
-				default: 5,
-				description: 'The number of previous messages to consider for context',
+				...sessionIdOption,
+				displayOptions: {
+					show: {
+						'@version': [{ _cnd: { gte: 1.2 } }],
+					},
+				},
 			},
+			expressionSessionKeyProperty(1.3),
+			sessionKeyProperty,
+			contextWindowLengthProperty,
 		],
 	};
 
-	async supplyData(this: IExecuteFunctions, itemIndex: number): Promise<SupplyData> {
-		const sessionKey = this.getNodeParameter('sessionKey', itemIndex) as string;
+	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
 		const contextWindowLength = this.getNodeParameter('contextWindowLength', itemIndex) as number;
 		const workflowId = this.getWorkflow().id;
 		const memoryInstance = MemoryChatBufferSingleton.getInstance();
 
-		const memory = await memoryInstance.getMemory(`${workflowId}__${sessionKey}`, {
+		const nodeVersion = this.getNode().typeVersion;
+
+		let sessionId;
+
+		if (nodeVersion >= 1.2) {
+			sessionId = getSessionId(this, itemIndex);
+		} else {
+			sessionId = this.getNodeParameter('sessionKey', itemIndex) as string;
+		}
+
+		const memory = await memoryInstance.getMemory(`${workflowId}__${sessionId}`, {
 			k: contextWindowLength,
 			inputKey: 'input',
 			memoryKey: 'chat_history',

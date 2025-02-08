@@ -1,3 +1,62 @@
+<script lang="ts" setup>
+import { computed, useCssModule } from 'vue';
+
+import type { IconSize } from 'n8n-design-system/types/icon';
+
+import N8nIcon from '../N8nIcon';
+import N8nText from '../N8nText';
+
+const THEMES = ['info', 'success', 'secondary', 'warning', 'danger', 'custom'] as const;
+export type CalloutTheme = (typeof THEMES)[number];
+
+const CALLOUT_DEFAULT_ICONS: Record<string, string> = {
+	info: 'info-circle',
+	success: 'check-circle',
+	warning: 'exclamation-triangle',
+	danger: 'exclamation-triangle',
+};
+
+interface CalloutProps {
+	theme: CalloutTheme;
+	icon?: string;
+	iconSize?: IconSize;
+	iconless?: boolean;
+	slim?: boolean;
+	roundCorners?: boolean;
+	onlyBottomBorder?: boolean;
+}
+
+defineOptions({ name: 'N8nCallout' });
+const props = withDefaults(defineProps<CalloutProps>(), {
+	iconSize: 'medium',
+	roundCorners: true,
+});
+
+const $style = useCssModule();
+const classes = computed(() => [
+	'n8n-callout',
+	$style.callout,
+	$style[props.theme],
+	props.slim ? $style.slim : '',
+	props.roundCorners ? $style.round : '',
+	props.onlyBottomBorder ? $style.onlyBottomBorder : '',
+]);
+
+const getIcon = computed(
+	() => props.icon ?? CALLOUT_DEFAULT_ICONS?.[props.theme] ?? CALLOUT_DEFAULT_ICONS.info,
+);
+
+const getIconSize = computed<IconSize>(() => {
+	if (props.iconSize) {
+		return props.iconSize;
+	}
+	if (props.theme === 'secondary') {
+		return 'medium';
+	}
+	return 'large';
+});
+</script>
+
 <template>
 	<div :class="classes" role="alert">
 		<div :class="$style.messageSection">
@@ -14,75 +73,6 @@
 		<slot name="trailingContent" />
 	</div>
 </template>
-
-<script lang="ts">
-import { defineComponent } from 'vue';
-import N8nText from '../N8nText';
-import N8nIcon from '../N8nIcon';
-
-const CALLOUT_DEFAULT_ICONS: { [key: string]: string } = {
-	info: 'info-circle',
-	success: 'check-circle',
-	warning: 'exclamation-triangle',
-	danger: 'exclamation-triangle',
-};
-
-export default defineComponent({
-	name: 'N8nCallout',
-	components: {
-		N8nText,
-		N8nIcon,
-	},
-	props: {
-		theme: {
-			type: String,
-			required: true,
-			validator: (value: string): boolean =>
-				['info', 'success', 'secondary', 'warning', 'danger', 'custom'].includes(value),
-		},
-		icon: {
-			type: String,
-		},
-		iconSize: {
-			type: String,
-			default: 'medium',
-		},
-		iconless: {
-			type: Boolean,
-		},
-		slim: {
-			type: Boolean,
-		},
-		roundCorners: {
-			type: Boolean,
-			default: true,
-		},
-	},
-	computed: {
-		classes(): string[] {
-			return [
-				'n8n-callout',
-				this.$style.callout,
-				this.$style[this.theme],
-				this.slim ? this.$style.slim : '',
-				this.roundCorners ? this.$style.round : '',
-			];
-		},
-		getIcon(): string {
-			return this.icon ?? CALLOUT_DEFAULT_ICONS?.[this.theme] ?? CALLOUT_DEFAULT_ICONS.info;
-		},
-		getIconSize(): string {
-			if (this.iconSize) {
-				return this.iconSize;
-			}
-			if (this.theme === 'secondary') {
-				return 'medium';
-			}
-			return 'large';
-		},
-	},
-});
-</script>
 
 <style lang="scss" module>
 .callout {
@@ -105,6 +95,12 @@ export default defineComponent({
 
 .round {
 	border-radius: var(--border-radius-base);
+}
+
+.onlyBottomBorder {
+	border-top: 0;
+	border-left: 0;
+	border-right: 0;
 }
 
 .messageSection {

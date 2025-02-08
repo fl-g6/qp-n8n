@@ -1,22 +1,21 @@
-import type {
-	IDataObject,
-	IExecuteFunctions,
-	ILoadOptionsFunctions,
-	INodeExecutionData,
-	INodePropertyOptions,
-	INodeType,
-	INodeTypeDescription,
+import moment from 'moment-timezone';
+import {
+	NodeConnectionType,
+	type IDataObject,
+	type IExecuteFunctions,
+	type IHttpRequestMethods,
+	type ILoadOptionsFunctions,
+	type INodeExecutionData,
+	type INodePropertyOptions,
+	type INodeType,
+	type INodeTypeDescription,
 } from 'n8n-workflow';
 
-import moment from 'moment-timezone';
-import { listFields, listOperations } from './ListDescription';
-
 import { contactFields, contactOperations } from './ContactDescription';
-
+import { sendGridApiRequest, sendGridApiRequestAllItems } from './GenericFunctions';
+import { listFields, listOperations } from './ListDescription';
 import type { SendMailBody } from './MailDescription';
 import { mailFields, mailOperations } from './MailDescription';
-
-import { sendGridApiRequest, sendGridApiRequestAllItems } from './GenericFunctions';
 
 export class SendGrid implements INodeType {
 	description: INodeTypeDescription = {
@@ -30,8 +29,8 @@ export class SendGrid implements INodeType {
 		defaults: {
 			name: 'SendGrid',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'sendGridApi',
@@ -146,7 +145,7 @@ export class SendGrid implements INodeType {
 						const returnAll = this.getNodeParameter('returnAll', i);
 						const filters = this.getNodeParameter('filters', i);
 						let endpoint = '/marketing/contacts';
-						let method = 'GET';
+						let method: IHttpRequestMethods = 'GET';
 						const body: IDataObject = {};
 						if (filters.query && filters.query !== '') {
 							endpoint = '/marketing/contacts/search';
@@ -186,7 +185,7 @@ export class SendGrid implements INodeType {
 			if (operation === 'get') {
 				const by = this.getNodeParameter('by', 0) as string;
 				let endpoint;
-				let method;
+				let method: IHttpRequestMethods;
 				const body: IDataObject = {};
 				for (let i = 0; i < length; i++) {
 					try {

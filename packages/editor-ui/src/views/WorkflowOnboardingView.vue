@@ -1,20 +1,26 @@
 <script setup lang="ts">
 import { useLoadingService } from '@/composables/useLoadingService';
 import { useI18n } from '@/composables/useI18n';
-import { VIEWS } from '@/constants';
+import { NEW_SAMPLE_WORKFLOW_CREATED_CHANNEL, VIEWS } from '@/constants';
 import { useTemplatesStore } from '@/stores/templates.store';
 import { useWorkflowsStore } from '@/stores/workflows.store';
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import type { IWorkflowDataCreate } from '@/Interface';
+import { SAMPLE_SUBWORKFLOW_WORKFLOW } from '@/constants.workflows';
 
 const loadingService = useLoadingService();
 const templateStore = useTemplatesStore();
-const workfowStore = useWorkflowsStore();
+const workflowsStore = useWorkflowsStore();
 const router = useRouter();
 const route = useRoute();
 const i18n = useI18n();
 
 const openWorkflowTemplate = async (templateId: string) => {
+	if (templateId === SAMPLE_SUBWORKFLOW_WORKFLOW.meta.templateId) {
+		await openSampleSubworkflow();
+		return;
+	}
 	try {
 		loadingService.startLoading();
 		const template = await templateStore.getFixedWorkflowTemplate(templateId);
@@ -26,10 +32,10 @@ const openWorkflowTemplate = async (templateId: string) => {
 			interpolate: { name: template.name },
 		});
 
-		const workflow = await workfowStore.createNewWorkflow({
+		const workflow = await workflowsStore.createNewWorkflow({
 			name,
 			connections: template.workflow.connections,
-			nodes: template.workflow.nodes,
+			nodes: template.workflow.nodes.map(workflowsStore.convertTemplateNodeToNodeUi),
 			pinData: template.workflow.pinData,
 			settings: template.workflow.settings,
 			meta: {
@@ -49,6 +55,42 @@ const openWorkflowTemplate = async (templateId: string) => {
 		loadingService.stopLoading();
 
 		throw new Error(`Could not load onboarding template ${templateId}`); // sentry reporing
+	}
+};
+
+const openSampleSubworkflow = async () => {
+	try {
+		loadingService.startLoading();
+
+		const projectId = route.query?.projectId;
+
+		const sampleSubWorkflows = Number(route.query?.sampleSubWorkflows ?? 0);
+
+		const workflowName = `${SAMPLE_SUBWORKFLOW_WORKFLOW.name} ${sampleSubWorkflows + 1}`;
+
+		const workflow: IWorkflowDataCreate = {
+			...SAMPLE_SUBWORKFLOW_WORKFLOW,
+			name: workflowName,
+		};
+
+		if (projectId) {
+			workflow.projectId = projectId as string;
+		}
+
+		const newWorkflow = await workflowsStore.createNewWorkflow(workflow);
+
+		const sampleSubworkflowChannel = new BroadcastChannel(NEW_SAMPLE_WORKFLOW_CREATED_CHANNEL);
+
+		sampleSubworkflowChannel.postMessage({ workflowId: newWorkflow.id });
+
+		await router.replace({
+			name: VIEWS.WORKFLOW,
+			params: { name: newWorkflow.id },
+		});
+		loadingService.stopLoading();
+	} catch (e) {
+		await router.replace({ name: VIEWS.NEW_WORKFLOW });
+		loadingService.stopLoading();
 	}
 };
 

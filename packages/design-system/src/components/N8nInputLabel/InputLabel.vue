@@ -1,5 +1,46 @@
+<script lang="ts" setup>
+import type { TextColor } from 'n8n-design-system/types/text';
+
+import N8nIcon from '../N8nIcon';
+import N8nText from '../N8nText';
+import N8nTooltip from '../N8nTooltip';
+
+const SIZE = ['small', 'medium', 'large'] as const;
+
+interface InputLabelProps {
+	compact?: boolean;
+	color?: TextColor;
+	label?: string;
+	tooltipText?: string;
+	inputName?: string;
+	required?: boolean;
+	bold?: boolean;
+	size?: (typeof SIZE)[number];
+	underline?: boolean;
+	showTooltip?: boolean;
+	showOptions?: boolean;
+}
+
+defineOptions({ name: 'N8nInputLabel' });
+withDefaults(defineProps<InputLabelProps>(), {
+	compact: false,
+	bold: true,
+	size: 'medium',
+});
+
+const addTargetBlank = (html: string) =>
+	html && html.includes('href=') ? html.replace(/href=/g, 'target="_blank" href=') : html;
+</script>
+
 <template>
-	<div :class="$style.container" v-bind="$attrs" data-test-id="input-label">
+	<div
+		:class="{
+			[$style.container]: true,
+			[$style.withOptions]: $slots.options,
+		}"
+		v-bind="$attrs"
+		data-test-id="input-label"
+	>
 		<label
 			v-if="label || $slots.options"
 			:for="inputName"
@@ -13,7 +54,15 @@
 			}"
 		>
 			<div v-if="label" :class="$style.title">
-				<N8nText :bold="bold" :size="size" :compact="compact" :color="color">
+				<N8nText
+					:bold="bold"
+					:size="size"
+					:compact="compact"
+					:color="color"
+					:class="{
+						[$style.textEllipses]: showOptions,
+					}"
+				>
 					{{ label }}
 					<N8nText v-if="required" color="primary" :bold="bold" :size="size">*</N8nText>
 				</N8nText>
@@ -22,10 +71,10 @@
 				v-if="tooltipText && label"
 				:class="[$style.infoIcon, showTooltip ? $style.visible : $style.hidden]"
 			>
-				<N8nTooltip placement="top" :popper-class="$style.tooltipPopper">
+				<N8nTooltip placement="top" :popper-class="$style.tooltipPopper" :show-after="300">
 					<N8nIcon icon="question-circle" size="small" />
 					<template #content>
-						<div v-html="addTargetBlank(tooltipText)" />
+						<div v-n8n-html="addTargetBlank(tooltipText)" />
 					</template>
 				</N8nTooltip>
 			</span>
@@ -45,67 +94,6 @@
 	</div>
 </template>
 
-<script lang="ts">
-import N8nText from '../N8nText';
-import N8nTooltip from '../N8nTooltip';
-import N8nIcon from '../N8nIcon';
-
-import { addTargetBlank } from '../utils/helpers';
-
-import { defineComponent } from 'vue';
-
-export default defineComponent({
-	name: 'N8nInputLabel',
-	components: {
-		N8nText,
-		N8nIcon,
-		N8nTooltip,
-	},
-	props: {
-		compact: {
-			type: Boolean,
-			default: false,
-		},
-		color: {
-			type: String,
-		},
-		label: {
-			type: String,
-		},
-		tooltipText: {
-			type: String,
-		},
-		inputName: {
-			type: String,
-		},
-		required: {
-			type: Boolean,
-		},
-		bold: {
-			type: Boolean,
-			default: true,
-		},
-		size: {
-			type: String,
-			default: 'medium',
-			validator: (value: string): boolean => ['small', 'medium'].includes(value),
-		},
-		underline: {
-			type: Boolean,
-		},
-		showTooltip: {
-			type: Boolean,
-		},
-		showOptions: {
-			type: Boolean,
-		},
-	},
-	methods: {
-		addTargetBlank,
-	},
-});
-</script>
-
 <style lang="scss" module>
 .container {
 	display: flex;
@@ -118,6 +106,10 @@ export default defineComponent({
 .inputLabel:hover {
 	.infoIcon {
 		opacity: 1;
+
+		&:hover {
+			color: var(--color-text-base);
+		}
 	}
 
 	.options {
@@ -128,6 +120,12 @@ export default defineComponent({
 	.overlay {
 		opacity: 1;
 		transition: opacity 100ms ease-in; // transition on hover in
+	}
+}
+.withOptions:hover {
+	.title > span {
+		text-overflow: ellipsis;
+		overflow: hidden;
 	}
 }
 
@@ -145,14 +143,12 @@ export default defineComponent({
 	display: flex;
 	align-items: center;
 	color: var(--color-text-light);
-	padding-left: var(--spacing-4xs);
-	background-color: var(--color-background-xlight);
+	margin-left: var(--spacing-4xs);
 	z-index: 1;
 }
 
 .options {
 	opacity: 0;
-	background-color: var(--color-background-xlight);
 	transition: opacity 250ms cubic-bezier(0.98, -0.06, 0.49, -0.2); // transition on hover out
 
 	> * {
@@ -195,6 +191,11 @@ export default defineComponent({
 	overflow-y: clip;
 }
 
+.textEllipses {
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
 .heading {
 	display: flex;
 
@@ -211,10 +212,19 @@ export default defineComponent({
 }
 
 :root .tooltipPopper {
+	line-height: var(--font-line-height-compact);
 	max-width: 400px;
 
 	li {
 		margin-left: var(--spacing-s);
+	}
+
+	code {
+		color: var(--color-text-dark);
+		font-size: var(--font-size-3xs);
+		background: var(--color-background-medium);
+		padding: var(--spacing-5xs);
+		border-radius: var(--border-radius-base);
 	}
 }
 </style>

@@ -1,45 +1,61 @@
-import Container from 'typedi';
-import type { SuperAgentTest } from 'supertest';
-import { v4 as uuid } from 'uuid';
+import { Container } from '@n8n/di';
+import type { Scope } from '@n8n/permissions';
 import type { INode, IPinData } from 'n8n-workflow';
+import { v4 as uuid } from 'uuid';
 
-import * as UserManagementHelpers from '@/UserManagement/UserManagementHelper';
-import type { User } from '@db/entities/User';
-import { WorkflowRepository } from '@db/repositories/workflow.repository';
-import type { WorkflowEntity } from '@db/entities/WorkflowEntity';
-import { RoleService } from '@/services/role.service';
+import { ActiveWorkflowManager } from '@/active-workflow-manager';
+import type { User } from '@/databases/entities/user';
+import type { WorkflowEntity } from '@/databases/entities/workflow-entity';
+import { ProjectRepository } from '@/databases/repositories/project.repository';
+import { SharedWorkflowRepository } from '@/databases/repositories/shared-workflow.repository';
+import { WorkflowHistoryRepository } from '@/databases/repositories/workflow-history.repository';
+import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
+import { License } from '@/license';
 import type { ListQuery } from '@/requests';
-import { WorkflowHistoryRepository } from '@db/repositories/workflowHistory.repository';
-import { ActiveWorkflowRunner } from '@/ActiveWorkflowRunner';
-import { Push } from '@/push';
+import { ProjectService } from '@/services/project.service.ee';
 import { EnterpriseWorkflowService } from '@/workflows/workflow.service.ee';
 
 import { mockInstance } from '../../shared/mocking';
-import * as utils from '../shared/utils/';
-import * as testDb from '../shared/testDb';
-import { makeWorkflow, MOCK_PINDATA } from '../shared/utils/';
-import { randomCredentialPayload } from '../shared/random';
 import { saveCredential } from '../shared/db/credentials';
-import { createOwner } from '../shared/db/users';
-import { createWorkflow } from '../shared/db/workflows';
+import { createTeamProject, getPersonalProject, linkUserToProject } from '../shared/db/projects';
 import { createTag } from '../shared/db/tags';
+import { createManyUsers, createMember, createOwner } from '../shared/db/users';
+import {
+	createWorkflow,
+	shareWorkflowWithProjects,
+	shareWorkflowWithUsers,
+} from '../shared/db/workflows';
+import { randomCredentialPayload } from '../shared/random';
+import * as testDb from '../shared/test-db';
+import type { SuperAgentTest } from '../shared/types';
+import * as utils from '../shared/utils/';
+import { makeWorkflow, MOCK_PINDATA } from '../shared/utils/';
 
 let owner: User;
-let authOwnerAgent: SuperAgentTest;
+let member: User;
+let anotherMember: User;
 
-jest.spyOn(UserManagementHelpers, 'isSharingEnabled').mockReturnValue(false);
+let authOwnerAgent: SuperAgentTest;
+let authMemberAgent: SuperAgentTest;
+
+jest.spyOn(License.prototype, 'isSharingEnabled').mockReturnValue(false);
 
 const testServer = utils.setupTestServer({ endpointGroups: ['workflows'] });
 const license = testServer.license;
 
 const { objectContaining, arrayContaining, any } = expect;
 
-const activeWorkflowRunnerLike = mockInstance(ActiveWorkflowRunner);
-mockInstance(Push);
+const activeWorkflowManagerLike = mockInstance(ActiveWorkflowManager);
+
+let projectRepository: ProjectRepository;
 
 beforeAll(async () => {
+	projectRepository = Container.get(ProjectRepository);
 	owner = await createOwner();
 	authOwnerAgent = testServer.authAgentFor(owner);
+	member = await createMember();
+	authMemberAgent = testServer.authAgentFor(member);
+	anotherMember = await createMember();
 });
 
 beforeEach(async () => {
@@ -63,6 +79,53 @@ describe('POST /workflows', () => {
 	test('should set pin data to null if no pin data', async () => {
 		const pinData = await testWithPinData(false);
 		expect(pinData).toBeNull();
+	});
+
+	test('should return scopes on created workflow', async () => {
+		const payload = {
+			name: 'testing',
+			nodes: [
+				{
+					id: 'uuid-1234',
+					parameters: {},
+					name: 'Start',
+					type: 'n8n-nodes-base.start',
+					typeVersion: 1,
+					position: [240, 300],
+				},
+			],
+			connections: {},
+			staticData: null,
+			settings: {
+				saveExecutionProgress: true,
+				saveManualExecutions: true,
+				saveDataErrorExecution: 'all',
+				saveDataSuccessExecution: 'all',
+				executionTimeout: 3600,
+				timezone: 'America/New_York',
+			},
+			active: false,
+		};
+
+		const response = await authMemberAgent.post('/workflows').send(payload);
+
+		expect(response.statusCode).toBe(200);
+
+		const {
+			data: { id, scopes },
+		} = response.body;
+
+		expect(id).toBeDefined();
+		expect(scopes).toEqual(
+			[
+				'workflow:delete',
+				'workflow:execute',
+				'workflow:move',
+				'workflow:read',
+				'workflow:share',
+				'workflow:update',
+			].sort(),
+		);
 	});
 
 	test('should create workflow history version when licensed', async () => {
@@ -154,9 +217,154 @@ describe('POST /workflows', () => {
 			await Container.get(WorkflowHistoryRepository).count({ where: { workflowId: id } }),
 		).toBe(0);
 	});
+
+	test('create workflow in personal project by default', async () => {
+		//
+		// ARRANGE
+		//
+		const tag = await createTag({ name: 'A' });
+		const workflow = makeWorkflow();
+		const personalProject = await projectRepository.getPersonalProjectForUserOrFail(owner.id);
+
+		//
+		// ACT
+		//
+		const response = await authOwnerAgent
+			.post('/workflows')
+			.send({ ...workflow, tags: [tag.id] })
+			.expect(200);
+
+		//
+		// ASSERT
+		//
+		await Container.get(SharedWorkflowRepository).findOneOrFail({
+			where: {
+				projectId: personalProject.id,
+				workflowId: response.body.data.id,
+			},
+		});
+		expect(response.body.data).toMatchObject({
+			active: false,
+			id: expect.any(String),
+			name: workflow.name,
+			sharedWithProjects: [],
+			usedCredentials: [],
+			homeProject: {
+				id: personalProject.id,
+				name: personalProject.name,
+				type: personalProject.type,
+			},
+			tags: [{ id: tag.id, name: tag.name }],
+		});
+		expect(response.body.data.shared).toBeUndefined();
+	});
+
+	test('creates workflow in a specific project if the projectId is passed', async () => {
+		//
+		// ARRANGE
+		//
+		const tag = await createTag({ name: 'A' });
+		const workflow = makeWorkflow();
+		const project = await projectRepository.save(
+			projectRepository.create({
+				name: 'Team Project',
+				type: 'team',
+			}),
+		);
+		await Container.get(ProjectService).addUser(project.id, owner.id, 'project:admin');
+
+		//
+		// ACT
+		//
+		const response = await authOwnerAgent
+			.post('/workflows')
+			.send({ ...workflow, projectId: project.id, tags: [tag.id] })
+			.expect(200);
+
+		//
+		// ASSERT
+		//
+		await Container.get(SharedWorkflowRepository).findOneOrFail({
+			where: {
+				projectId: project.id,
+				workflowId: response.body.data.id,
+			},
+		});
+		expect(response.body.data).toMatchObject({
+			active: false,
+			id: expect.any(String),
+			name: workflow.name,
+			sharedWithProjects: [],
+			usedCredentials: [],
+			homeProject: {
+				id: project.id,
+				name: project.name,
+				type: project.type,
+			},
+			tags: [{ id: tag.id, name: tag.name }],
+		});
+		expect(response.body.data.shared).toBeUndefined();
+	});
+
+	test('does not create the workflow in a specific project if the user is not part of the project', async () => {
+		//
+		// ARRANGE
+		//
+		const workflow = makeWorkflow();
+		const project = await projectRepository.save(
+			projectRepository.create({
+				name: 'Team Project',
+				type: 'team',
+			}),
+		);
+
+		//
+		// ACT
+		//
+		await testServer
+			.authAgentFor(member)
+			.post('/workflows')
+			.send({ ...workflow, projectId: project.id })
+			//
+			// ASSERT
+			//
+			.expect(400, {
+				code: 400,
+				message: "You don't have the permissions to save the workflow in this project.",
+			});
+	});
+
+	test('does not create the workflow in a specific project if the user does not have the right role to do so', async () => {
+		//
+		// ARRANGE
+		//
+		const workflow = makeWorkflow();
+		const project = await projectRepository.save(
+			projectRepository.create({
+				name: 'Team Project',
+				type: 'team',
+			}),
+		);
+		await Container.get(ProjectService).addUser(project.id, member.id, 'project:viewer');
+
+		//
+		// ACT
+		//
+		await testServer
+			.authAgentFor(member)
+			.post('/workflows')
+			.send({ ...workflow, projectId: project.id })
+			//
+			// ASSERT
+			//
+			.expect(400, {
+				code: 400,
+				message: "You don't have the permissions to save the workflow in this project.",
+			});
+	});
 });
 
-describe('GET /workflows/:id', () => {
+describe('GET /workflows/:workflowId', () => {
 	test('should return pin data', async () => {
 		const workflow = makeWorkflow({ withPinData: true });
 		const workflowCreationResponse = await authOwnerAgent.post('/workflows').send(workflow);
@@ -167,6 +375,17 @@ describe('GET /workflows/:id', () => {
 		expect(workflowRetrievalResponse.statusCode).toBe(200);
 		const { pinData } = workflowRetrievalResponse.body.data as { pinData: IPinData };
 		expect(pinData).toMatchObject(MOCK_PINDATA);
+	});
+
+	test('should return tags', async () => {
+		const tag = await createTag({ name: 'A' });
+		const workflow = await createWorkflow({ tags: [tag] }, owner);
+
+		const response = await authOwnerAgent.get(`/workflows/${workflow.id}`).expect(200);
+
+		expect(response.body.data).toMatchObject({
+			tags: [expect.objectContaining({ id: tag.id, name: tag.name })],
+		});
 	});
 });
 
@@ -180,8 +399,9 @@ describe('GET /workflows', () => {
 	test('should return workflows', async () => {
 		const credential = await saveCredential(randomCredentialPayload(), {
 			user: owner,
-			role: await Container.get(RoleService).findCredentialOwnerRole(),
+			role: 'credential:owner',
 		});
+		const ownerPersonalProject = await projectRepository.getPersonalProjectForUserOrFail(owner.id);
 
 		const nodes: INode[] = [
 			{
@@ -218,13 +438,13 @@ describe('GET /workflows', () => {
 					updatedAt: any(String),
 					tags: [{ id: any(String), name: 'A' }],
 					versionId: any(String),
-					ownedBy: {
-						id: owner.id,
-						email: any(String),
-						firstName: any(String),
-						lastName: any(String),
+					homeProject: {
+						id: ownerPersonalProject.id,
+						name: owner.createPersonalProjectName(),
+						icon: null,
+						type: ownerPersonalProject.type,
 					},
-					sharedWith: [],
+					sharedWithProjects: [],
 				}),
 				objectContaining({
 					id: any(String),
@@ -234,13 +454,13 @@ describe('GET /workflows', () => {
 					updatedAt: any(String),
 					tags: [],
 					versionId: any(String),
-					ownedBy: {
-						id: owner.id,
-						email: any(String),
-						firstName: any(String),
-						lastName: any(String),
+					homeProject: {
+						id: ownerPersonalProject.id,
+						name: owner.createPersonalProjectName(),
+						icon: null,
+						type: ownerPersonalProject.type,
 					},
-					sharedWith: [],
+					sharedWithProjects: [],
 				}),
 			]),
 		});
@@ -250,8 +470,149 @@ describe('GET /workflows', () => {
 		);
 
 		expect(found.nodes).toBeUndefined();
-		expect(found.sharedWith).toHaveLength(0);
+		expect(found.sharedWithProjects).toHaveLength(0);
 		expect(found.usedCredentials).toBeUndefined();
+	});
+
+	test('should return workflows with scopes when ?includeScopes=true', async () => {
+		const [member1, member2] = await createManyUsers(2, {
+			role: 'global:member',
+		});
+
+		const teamProject = await createTeamProject(undefined, member1);
+		await linkUserToProject(member2, teamProject, 'project:editor');
+
+		const credential = await saveCredential(randomCredentialPayload(), {
+			user: owner,
+			role: 'credential:owner',
+		});
+
+		const nodes: INode[] = [
+			{
+				id: uuid(),
+				name: 'Action Network',
+				type: 'n8n-nodes-base.actionNetwork',
+				parameters: {},
+				typeVersion: 1,
+				position: [0, 0],
+				credentials: {
+					actionNetworkApi: {
+						id: credential.id,
+						name: credential.name,
+					},
+				},
+			},
+		];
+
+		const tag = await createTag({ name: 'A' });
+
+		const [savedWorkflow1, savedWorkflow2] = await Promise.all([
+			createWorkflow({ name: 'First', nodes, tags: [tag] }, teamProject),
+			createWorkflow({ name: 'Second' }, member2),
+		]);
+
+		await shareWorkflowWithProjects(savedWorkflow2, [{ project: teamProject }]);
+
+		{
+			const response = await testServer.authAgentFor(member1).get('/workflows?includeScopes=true');
+
+			expect(response.statusCode).toBe(200);
+			expect(response.body.data.length).toBe(2);
+
+			const workflows = response.body.data as Array<WorkflowEntity & { scopes: Scope[] }>;
+			const wf1 = workflows.find((w) => w.id === savedWorkflow1.id)!;
+			const wf2 = workflows.find((w) => w.id === savedWorkflow2.id)!;
+
+			// Team workflow
+			expect(wf1.id).toBe(savedWorkflow1.id);
+			expect(wf1.scopes).toEqual(
+				[
+					'workflow:delete',
+					'workflow:execute',
+					'workflow:move',
+					'workflow:read',
+					'workflow:update',
+				].sort(),
+			);
+
+			// Shared workflow
+			expect(wf2.id).toBe(savedWorkflow2.id);
+			expect(wf2.scopes).toEqual(['workflow:read', 'workflow:update', 'workflow:execute'].sort());
+		}
+
+		{
+			const response = await testServer.authAgentFor(member2).get('/workflows?includeScopes=true');
+
+			expect(response.statusCode).toBe(200);
+			expect(response.body.data.length).toBe(2);
+
+			const workflows = response.body.data as Array<WorkflowEntity & { scopes: Scope[] }>;
+			const wf1 = workflows.find((w) => w.id === savedWorkflow1.id)!;
+			const wf2 = workflows.find((w) => w.id === savedWorkflow2.id)!;
+
+			// Team workflow
+			expect(wf1.id).toBe(savedWorkflow1.id);
+			expect(wf1.scopes).toEqual([
+				'workflow:delete',
+				'workflow:execute',
+				'workflow:read',
+				'workflow:update',
+			]);
+
+			// Shared workflow
+			expect(wf2.id).toBe(savedWorkflow2.id);
+			expect(wf2.scopes).toEqual(
+				[
+					'workflow:delete',
+					'workflow:execute',
+					'workflow:move',
+					'workflow:read',
+					'workflow:share',
+					'workflow:update',
+				].sort(),
+			);
+		}
+
+		{
+			const response = await testServer.authAgentFor(owner).get('/workflows?includeScopes=true');
+
+			expect(response.statusCode).toBe(200);
+			expect(response.body.data.length).toBe(2);
+
+			const workflows = response.body.data as Array<WorkflowEntity & { scopes: Scope[] }>;
+			const wf1 = workflows.find((w) => w.id === savedWorkflow1.id)!;
+			const wf2 = workflows.find((w) => w.id === savedWorkflow2.id)!;
+
+			// Team workflow
+			expect(wf1.id).toBe(savedWorkflow1.id);
+			expect(wf1.scopes).toEqual(
+				[
+					'workflow:create',
+					'workflow:delete',
+					'workflow:execute',
+					'workflow:list',
+					'workflow:move',
+					'workflow:read',
+					'workflow:share',
+					'workflow:update',
+				].sort(),
+			);
+
+			// Shared workflow
+			expect(wf2.id).toBe(savedWorkflow2.id);
+			expect(wf2.scopes).toEqual(
+				[
+					'workflow:create',
+					'workflow:delete',
+					'workflow:execute',
+					'workflow:list',
+					'workflow:move',
+					'workflow:read',
+					'workflow:share',
+					'workflow:update',
+				].sort(),
+			);
+		}
 	});
 
 	describe('filter', () => {
@@ -300,6 +661,41 @@ describe('GET /workflows', () => {
 				count: 1,
 				data: [objectContaining({ name: 'First', tags: [{ id: any(String), name: 'A' }] })],
 			});
+		});
+
+		test('should filter workflows by projectId', async () => {
+			const workflow = await createWorkflow({ name: 'First' }, owner);
+			const pp = await Container.get(ProjectRepository).getPersonalProjectForUserOrFail(owner.id);
+
+			const response1 = await authOwnerAgent
+				.get('/workflows')
+				.query(`filter={ "projectId": "${pp.id}" }`)
+				.expect(200);
+
+			expect(response1.body.data).toHaveLength(1);
+			expect(response1.body.data[0].id).toBe(workflow.id);
+
+			const response2 = await authOwnerAgent
+				.get('/workflows')
+				.query('filter={ "projectId": "Non-Existing Project ID" }')
+				.expect(200);
+
+			expect(response2.body.data).toHaveLength(0);
+		});
+
+		test('should return homeProject when filtering workflows by projectId', async () => {
+			const workflow = await createWorkflow({ name: 'First' }, owner);
+			await shareWorkflowWithUsers(workflow, [member]);
+			const pp = await getPersonalProject(member);
+
+			const response = await authMemberAgent
+				.get('/workflows')
+				.query(`filter={ "projectId": "${pp.id}" }`)
+				.expect(200);
+
+			expect(response.body.data).toHaveLength(1);
+			expect(response.body.data[0].id).toBe(workflow.id);
+			expect(response.body.data[0].homeProject).not.toBeNull();
 		});
 	});
 
@@ -422,6 +818,9 @@ describe('GET /workflows', () => {
 		test('should select workflow field: ownedBy', async () => {
 			await createWorkflow({}, owner);
 			await createWorkflow({}, owner);
+			const ownerPersonalProject = await projectRepository.getPersonalProjectForUserOrFail(
+				owner.id,
+			);
 
 			const response = await authOwnerAgent
 				.get('/workflows')
@@ -433,23 +832,23 @@ describe('GET /workflows', () => {
 				data: arrayContaining([
 					{
 						id: any(String),
-						ownedBy: {
-							id: owner.id,
-							email: any(String),
-							firstName: any(String),
-							lastName: any(String),
+						homeProject: {
+							id: ownerPersonalProject.id,
+							name: owner.createPersonalProjectName(),
+							icon: null,
+							type: ownerPersonalProject.type,
 						},
-						sharedWith: [],
+						sharedWithProjects: [],
 					},
 					{
 						id: any(String),
-						ownedBy: {
-							id: owner.id,
-							email: any(String),
-							firstName: any(String),
-							lastName: any(String),
+						homeProject: {
+							id: ownerPersonalProject.id,
+							name: owner.createPersonalProjectName(),
+							icon: null,
+							type: ownerPersonalProject.type,
 						},
-						sharedWith: [],
+						sharedWithProjects: [],
 					},
 				]),
 			});
@@ -457,7 +856,7 @@ describe('GET /workflows', () => {
 	});
 });
 
-describe('PATCH /workflows/:id', () => {
+describe('PATCH /workflows/:workflowId', () => {
 	test('should create workflow history version when licensed', async () => {
 		license.enable('feat:workflowHistory');
 		const workflow = await createWorkflow({}, owner);
@@ -577,7 +976,7 @@ describe('PATCH /workflows/:id', () => {
 		const response = await authOwnerAgent.patch(`/workflows/${workflow.id}`).send(payload);
 
 		expect(response.statusCode).toBe(200);
-		expect(activeWorkflowRunnerLike.add).toBeCalled();
+		expect(activeWorkflowManagerLike.add).toBeCalled();
 
 		const {
 			data: { id, versionId, active },
@@ -599,8 +998,8 @@ describe('PATCH /workflows/:id', () => {
 		const response = await authOwnerAgent.patch(`/workflows/${workflow.id}`).send(payload);
 
 		expect(response.statusCode).toBe(200);
-		expect(activeWorkflowRunnerLike.add).not.toBeCalled();
-		expect(activeWorkflowRunnerLike.remove).toBeCalled();
+		expect(activeWorkflowManagerLike.add).not.toBeCalled();
+		expect(activeWorkflowManagerLike.remove).toBeCalled();
 
 		const {
 			data: { id, versionId, active },
@@ -631,7 +1030,7 @@ describe('PATCH /workflows/:id', () => {
 	});
 });
 
-describe('POST /workflows/run', () => {
+describe('POST /workflows/:workflowId/run', () => {
 	let sharingSpy: jest.SpyInstance;
 	let tamperingSpy: jest.SpyInstance;
 	let workflow: WorkflowEntity;
@@ -640,7 +1039,7 @@ describe('POST /workflows/run', () => {
 		const enterpriseWorkflowService = Container.get(EnterpriseWorkflowService);
 		const workflowRepository = Container.get(WorkflowRepository);
 
-		sharingSpy = jest.spyOn(UserManagementHelpers, 'isSharingEnabled');
+		sharingSpy = jest.spyOn(License.prototype, 'isSharingEnabled');
 		tamperingSpy = jest.spyOn(enterpriseWorkflowService, 'preventTampering');
 		workflow = workflowRepository.create({ id: uuid() });
 	});
@@ -648,7 +1047,7 @@ describe('POST /workflows/run', () => {
 	test('should prevent tampering if sharing is enabled', async () => {
 		sharingSpy.mockReturnValue(true);
 
-		await authOwnerAgent.post('/workflows/run').send({ workflowData: workflow });
+		await authOwnerAgent.post(`/workflows/${workflow.id}/run`).send({ workflowData: workflow });
 
 		expect(tamperingSpy).toHaveBeenCalledTimes(1);
 	});
@@ -656,8 +1055,70 @@ describe('POST /workflows/run', () => {
 	test('should skip tampering prevention if sharing is disabled', async () => {
 		sharingSpy.mockReturnValue(false);
 
-		await authOwnerAgent.post('/workflows/run').send({ workflowData: workflow });
+		await authOwnerAgent.post(`/workflows/${workflow.id}/run`).send({ workflowData: workflow });
 
 		expect(tamperingSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('DELETE /workflows/:workflowId', () => {
+	test('deletes a workflow owned by the user', async () => {
+		const workflow = await createWorkflow({}, owner);
+
+		await authOwnerAgent.delete(`/workflows/${workflow.id}`).send().expect(200);
+
+		const workflowInDb = await Container.get(WorkflowRepository).findById(workflow.id);
+		const sharedWorkflowsInDb = await Container.get(SharedWorkflowRepository).findBy({
+			workflowId: workflow.id,
+		});
+
+		expect(workflowInDb).toBeNull();
+		expect(sharedWorkflowsInDb).toHaveLength(0);
+	});
+
+	test('deletes a workflow owned by the user, even if the user is just a member', async () => {
+		const workflow = await createWorkflow({}, member);
+
+		await testServer.authAgentFor(member).delete(`/workflows/${workflow.id}`).send().expect(200);
+
+		const workflowInDb = await Container.get(WorkflowRepository).findById(workflow.id);
+		const sharedWorkflowsInDb = await Container.get(SharedWorkflowRepository).findBy({
+			workflowId: workflow.id,
+		});
+
+		expect(workflowInDb).toBeNull();
+		expect(sharedWorkflowsInDb).toHaveLength(0);
+	});
+
+	test('does not delete a workflow that is not owned by the user', async () => {
+		const workflow = await createWorkflow({}, member);
+
+		await testServer
+			.authAgentFor(anotherMember)
+			.delete(`/workflows/${workflow.id}`)
+			.send()
+			.expect(403);
+
+		const workflowsInDb = await Container.get(WorkflowRepository).findById(workflow.id);
+		const sharedWorkflowsInDb = await Container.get(SharedWorkflowRepository).findBy({
+			workflowId: workflow.id,
+		});
+
+		expect(workflowsInDb).not.toBeNull();
+		expect(sharedWorkflowsInDb).toHaveLength(1);
+	});
+
+	test("allows the owner to delete workflows they don't own", async () => {
+		const workflow = await createWorkflow({}, member);
+
+		await authOwnerAgent.delete(`/workflows/${workflow.id}`).send().expect(200);
+
+		const workflowsInDb = await Container.get(WorkflowRepository).findById(workflow.id);
+		const sharedWorkflowsInDb = await Container.get(SharedWorkflowRepository).findBy({
+			workflowId: workflow.id,
+		});
+
+		expect(workflowsInDb).toBeNull();
+		expect(sharedWorkflowsInDb).toHaveLength(0);
 	});
 });

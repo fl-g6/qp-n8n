@@ -8,14 +8,14 @@ import { useUIStore } from '@/stores/ui.store';
 import { onMounted, onUnmounted, nextTick } from 'vue';
 import { useDeviceSupport } from 'n8n-design-system';
 import { getNodeViewTab } from '@/utils/canvasUtils';
-import type { Route } from 'vue-router';
+import type { RouteLocationNormalizedLoaded } from 'vue-router';
 import { useTelemetry } from './useTelemetry';
 import { useDebounce } from '@/composables/useDebounce';
 
 const UNDO_REDO_DEBOUNCE_INTERVAL = 100;
 const ELEMENT_UI_OVERLAY_SELECTOR = '.el-overlay';
 
-export function useHistoryHelper(activeRoute: Route) {
+export function useHistoryHelper(activeRoute: RouteLocationNormalizedLoaded) {
 	const telemetry = useTelemetry();
 
 	const ndvStore = useNDVStore();
@@ -26,7 +26,7 @@ export function useHistoryHelper(activeRoute: Route) {
 	const { isCtrlKeyPressed } = useDeviceSupport();
 
 	const undo = async () =>
-		callDebounced(
+		await callDebounced(
 			async () => {
 				const command = historyStore.popUndoableToUndo();
 				if (!command) {
@@ -55,7 +55,7 @@ export function useHistoryHelper(activeRoute: Route) {
 		);
 
 	const redo = async () =>
-		callDebounced(
+		await callDebounced(
 			async () => {
 				const command = historyStore.popUndoableToRedo();
 				if (!command) {

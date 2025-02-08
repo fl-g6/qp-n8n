@@ -1,19 +1,19 @@
-import { URLSearchParams } from 'url';
 import type {
 	IBinaryKeyData,
 	IDataObject,
 	IExecuteFunctions,
+	IHttpRequestMethods,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
 	JsonObject,
 } from 'n8n-workflow';
-import { NodeApiError, NodeOperationError } from 'n8n-workflow';
-
+import { NodeApiError, NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import { URLSearchParams } from 'url';
 import { parseString } from 'xml2js';
 
-import { wrapData } from '../../utils/utilities';
 import { nextCloudApiRequest } from './GenericFunctions';
+import { wrapData } from '../../utils/utilities';
 
 export class NextCloud implements INodeType {
 	description: INodeTypeDescription = {
@@ -27,8 +27,8 @@ export class NextCloud implements INodeType {
 		defaults: {
 			name: 'Nextcloud',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'nextCloudApi',
@@ -543,7 +543,7 @@ export class NextCloud implements INodeType {
 				displayName: 'Options',
 				name: 'options',
 				type: 'collection',
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				default: {},
 				displayOptions: {
 					show: {
@@ -756,7 +756,7 @@ export class NextCloud implements INodeType {
 				displayName: 'Options',
 				name: 'options',
 				type: 'collection',
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				default: {},
 				displayOptions: {
 					show: {
@@ -791,7 +791,7 @@ export class NextCloud implements INodeType {
 				typeOptions: {
 					multipleValues: false,
 				},
-				placeholder: 'Add Option',
+				placeholder: 'Add option',
 				default: {},
 				displayOptions: {
 					show: {
@@ -874,7 +874,7 @@ export class NextCloud implements INodeType {
 		const operation = this.getNodeParameter('operation', 0);
 
 		let endpoint = '';
-		let requestMethod = '';
+		let requestMethod: IHttpRequestMethods = 'GET';
 		let responseData: any;
 
 		let body: string | Buffer | IDataObject = '';
@@ -914,14 +914,14 @@ export class NextCloud implements INodeType {
 						//         create
 						// ----------------------------------
 
-						requestMethod = 'MKCOL';
+						requestMethod = 'MKCOL' as IHttpRequestMethods;
 						endpoint = this.getNodeParameter('path', i) as string;
 					} else if (operation === 'list') {
 						// ----------------------------------
 						//         list
 						// ----------------------------------
 
-						requestMethod = 'PROPFIND';
+						requestMethod = 'PROPFIND' as IHttpRequestMethods;
 						endpoint = this.getNodeParameter('path', i) as string;
 					}
 				}
@@ -932,7 +932,7 @@ export class NextCloud implements INodeType {
 						//         copy
 						// ----------------------------------
 
-						requestMethod = 'COPY';
+						requestMethod = 'COPY' as IHttpRequestMethods;
 						endpoint = this.getNodeParameter('path', i) as string;
 						const toPath = this.getNodeParameter('toPath', i) as string;
 						headers.Destination = `${credentials.webDavUrl}/${encodeURI(toPath)}`;
@@ -948,7 +948,7 @@ export class NextCloud implements INodeType {
 						//         move
 						// ----------------------------------
 
-						requestMethod = 'MOVE';
+						requestMethod = 'MOVE' as IHttpRequestMethods;
 						endpoint = this.getNodeParameter('path', i) as string;
 						const toPath = this.getNodeParameter('toPath', i) as string;
 						headers.Destination = `${credentials.webDavUrl}/${encodeURI(toPath)}`;

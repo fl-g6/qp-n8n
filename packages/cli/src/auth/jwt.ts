@@ -1,93 +1,87 @@
+import { Container } from '@n8n/di';
 import type { Response } from 'express';
-import { createHash } from 'crypto';
-import { AUTH_COOKIE_NAME, RESPONSE_ERROR_MESSAGES } from '@/constants';
-import type { JwtPayload, JwtToken } from '@/Interfaces';
-import type { User } from '@db/entities/User';
-import config from '@/config';
-import { License } from '@/License';
-import { Container } from 'typedi';
-import { UserRepository } from '@db/repositories/user.repository';
-import { JwtService } from '@/services/jwt.service';
-import { UnauthorizedError } from '@/errors/response-errors/unauthorized.error';
+
+import type { User } from '@/databases/entities/user';
+import { UserRepository } from '@/databases/repositories/user.repository';
 import { AuthError } from '@/errors/response-errors/auth.error';
-import { ApplicationError } from 'n8n-workflow';
+import { JwtService } from '@/services/jwt.service';
 
-export function issueJWT(user: User): JwtToken {
-	const { id, email, password } = user;
-	const expiresIn = 7 * 86400000; // 7 days
-	const isWithinUsersLimit = Container.get(License).isWithinUsersLimit();
+import { AuthService } from './auth.service';
 
-	const payload: JwtPayload = {
-		id,
-		email,
-		password: password ?? null,
-	};
-
-	if (
-		config.getEnv('userManagement.isInstanceOwnerSetUp') &&
-		!user.isOwner &&
-		!isWithinUsersLimit
-	) {
-		throw new UnauthorizedError(RESPONSE_ERROR_MESSAGES.USERS_QUOTA_REACHED);
-	}
-	if (password) {
-		payload.password = createHash('sha256')
-			.update(password.slice(password.length / 2))
-			.digest('hex');
-	}
-
-	const signedToken = Container.get(JwtService).sign(payload, {
-		expiresIn: expiresIn / 1000 /* in seconds */,
-	});
-
-	return {
-		token: signedToken,
-		expiresIn,
-	};
+interface AuthJwtPayload {
+	/** User Id */
+	id?: string;
+	/** This hash is derived from email and bcrypt of password */
+	hash?: string;
+	/** This is a client generated unique string to prevent session hijacking */
+	browserId?: string;
+	email?: string;
+}
+interface IssuedJWT extends AuthJwtPayload {
+	exp?: number;
 }
 
-export const createPasswordSha = (user: User) =>
-	createHash('sha256')
-		.update(user.password.slice(user.password.length / 2))
-		.digest('hex');
-
-export async function resolveJwtContent(jwtPayload: JwtPayload): Promise<User> {
-	const user = await Container.get(UserRepository).findOne({
-		where: { id: jwtPayload.id },
-		relations: ['globalRole'],
-	});
-
-	let passwordHash = null;
-	if (user?.password) {
-		passwordHash = createPasswordSha(user);
-	}
-
-	// currently only LDAP users during synchronization
-	// can be set to disabled
-	if (user?.disabled) {
-		throw new AuthError('Unauthorized');
-	}
-
-	if (!user || jwtPayload.password !== passwordHash || user.email !== jwtPayload.email) {
-		// When owner hasn't been set up, the default user
-		// won't have email nor password (both equals null)
-		throw new ApplicationError('Invalid token content');
-	}
-	return user;
+// This method is still used by cloud hooks.
+// DO NOT DELETE until the hooks have been updated
+/** @deprecated Use `AuthService` instead */
+export async function issueCookie(res: Response, user: User) {
+	return Container.get(AuthService).issueCookie(res, user);
 }
 
 export async function resolveJwt(token: string): Promise<User> {
-	const jwtPayload: JwtPayload = Container.get(JwtService).verify(token, {
-		algorithms: ['HS256'],
-	});
-	return resolveJwtContent(jwtPayload);
-}
+	const jwtPayload: IssuedJWT = await Container.get(JwtService).verify(token, {});
 
-export async function issueCookie(res: Response, user: User): Promise<void> {
-	const userData = issueJWT(user);
-	res.cookie(AUTH_COOKIE_NAME, userData.token, {
-		maxAge: userData.expiresIn,
-		httpOnly: true,
-		sameSite: 'lax',
+	// TODO: Use an in-memory ttl-cache to cache the User object for upto a minute
+	const user = await Container.get(UserRepository).findOne({
+		where: { id: jwtPayload.id },
 	});
+
+	// let passwordHash = null;
+	// if (user?.password) {
+	// 	passwordHash = hash(user.password);
+	// }
+
+	// // currently only LDAP users during synchronization
+	// // can be set to disabled
+	// if (user?.disabled) {
+	// 	throw new AuthError('Unauthorized');
+	// }
+
+	// if (!user || jwtPayload.password !== passwordHash || user.email !== jwtPayload.email) {
+	// 	// When owner hasn't been set up, the default user
+	// 	// won't have email nor password (both equals null)
+	// 	throw new ApplicationError('Invalid token content');
+	// }
+
+	// const jwtHashComputed = Container.get(AuthService).createJWTHash(user);
+
+	//// or, If the user has been deactivated (i.e. LDAP users)
+	//user.disabled ||
+	if (
+		// If not user is found
+		!user ||
+		// or, If the email or password has been updated
+		jwtPayload.email !== user.email
+	) {
+		throw new AuthError('Unauthorized');
+	}
+
+	// // Check if the token was issued for another browser session, ignoring the endpoints that can't send custom headers
+	// const endpoint = req.route ? `${req.baseUrl}${req.route.path}` : req.baseUrl;
+	// if (req.method === 'GET' && skipBrowserIdCheckEndpoints.includes(endpoint)) {
+	// 	this.logger.debug(`Skipped browserId check on ${endpoint}`);
+	// } else if (
+	// 	jwtPayload.browserId &&
+	// 	(!req.browserId || jwtPayload.browserId !== this.hash(req.browserId))
+	// ) {
+	// 	this.logger.warn(`browserId check failed on ${endpoint}`);
+	// 	throw new AuthError('Unauthorized');
+	// }
+
+	// if (jwtPayload.exp * 1000 - Date.now() < this.jwtRefreshTimeout) {
+	// 	this.logger.debug('JWT about to expire. Will be refreshed');
+	// 	this.issueCookie(res, user);
+	// }
+
+	return user;
 }

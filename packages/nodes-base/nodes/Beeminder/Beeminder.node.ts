@@ -1,22 +1,22 @@
-import type {
-	IExecuteFunctions,
-	IDataObject,
-	ILoadOptionsFunctions,
-	INodeExecutionData,
-	INodeParameters,
-	INodePropertyOptions,
-	INodeType,
-	INodeTypeDescription,
+import moment from 'moment-timezone';
+import {
+	type IExecuteFunctions,
+	type IDataObject,
+	type ILoadOptionsFunctions,
+	type INodeExecutionData,
+	type INodeParameters,
+	type INodePropertyOptions,
+	type INodeType,
+	type INodeTypeDescription,
+	NodeConnectionType,
 } from 'n8n-workflow';
 
-import moment from 'moment-timezone';
 import {
 	createDatapoint,
 	deleteDatapoint,
 	getAllDatapoints,
 	updateDatapoint,
 } from './Beeminder.node.functions';
-
 import { beeminderApiRequest } from './GenericFunctions';
 
 export class Beeminder implements INodeType {
@@ -32,8 +32,8 @@ export class Beeminder implements INodeType {
 		},
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
 		icon: 'file:beeminder.png',
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'beeminderApi',
@@ -103,7 +103,7 @@ export class Beeminder implements INodeType {
 				},
 				default: '',
 				description:
-					'The name of the goal. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+					'The name of the goal. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				required: true,
 			},
 			{

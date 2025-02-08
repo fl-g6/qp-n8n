@@ -1,9 +1,9 @@
 import type { IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { generatePairedItemData, updateDisplayOptions } from '@utils/utilities';
 import { createBinaryFromJson } from '@utils/binary';
 import { encodeDecodeOptions } from '@utils/descriptions';
+import { generatePairedItemData, updateDisplayOptions } from '@utils/utilities';
 
 export const properties: INodeProperties[] = [
 	{
@@ -36,7 +36,7 @@ export const properties: INodeProperties[] = [
 		displayName: 'Options',
 		name: 'options',
 		type: 'collection',
-		placeholder: 'Add Option',
+		placeholder: 'Add option',
 		default: {},
 		options: [
 			{
@@ -51,6 +51,13 @@ export const properties: INodeProperties[] = [
 						encoding: ['utf8', 'cesu8', 'ucs2'],
 					},
 				},
+			},
+			{
+				displayName: 'Format',
+				name: 'format',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to format the JSON data for easier reading',
 			},
 			{
 				displayName: 'Encoding',
@@ -98,6 +105,7 @@ export async function execute(this: IExecuteFunctions, items: INodeExecutionData
 					mimeType: 'application/json',
 					encoding: options.encoding as string,
 					addBOM: options.addBOM as boolean,
+					format: options.format as boolean,
 				},
 			);
 
@@ -131,6 +139,7 @@ export async function execute(this: IExecuteFunctions, items: INodeExecutionData
 					fileName: options.fileName as string,
 					encoding: options.encoding as string,
 					addBOM: options.addBOM as boolean,
+					format: options.format as boolean,
 					mimeType: 'application/json',
 					itemIndex: i,
 				});

@@ -5,10 +5,10 @@ import type { RouteLocationRaw, RouterLinkProps } from 'vue-router';
 export type IMenuItem = {
 	id: string;
 	label: string;
-	icon?: string;
+	icon?: string | { type: 'icon' | 'emoji'; value: string };
 	secondaryIcon?: {
 		name: string;
-		size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge';
+		size?: 'xsmall' | 'small' | 'medium' | 'large';
 		tooltip?: Partial<ElTooltipProps>;
 	};
 	customIconSize?: 'medium' | 'small';
@@ -27,6 +27,12 @@ export type IMenuItem = {
 	activateOnRoutePaths?: string[];
 
 	children?: IMenuItem[];
+	isLoading?: boolean;
+	disabled?: boolean;
+};
+
+export type IRouteMenuItemProperties = {
+	route: RouteLocationRaw;
 };
 
 export type IRouteMenuItemProperties = {

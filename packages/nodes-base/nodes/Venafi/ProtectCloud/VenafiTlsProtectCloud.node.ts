@@ -1,22 +1,15 @@
-import type {
-	IExecuteFunctions,
-	IDataObject,
-	ILoadOptionsFunctions,
-	INodeExecutionData,
-	INodePropertyOptions,
-	INodeType,
-	INodeTypeDescription,
+import {
+	type IExecuteFunctions,
+	type IDataObject,
+	type ILoadOptionsFunctions,
+	type INodeExecutionData,
+	type INodePropertyOptions,
+	type INodeType,
+	type INodeTypeDescription,
+	NodeConnectionType,
 } from 'n8n-workflow';
 
-import { encryptPassphrase, venafiApiRequest, venafiApiRequestAllItems } from './GenericFunctions';
-
 import { certificateFields, certificateOperations } from './CertificateDescription';
-
-import {
-	certificateRequestFields,
-	certificateRequestOperations,
-} from './CertificateRequestDescription';
-
 import type {
 	ICertficateKeystoreRequest,
 	ICertficateRequest,
@@ -24,6 +17,11 @@ import type {
 	IKeyTypeParameters,
 	ISubjectAltNamesByType,
 } from './CertificateInterface';
+import {
+	certificateRequestFields,
+	certificateRequestOperations,
+} from './CertificateRequestDescription';
+import { encryptPassphrase, venafiApiRequest, venafiApiRequestAllItems } from './GenericFunctions';
 
 export class VenafiTlsProtectCloud implements INodeType {
 	description: INodeTypeDescription = {
@@ -37,8 +35,8 @@ export class VenafiTlsProtectCloud implements INodeType {
 		defaults: {
 			name: 'Venafi TLS Protect Cloud',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'venafiTlsProtectCloudApi',
@@ -301,7 +299,6 @@ export class VenafiTlsProtectCloud implements INodeType {
 								`/outagedetection/v1/certificates/${certificateId}/contents`,
 								{},
 								qs,
-								undefined,
 								{ encoding: null, json: false, resolveWithFullResponse: true, cert: true },
 							);
 						} else {
@@ -342,7 +339,6 @@ export class VenafiTlsProtectCloud implements INodeType {
 								`/outagedetection/v1/certificates/${certificateId}/keystore`,
 								body,
 								{},
-								undefined,
 								{ encoding: null, json: false, resolveWithFullResponse: true },
 							);
 						}

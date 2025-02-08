@@ -1,3 +1,6 @@
+import FormData from 'form-data';
+import { isEmpty } from 'lodash';
+import { extension } from 'mime-types';
 import type {
 	IBinaryKeyData,
 	IDataObject,
@@ -6,9 +9,7 @@ import type {
 	INodeExecutionData,
 } from 'n8n-workflow';
 import { jsonParse, NodeOperationError } from 'n8n-workflow';
-import { isEmpty } from 'lodash';
-import FormData from 'form-data';
-import { extension } from 'mime-types';
+
 import { capitalize } from '../../../../utils/utilities';
 import { discordApiRequest } from '../transport';
 
@@ -114,9 +115,9 @@ export function prepareOptions(options: IDataObject, guildId?: string) {
 	return options;
 }
 
-export function prepareEmbeds(this: IExecuteFunctions, embeds: IDataObject[], i = 0) {
+export function prepareEmbeds(this: IExecuteFunctions, embeds: IDataObject[]) {
 	return embeds
-		.map((embed, index) => {
+		.map((embed) => {
 			let embedReturnData: IDataObject = {};
 
 			if (embed.inputMethod === 'json') {
@@ -261,7 +262,7 @@ export async function checkAccessToChannel(
 	if (!guildId) {
 		throw new NodeOperationError(
 			this.getNode(),
-			`Could not fing server for channel with the id ${channelId}`,
+			`Could not find server for channel with the id ${channelId}`,
 			{
 				itemIndex,
 			},

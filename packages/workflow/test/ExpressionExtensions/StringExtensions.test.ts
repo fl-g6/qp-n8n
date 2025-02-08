@@ -1,20 +1,41 @@
 /**
  * @jest-environment jsdom
  */
+import { DateTime } from 'luxon';
+
+import { ExpressionExtensionError } from '@/errors';
+
 import { evaluate } from './Helpers';
 
 describe('Data Transformation Functions', () => {
 	describe('String Data Transformation Functions', () => {
-		test('.isEmpty() should work correctly on a string that is not empty', () => {
-			expect(evaluate('={{"NotBlank".isEmpty()}}')).toEqual(false);
+		describe('.isEmpty', () => {
+			test('should work correctly on a string that is not empty', () => {
+				expect(evaluate('={{"NotBlank".isEmpty()}}')).toEqual(false);
+			});
+
+			test('should work correctly on a string that is empty', () => {
+				expect(evaluate('={{"".isEmpty()}}')).toEqual(true);
+			});
 		});
 
-		test('.isEmpty() should work correctly on a string that is empty', () => {
-			expect(evaluate('={{"".isEmpty()}}')).toEqual(true);
+		describe('.isNotEmpty', () => {
+			test('should work correctly on a string that is not empty', () => {
+				expect(evaluate('={{"NotBlank".isNotEmpty()}}')).toEqual(true);
+			});
+
+			test('should work correctly on a string that is empty', () => {
+				expect(evaluate('={{"".isNotEmpty()}}')).toEqual(false);
+			});
+		});
+
+		test('.length should return the string length', () => {
+			expect(evaluate('={{"String".length()}}')).toEqual(6);
 		});
 
 		describe('.hash()', () => {
 			test.each([
+				['base64', 'MTIzNDU='],
 				['md5', '827ccb0eea8a706c4c34a16891f84e7b'],
 				['sha1', '8cb2237d0679ca88db6464eac60da96345513964'],
 				['sha224', 'a7470858e79c282bc2f6adfd831b132672dfd1224c1e78cbf5bcd057'],
@@ -34,6 +55,10 @@ describe('Data Transformation Functions', () => {
 			])('should work for %p', (hashFn, hashValue) => {
 				expect(evaluate(`={{ "12345".hash("${hashFn}") }}`)).toEqual(hashValue);
 				expect(evaluate(`={{ "12345".hash("${hashFn.toLowerCase()}") }}`)).toEqual(hashValue);
+			});
+
+			test('should throw on invalid algorithm', () => {
+				expect(() => evaluate('={{ "12345".hash("invalid") }}')).toThrow('Unknown algorithm');
 			});
 		});
 
@@ -61,10 +86,18 @@ describe('Data Transformation Functions', () => {
 			expect(evaluate('={{ "TEST".toLowerCase() }}')).toEqual('test');
 		});
 
-		test('.toDate should work correctly on a date string', () => {
-			expect(evaluate('={{ "2022-09-01T19:42:28.164Z".toDate() }}')).toEqual(
-				new Date('2022-09-01T19:42:28.164Z'),
-			);
+		describe('.toDate', () => {
+			test('should work correctly on a date string', () => {
+				expect(evaluate('={{ "2022-09-01T19:42:28.164Z".toDate() }}')).toEqual(
+					new Date('2022-09-01T19:42:28.164Z'),
+				);
+			});
+
+			test('should throw on invalid date', () => {
+				expect(() => evaluate('={{ "2022-09-32T19:42:28.164Z".toDate() }}')).toThrow(
+					'cannot convert to date',
+				);
+			});
 		});
 
 		test('.toFloat should work correctly on a string', () => {
@@ -243,6 +276,58 @@ describe('Data Transformation Functions', () => {
 			expect(evaluate('={{ "test@example.com".isEmail() }}')).toEqual(true);
 			expect(evaluate('={{ "aaaaaaaa".isEmail() }}')).toEqual(false);
 			expect(evaluate('={{ "test @ n8n".isEmail() }}')).toEqual(false);
+		});
+
+		test('.toDateTime should work on a variety of formats', () => {
+			expect(evaluate('={{ "Wed, 21 Oct 2015 07:28:00 GMT".toDateTime() }}')).toBeInstanceOf(
+				DateTime,
+			);
+			expect(evaluate('={{ "2008-11-11".toDateTime() }}')).toBeInstanceOf(DateTime);
+			expect(evaluate('={{ "1-Feb-2024".toDateTime() }}')).toBeInstanceOf(DateTime);
+			expect(evaluate('={{ "1713976144063".toDateTime("ms") }}')).toBeInstanceOf(DateTime);
+			expect(evaluate('={{ "31-01-2024".toDateTime("dd-MM-yyyy") }}')).toBeInstanceOf(DateTime);
+
+			expect(() => evaluate('={{ "hi".toDateTime() }}')).toThrowError(
+				new ExpressionExtensionError('cannot convert to Luxon DateTime'),
+			);
+		});
+
+		test('.extractUrlPath should work on a string', () => {
+			expect(
+				evaluate('={{ "https://example.com/orders/1/detail#hash?foo=bar".extractUrlPath() }}'),
+			).toEqual('/orders/1/detail');
+			expect(evaluate('={{ "hi".extractUrlPath() }}')).toBeUndefined();
+		});
+
+		test('.parseJson should work on a string', () => {
+			expect(evaluate('={{ \'{"test1":1,"test2":"2"}\'.parseJson() }}')).toEqual({
+				test1: 1,
+				test2: '2',
+			});
+		});
+
+		test('.parseJson should throw on invalid JSON', () => {
+			expect(() => evaluate("={{ \"{'test1':1,'test2':'2'}\".parseJson() }}")).toThrowError(
+				"Parsing failed. Check you're using double quotes",
+			);
+			expect(() => evaluate('={{ "No JSON here".parseJson() }}')).toThrowError('Parsing failed');
+		});
+
+		test('.toBoolean should work on a string', () => {
+			expect(evaluate('={{ "False".toBoolean() }}')).toBe(false);
+			expect(evaluate('={{ "".toBoolean() }}')).toBe(false);
+			expect(evaluate('={{ "0".toBoolean() }}')).toBe(false);
+			expect(evaluate('={{ "no".toBoolean() }}')).toBe(false);
+			expect(evaluate('={{ "TRUE".toBoolean() }}')).toBe(true);
+			expect(evaluate('={{ "hello".toBoolean() }}')).toBe(true);
+		});
+
+		test('.base64Encode should work on a string', () => {
+			expect(evaluate('={{ "n8n test".base64Encode() }}')).toBe('bjhuIHRlc3Q=');
+		});
+
+		test('.base64Decode should work on a string', () => {
+			expect(evaluate('={{ "bjhuIHRlc3Q=".base64Decode() }}')).toBe('n8n test');
 		});
 	});
 });

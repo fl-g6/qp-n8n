@@ -1,4 +1,5 @@
 import type { Ref } from 'vue';
+
 import type { ChatMessage } from '@n8n/chat/types/messages';
 
 export interface Chat {
@@ -6,7 +7,7 @@ export interface Chat {
 	messages: Ref<ChatMessage[]>;
 	currentSessionId: Ref<string | null>;
 	waitingForResponse: Ref<boolean>;
-	loadPreviousSession: () => Promise<string | undefined>;
-	startNewSession: () => Promise<void>;
-	sendMessage: (text: string) => Promise<void>;
+	loadPreviousSession?: () => Promise<string | undefined>;
+	startNewSession?: () => Promise<void>;
+	sendMessage: (text: string, files: File[]) => Promise<void>;
 }

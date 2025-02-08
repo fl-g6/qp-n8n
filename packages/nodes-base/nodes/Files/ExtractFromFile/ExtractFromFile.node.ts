@@ -4,25 +4,26 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
+import { NodeConnectionType } from 'n8n-workflow';
 
-import * as spreadsheet from './actions/spreadsheet.operation';
 import * as moveTo from './actions/moveTo.operation';
 import * as pdf from './actions/pdf.operation';
+import * as spreadsheet from './actions/spreadsheet.operation';
 
 export class ExtractFromFile implements INodeType {
 	// eslint-disable-next-line n8n-nodes-base/node-class-description-missing-subtitle
 	description: INodeTypeDescription = {
-		displayName: 'Extract From File',
+		displayName: 'Extract from File',
 		name: 'extractFromFile',
-		icon: 'file:extractFromFile.svg',
+		icon: { light: 'file:extractFromFile.svg', dark: 'file:extractFromFile.dark.svg' },
 		group: ['input'],
 		version: 1,
 		description: 'Convert binary data to JSON',
 		defaults: {
-			name: 'Extract From File',
+			name: 'Extract from File',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		properties: [
 			{
 				displayName: 'Operation',
@@ -44,16 +45,16 @@ export class ExtractFromFile implements INodeType {
 						description: 'Transform a table in an HTML file into output items',
 					},
 					{
-						name: 'Extract From JSON',
-						value: 'fromJson',
-						action: 'Extract from JSON',
-						description: 'Transform a JSON file into output items',
-					},
-					{
 						name: 'Extract From ICS',
 						value: 'fromIcs',
 						action: 'Extract from ICS',
 						description: 'Transform a ICS file into output items',
+					},
+					{
+						name: 'Extract From JSON',
+						value: 'fromJson',
+						action: 'Extract from JSON',
+						description: 'Transform a JSON file into output items',
 					},
 					{
 						name: 'Extract From ODS',
@@ -82,7 +83,7 @@ export class ExtractFromFile implements INodeType {
 					{
 						name: 'Extract From XML',
 						value: 'xml',
-						action: 'Extract from XLS',
+						action: 'Extract from XML',
 						description: 'Extracts the content of an XML file',
 					},
 					{
