@@ -61,7 +61,7 @@ onMounted(() => {
 });
 </script>
 
-<!-- Disabled logo, as it will be introduced as part of vc-n8n-app
+<!-- Disabled logo, as it will be introduced as part of vc-n8n-app -->
 <template>
 	<div :class="containerClasses" data-test-id="n8n-logo">
 		<LogoIcon :class="$style.logo" ref="logo" />
@@ -72,7 +72,7 @@ onMounted(() => {
 		<slot />
 	</div>
 </template>
--->
+
 <style lang="scss" module>
 .logoContainer {
 	display: flex;
