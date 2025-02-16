@@ -3,8 +3,8 @@ import type { FrontendSettings } from '@n8n/api-types';
 import { computed, onMounted, useCssModule, useTemplateRef } from 'vue';
 import { useFavicon } from '@vueuse/core';
 
-import LogoIcon from './logo-icon.svg';
-import LogoText from './logo-text.svg';
+import LogoIcon from './qp-logo-icon.svg';
+import LogoText from './qp-logo-text.svg';
 
 const props = defineProps<
 	(
@@ -61,7 +61,7 @@ onMounted(() => {
 });
 </script>
 
-<!-- Disabled logo, as it will be introduced as part of vc-n8n-app
+<!-- Disabled logo, as it will be introduced as part of vc-n8n-app -->
 <template>
 	<div :class="containerClasses" data-test-id="n8n-logo">
 		<LogoIcon :class="$style.logo" ref="logo" />
@@ -72,7 +72,7 @@ onMounted(() => {
 		<slot />
 	</div>
 </template>
--->
+
 <style lang="scss" module>
 .logoContainer {
 	display: flex;
