@@ -691,7 +691,7 @@ function showCreateWorkflowSuccessToast(id?: string) {
 					:workflow-permissions="workflowPermissions"
 				/>
 			</span>
-			<EnterpriseEdition :features="[EnterpriseEditionFeature.Sharing]">
+			<!-- <EnterpriseEdition :features="[EnterpriseEditionFeature.Sharing]">
 				<div :class="$style.group">
 					<CollaborationPane v-if="!isNewWorkflow" />
 					<N8nButton
@@ -729,7 +729,7 @@ function showCreateWorkflowSuccessToast(id?: string) {
 						</template>
 					</N8nTooltip>
 				</template>
-			</EnterpriseEdition>
+			</EnterpriseEdition> -->
 			<div :class="$style.group">
 				<SaveButton
 					type="primary"
@@ -743,12 +743,12 @@ function showCreateWorkflowSuccessToast(id?: string) {
 					data-test-id="workflow-save-button"
 					@click="onSaveButtonClick"
 				/>
-				<WorkflowHistoryButton
+				<!-- <WorkflowHistoryButton
 					:workflow-id="props.id"
 					:is-feature-enabled="isWorkflowHistoryFeatureEnabled"
 					:is-new-workflow="isNewWorkflow"
 					@upgrade="goToWorkflowHistoryUpgrade"
-				/>
+				/> -->
 			</div>
 			<div :class="[$style.workflowMenuContainer, $style.group]">
 				<input
@@ -830,18 +830,23 @@ $--header-spacing: 20px;
 .tags {
 	display: flex;
 	align-items: center;
-	width: 100%;
+	width: 40%;
+	flex: 0 0 40%;
 	flex: 1;
 	margin-right: $--header-spacing;
+	overflow: hidden;
+	white-space: nowrap;
 }
 
 .tags-edit {
-	min-width: 100px;
-	width: 100%;
-	max-width: 460px;
+	min-width: 75px;
+	width: 40%;
+	max-width: 250px;
 }
 
 .actions {
+	position: absolute;
+	left: 65%;
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-m);
