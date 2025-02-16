@@ -69,6 +69,22 @@ const userMenuItems = ref([
 
 const mainMenuItems = computed(() => [
 	{
+		id: 'credentials',
+		position: 'top',
+		label: 'Credentials',
+		icon: 'key',
+		route: { to: { name: VIEWS.CREDENTIALS } },
+		available: hasPermission(['authenticated']),
+	},
+	{
+		id: 'executions',
+		position: 'top',
+		label: 'Executions',
+		icon: 'tasks',
+		route: { to: { name: VIEWS.EXECUTIONS } },
+		available: hasPermission(['authenticated']),
+	},
+	{
 		id: 'cloud-admin',
 		position: 'bottom',
 		label: 'Admin Panel',
@@ -183,6 +199,12 @@ const openUpdatesPanel = () => {
 
 const handleSelect = (key: string) => {
 	switch (key) {
+		case 'credentials':
+			void router.push({ name: VIEWS.CREDENTIALS });
+			break;
+		case 'executions':
+			void router.push({ name: VIEWS.EXECUTIONS });
+			break;
 		case 'templates':
 			if (settingsStore.isTemplatesEnabled && !templatesStore.hasCustomTemplatesHost) {
 				trackTemplatesClick();
@@ -428,7 +450,7 @@ onClickOutside(createBtn as Ref<VueInstance>, () => {
 
 	&.sideMenuCollapsed {
 		width: $sidebar-width;
-		padding-top: 100px;
+		padding-top: 105px;
 
 		.logo {
 			flex-direction: column;

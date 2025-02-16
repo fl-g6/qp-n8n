@@ -36,9 +36,46 @@ To update from upstream tag:
 git fetch upstream --tags
 git checkout master
 git pull
-git checkout upgrade/n8n-v1.74.1
-git merge tags/n8n@1.74.1
+git checkout feature/VE-11060
+git merge tags/n8n@1.79.1
 ```
+
+Resolving Merge conflicts:
+
+git merge tags/n8n@1.79.1
+Auto-merging CHANGELOG.md
+CONFLICT (content): Merge conflict in CHANGELOG.md
+Auto-merging package.json
+CONFLICT (content): Merge conflict in package.json
+Auto-merging packages/@n8n/nodes-langchain/nodes/vector_store/VectorStorePGVector/VectorStorePGVector.node.ts
+Auto-merging packages/@n8n/nodes-langchain/package.json
+CONFLICT (content): Merge conflict in packages/@n8n/nodes-langchain/package.json
+Auto-merging packages/cli/package.json
+CONFLICT (content): Merge conflict in packages/cli/package.json
+Auto-merging packages/cli/src/controllers/users.controller.ts
+Auto-merging packages/cli/src/requests.ts
+Auto-merging packages/cli/src/server.ts
+Auto-merging packages/core/src/constants.ts
+CONFLICT (content): Merge conflict in packages/core/src/constants.ts
+Auto-merging packages/editor-ui/package.json
+CONFLICT (content): Merge conflict in packages/editor-ui/package.json
+Auto-merging packages/editor-ui/src/__tests__/setup.ts
+Auto-merging packages/editor-ui/src/components/MainHeader/WorkflowDetails.vue
+Auto-merging packages/editor-ui/src/composables/useCodeEditor.ts
+CONFLICT (content): Merge conflict in packages/editor-ui/src/composables/useCodeEditor.ts
+Auto-merging packages/editor-ui/src/plugins/i18n/locales/en.json
+Auto-merging packages/nodes-base/nodes/Postgres/v2/actions/router.ts
+Auto-merging packages/nodes-base/package.json
+CONFLICT (content): Merge conflict in packages/nodes-base/package.json
+Auto-merging packages/nodes-base/utils/workflowInputsResourceMapping/GenericFunctions.ts
+Auto-merging packages/workflow/test/AugmentObject.test.ts
+Auto-merging packages/workflow/test/NodeTypes.ts
+Auto-merging packages/workflow/test/TelemetryHelpers.test.ts
+CONFLICT (content): Merge conflict in packages/workflow/test/TelemetryHelpers.test.ts
+Auto-merging packages/workflow/test/WorkflowDataProxy.test.ts
+Auto-merging pnpm-lock.yaml
+CONFLICT (content): Merge conflict in pnpm-lock.yaml
+Automatic merge failed; fix conflicts and then commit the result.
 
 Resolving merge conflicts:
 - To find all merge conflicts, search for ">>>>>>> n8n@1.74.1" in all files.

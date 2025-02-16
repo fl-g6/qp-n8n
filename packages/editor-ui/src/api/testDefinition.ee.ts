@@ -43,12 +43,15 @@ export interface UpdateTestResponse {
 export interface TestRunRecord {
 	id: string;
 	testDefinitionId: string;
-	status: 'new' | 'running' | 'completed' | 'error' | 'cancelled';
+	status: 'new' | 'running' | 'completed' | 'error' | 'cancelled' | 'warning' | 'success';
 	metrics?: Record<string, number>;
 	createdAt: string;
 	updatedAt: string;
 	runAt: string;
 	completedAt: string;
+	errorCode?: string;
+	errorDetails?: Record<string, unknown>;
+	finalResult?: 'success' | 'error' | 'warning';
 }
 
 interface GetTestRunParams {
@@ -59,6 +62,21 @@ interface GetTestRunParams {
 interface DeleteTestRunParams {
 	testDefinitionId: string;
 	runId: string;
+}
+
+export interface TestCaseExecutionRecord {
+	id: string;
+	testRunId: string;
+	executionId: string;
+	pastExecutionId: string;
+	evaluationExecutionId: string;
+	status: 'running' | 'completed' | 'error';
+	createdAt: string;
+	updatedAt: string;
+	runAt: string;
+	metrics?: Record<string, number>;
+	errorCode?: string;
+	errorDetails?: Record<string, unknown>;
 }
 
 const endpoint = '/evaluation/test-definitions';
@@ -242,5 +260,21 @@ export const deleteTestRun = async (context: IRestApiContext, params: DeleteTest
 		context,
 		'DELETE',
 		getRunsEndpoint(params.testDefinitionId, params.runId),
+	);
+};
+
+const getRunExecutionsEndpoint = (testDefinitionId: string, runId: string) =>
+	`${endpoint}/${testDefinitionId}/runs/${runId}/cases`;
+
+// Get all test cases of a test run
+export const getTestCaseExecutions = async (
+	context: IRestApiContext,
+	testDefinitionId: string,
+	runId: string,
+) => {
+	return await makeRestApiRequest<TestCaseExecutionRecord[]>(
+		context,
+		'GET',
+		getRunExecutionsEndpoint(testDefinitionId, runId),
 	);
 };
