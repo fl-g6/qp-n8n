@@ -281,12 +281,12 @@ export function useCanvasOperations({ router }: { router: ReturnType<typeof useR
 								{
 									node: incomingConnection.node,
 									type,
-									index: 0,
+									index: incomingConnection.index,
 								},
 								{
 									node: outgoingConnection.node,
 									type,
-									index: 0,
+									index: outgoingConnection.index,
 								},
 							]),
 						);
@@ -297,11 +297,13 @@ export function useCanvasOperations({ router }: { router: ReturnType<typeof useR
 						sourceHandle: createCanvasConnectionHandleString({
 							mode: CanvasConnectionMode.Output,
 							type,
+							index: incomingConnection.index,
 						}),
 						target: outgoingNodeId,
 						targetHandle: createCanvasConnectionHandleString({
 							mode: CanvasConnectionMode.Input,
 							type,
+							index: outgoingConnection.index,
 						}),
 					});
 				}
@@ -741,6 +743,7 @@ export function useCanvasOperations({ router }: { router: ReturnType<typeof useR
 
 	function trackAddDefaultNode(nodeData: INodeUi, options: AddNodeOptions) {
 		nodeCreatorStore.onNodeAddedToCanvas({
+			node_id: nodeData.id,
 			node_type: nodeData.type,
 			node_version: nodeData.typeVersion,
 			is_auto_add: options.isAutoAdd,
@@ -1933,6 +1936,20 @@ export function useCanvasOperations({ router }: { router: ReturnType<typeof useR
 		return data;
 	}
 
+	async function toggleChatOpen(source: 'node' | 'main') {
+		const workflow = workflowsStore.getCurrentWorkflow();
+
+		workflowsStore.setPanelOpen('chat', !workflowsStore.isChatPanelOpen);
+
+		const payload = {
+			workflow_id: workflow.id,
+			button_type: source,
+		};
+
+		void externalHooks.run('nodeView.onOpenChat', payload);
+		telemetry.track('User clicked chat open button', payload);
+	}
+
 	return {
 		lastClickPosition,
 		editableWorkflow,
@@ -1972,11 +1989,13 @@ export function useCanvasOperations({ router }: { router: ReturnType<typeof useR
 		revalidateNodeOutputConnections,
 		isConnectionAllowed,
 		filterConnectionsByNodes,
+		connectAdjacentNodes,
 		importWorkflowData,
 		fetchWorkflowDataFromUrl,
 		resetWorkspace,
 		initializeWorkspace,
 		resolveNodeWebhook,
 		openExecution,
+		toggleChatOpen,
 	};
 }

@@ -5,9 +5,9 @@ import type {
 	IRunData,
 	StartNodeData,
 	ITaskData,
+	IWorkflowBase,
 } from 'n8n-workflow';
 
-import type { IWorkflowDb } from '@/interfaces';
 import type { AuthenticatedRequest, ListQuery } from '@/requests';
 
 export declare namespace WorkflowRequest {
@@ -25,7 +25,7 @@ export declare namespace WorkflowRequest {
 	}>;
 
 	type ManualRunPayload = {
-		workflowData: IWorkflowDb;
+		workflowData: IWorkflowBase;
 		runData: IRunData;
 		startNodes?: StartNodeData[];
 		destinationNode?: string;
@@ -55,12 +55,7 @@ export declare namespace WorkflowRequest {
 
 	type NewName = AuthenticatedRequest<{}, {}, {}, { name?: string }>;
 
-	type ManualRun = AuthenticatedRequest<
-		{ workflowId: string },
-		{},
-		ManualRunPayload,
-		{ partialExecutionVersion?: string }
-	>;
+	type ManualRun = AuthenticatedRequest<{ workflowId: string }, {}, ManualRunPayload, {}>;
 
 	type Share = AuthenticatedRequest<{ workflowId: string }, {}, { shareWithIds: string[] }>;
 

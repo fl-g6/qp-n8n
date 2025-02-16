@@ -488,7 +488,7 @@ export class UsersController {
 		}
 
 		for (const credential of ownedCredentials) {
-			await this.credentialsService.delete(credential);
+			await this.credentialsService.delete(userToDelete, credential.id);
 		}
 
 		await this.userService.getManager().transaction(async (trx) => {
