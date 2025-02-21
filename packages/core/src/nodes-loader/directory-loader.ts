@@ -366,6 +366,14 @@ export abstract class DirectoryLoader {
 	}
 
 	private getIconPath(icon: string, filePath: string) {
+		// For custom nodes, strip the base path to make it relative
+		if (this.packageName === 'CUSTOM') {
+			const relativePath = path.relative(this.directory, filePath);
+			const iconPath = path.join(path.dirname(relativePath), icon.replace('file:', ''));
+			return `icons/${this.packageName}/${iconPath}`;
+		}
+
+		// Original behavior for non-custom nodes
 		const iconPath = path.join(path.dirname(filePath), icon.replace('file:', ''));
 		return `icons/${this.packageName}/${iconPath}`;
 	}
