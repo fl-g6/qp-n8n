@@ -37,7 +37,7 @@ git fetch upstream --tags
 git checkout master
 git pull
 git checkout feature/VE-11060
-git merge tags/n8n@1.79.1
+git merge tags/n8n@1.79.3
 ```
 
 Resolving Merge conflicts:
