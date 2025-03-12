@@ -37,7 +37,6 @@ import type {
 	CloseFunction,
 	StartNodeData,
 	NodeExecutionHint,
-	NodeInputConnections,
 	IRunNodeResponse,
 	IWorkflowIssues,
 	INodeIssues,
@@ -353,16 +352,52 @@ export class WorkflowExecute {
 			`Could not find a node with the name ${destinationNodeName} in the workflow.`,
 		);
 
+		let graph = DirectedGraph.fromWorkflow(workflow);
+
+		// Edge Case 1:
+		// Support executing a single node that is not connected to a trigger
+		const destinationHasNoParents = graph.getDirectParentConnections(destination).length === 0;
+		if (destinationHasNoParents) {
+			// short cut here, only create a subgraph and the stacks
+			graph = findSubgraph({
+				graph: filterDisabledNodes(graph),
+				destination,
+				trigger: destination,
+			});
+			const filteredNodes = graph.getNodes();
+			runData = cleanRunData(runData, graph, new Set([destination]));
+			const { nodeExecutionStack, waitingExecution, waitingExecutionSource } =
+				recreateNodeExecutionStack(graph, new Set([destination]), runData, pinData ?? {});
+
+			this.status = 'running';
+			this.runExecutionData = {
+				startData: {
+					destinationNode: destinationNodeName,
+					runNodeFilter: Array.from(filteredNodes.values()).map((node) => node.name),
+				},
+				resultData: {
+					runData,
+					pinData,
+				},
+				executionData: {
+					contextData: {},
+					nodeExecutionStack,
+					metadata: {},
+					waitingExecution,
+					waitingExecutionSource,
+				},
+			};
+
+			return this.processRunExecutionData(graph.toWorkflow({ ...workflow }));
+		}
+
 		// 1. Find the Trigger
 		const trigger = findTriggerForPartialExecution(workflow, destinationNodeName);
 		if (trigger === undefined) {
-			throw new ApplicationError(
-				'The destination node is not connected to any trigger. Partial executions need a trigger.',
-			);
+			throw new ApplicationError('Connect a trigger to run this node');
 		}
 
 		// 2. Find the Subgraph
-		let graph = DirectedGraph.fromWorkflow(workflow);
 		graph = findSubgraph({ graph: filterDisabledNodes(graph), destination, trigger });
 		const filteredNodes = graph.getNodes();
 
@@ -379,7 +414,7 @@ export class WorkflowExecute {
 
 		// 7. Recreate Execution Stack
 		const { nodeExecutionStack, waitingExecution, waitingExecutionSource } =
-			recreateNodeExecutionStack(graph, new Set(startNodes), runData, pinData ?? {});
+			recreateNodeExecutionStack(graph, startNodes, runData, pinData ?? {});
 
 		// 8. Execute
 		this.status = 'running';
@@ -425,10 +460,15 @@ export class WorkflowExecute {
 			let metaRunData: ITaskMetadata;
 			for (const nodeName of Object.keys(metadata)) {
 				for ([index, metaRunData] of metadata[nodeName].entries()) {
-					runData[nodeName][index].metadata = {
-						...(runData[nodeName][index].metadata ?? {}),
-						...metaRunData,
-					};
+					const taskData = runData[nodeName]?.[index];
+					if (taskData) {
+						taskData.metadata = { ...taskData.metadata, ...metaRunData };
+					} else {
+						Container.get(ErrorReporter).error(
+							new ApplicationError('Taskdata missing at the end of an execution'),
+							{ extra: { nodeName, index } },
+						);
+					}
 				}
 			}
 		}
@@ -1375,59 +1415,10 @@ export class WorkflowExecute {
 						continue;
 					}
 
-					// Check if all the data which is needed to run the node is available
-					if (workflow.connectionsByDestinationNode.hasOwnProperty(executionNode.name)) {
-						// Check if the node has incoming connections
-						if (workflow.connectionsByDestinationNode[executionNode.name].hasOwnProperty('main')) {
-							let inputConnections: NodeInputConnections;
-							let connectionIndex: number;
-
-							// eslint-disable-next-line prefer-const
-							inputConnections = workflow.connectionsByDestinationNode[executionNode.name].main;
-
-							for (
-								connectionIndex = 0;
-								connectionIndex < inputConnections.length;
-								connectionIndex++
-							) {
-								if (
-									workflow.getHighestNode(
-										executionNode.name,
-										NodeConnectionType.Main,
-										connectionIndex,
-									).length === 0
-								) {
-									// If there is no valid incoming node (if all are disabled)
-									// then ignore that it has inputs and simply execute it as it is without
-									// any data
-									continue;
-								}
-
-								if (!executionData.data.hasOwnProperty('main')) {
-									// ExecutionData does not even have the connection set up so can
-									// not have that data, so add it again to be executed later
-									this.runExecutionData.executionData!.nodeExecutionStack.push(executionData);
-									lastExecutionTry = currentExecutionTry;
-									continue executionLoop;
-								}
-
-								if (forceInputNodeExecution) {
-									// Check if it has the data for all the inputs
-									// The most nodes just have one but merge node for example has two and data
-									// of both inputs has to be available to be able to process the node.
-									if (
-										executionData.data.main.length < connectionIndex ||
-										executionData.data.main[connectionIndex] === null
-									) {
-										// Does not have the data of the connections so add back to stack
-										this.runExecutionData.executionData!.nodeExecutionStack.push(executionData);
-										lastExecutionTry = currentExecutionTry;
-
-										continue executionLoop;
-									}
-								}
-							}
-						}
+					const hasInputData = this.ensureInputData(workflow, executionNode, executionData);
+					if (!hasInputData) {
+						lastExecutionTry = currentExecutionTry;
+						continue executionLoop;
 					}
 
 					startTime = new Date().getTime();
@@ -2037,6 +2028,50 @@ export class WorkflowExecute {
 
 			return await returnPromise.then(resolve);
 		});
+	}
+
+	/**
+	 * This method determines if a specific node has incoming connections and verifies if execution data is available for all required inputs.
+	 * If any required input data is missing, the node execution is deferred by pushing it back onto the execution stack.
+	 *
+	 * @param workflow - The workflow containing the node and connections.
+	 * @param executionNode - The node being checked.
+	 * @param executionData - The data available for executing the node.
+	 * @returns `true` if the node has the required input data and can execute immediately, otherwise `false`.
+	 */
+	ensureInputData(workflow: Workflow, executionNode: INode, executionData: IExecuteData): boolean {
+		const inputConnections = workflow.connectionsByDestinationNode[executionNode.name]?.main ?? [];
+		for (let connectionIndex = 0; connectionIndex < inputConnections.length; connectionIndex++) {
+			const highestNodes = workflow.getHighestNode(executionNode.name, connectionIndex);
+			if (highestNodes.length === 0) {
+				// If there is no valid incoming node (if all are disabled)
+				// then ignore that it has inputs and simply execute it as it is without
+				// any data
+				return true;
+			}
+
+			if (!executionData.data.hasOwnProperty('main')) {
+				// ExecutionData does not even have the connection set up so can
+				// not have that data, so add it again to be executed later
+				this.runExecutionData.executionData!.nodeExecutionStack.push(executionData);
+				return false;
+			}
+
+			if (this.forceInputNodeExecution(workflow)) {
+				// Check if it has the data for all the inputs
+				// The most nodes just have one but merge node for example has two and data
+				// of both inputs has to be available to be able to process the node.
+				if (
+					executionData.data.main.length < connectionIndex ||
+					executionData.data.main[connectionIndex] === null
+				) {
+					// Does not have the data of the connections so add back to stack
+					this.runExecutionData.executionData!.nodeExecutionStack.push(executionData);
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	/**
