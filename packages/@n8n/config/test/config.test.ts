@@ -173,6 +173,7 @@ describe('GlobalConfig', () => {
 				includeApiStatusCodeLabel: false,
 				includeQueueMetrics: false,
 				queueMetricsInterval: 20,
+				activeWorkflowCountInterval: 60,
 			},
 			additionalNonUIRoutes: '',
 			disableProductionWebhooksOnMainProcess: false,
@@ -242,7 +243,6 @@ describe('GlobalConfig', () => {
 		sentry: {
 			backendDsn: '',
 			frontendDsn: '',
-			n8nVersion: '',
 			environment: '',
 			deploymentName: '',
 		},
@@ -394,17 +394,6 @@ describe('GlobalConfig', () => {
 		expect(config.database.logging.maxQueryExecutionTime).toEqual(0);
 		expect(consoleWarnMock).toHaveBeenCalledWith(
 			'Invalid number value for DB_LOGGING_MAX_EXECUTION_TIME: abcd',
-		);
-	});
-
-	it('should handle invalid timestamps', () => {
-		process.env = {
-			N8N_RELEASE_DATE: 'abcd',
-		};
-		const config = Container.get(GlobalConfig);
-		expect(config.generic.releaseDate).toBeUndefined();
-		expect(consoleWarnMock).toHaveBeenCalledWith(
-			'Invalid timestamp value for N8N_RELEASE_DATE: abcd',
 		);
 	});
 });

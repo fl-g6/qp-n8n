@@ -337,10 +337,6 @@ export class License {
 		return this.getFeatureValue(LICENSE_QUOTAS.USERS_LIMIT) ?? UNLIMITED_LICENSE_QUOTA;
 	}
 
-	getApiKeysPerUserLimit() {
-		return this.getFeatureValue(LICENSE_QUOTAS.API_KEYS_PER_USER_LIMIT) ?? 1;
-	}
-
 	getTriggerLimit() {
 		return this.getFeatureValue(LICENSE_QUOTAS.TRIGGER_LIMIT) ?? UNLIMITED_LICENSE_QUOTA;
 	}
@@ -379,12 +375,36 @@ export class License {
 		return this.getUsersLimit() === UNLIMITED_LICENSE_QUOTA;
 	}
 
-	async reinit() {
-		if (this.manager) {
-			await this.manager.reset();
+	/**
+	 * Ensures that the instance is licensed for multi-main setup if multi-main mode is enabled
+	 */
+	private checkIsLicensedForMultiMain(features: TFeatures) {
+		const isMultiMainEnabled =
+			config.getEnv('executions.mode') === 'queue' && this.globalConfig.multiMainSetup.enabled;
+		if (!isMultiMainEnabled) {
+			return;
 		}
-		await this.init({ forceRecreate: true });
-		this.logger.debug('License reinitialized');
+
+		const isMultiMainLicensed =
+			(features[LICENSE_FEATURES.MULTIPLE_MAIN_INSTANCES] as boolean | undefined) ?? false;
+
+		this.instanceSettings.setMultiMainLicensed(isMultiMainLicensed);
+
+		if (!isMultiMainLicensed) {
+			this.logger
+				.scoped(['scaling', 'multi-main-setup', 'license'])
+				.debug(
+					'License changed with no support for multi-main setup - no new followers will be allowed to init. To restore multi-main setup, please upgrade to a license that supports this feature.',
+				);
+		}
+	}
+
+	enableAutoRenewals() {
+		this.manager?.enableAutoRenewals();
+	}
+
+	disableAutoRenewals() {
+		this.manager?.disableAutoRenewals();
 	}
 
 	/**

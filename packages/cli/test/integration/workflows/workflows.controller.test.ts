@@ -378,6 +378,115 @@ describe('POST /workflows', () => {
 				message: "You don't have the permissions to save the workflow in this project.",
 			});
 	});
+
+	test('create link workflow with folder if one is provided', async () => {
+		//
+		// ARRANGE
+		//
+		const personalProject = await projectRepository.getPersonalProjectForUserOrFail(owner.id);
+		const folder = await createFolder(personalProject, { name: 'Folder 1' });
+
+		const workflow = makeWorkflow();
+
+		//
+		// ACT
+		//
+		const response = await authOwnerAgent
+			.post('/workflows')
+			.send({ ...workflow, parentFolderId: folder.id });
+
+		//
+		// ASSERT
+		//
+
+		expect(response.body.data).toMatchObject({
+			active: false,
+			id: expect.any(String),
+			name: workflow.name,
+			sharedWithProjects: [],
+			usedCredentials: [],
+			homeProject: {
+				id: personalProject.id,
+				name: personalProject.name,
+				type: personalProject.type,
+			},
+			parentFolder: {
+				id: folder.id,
+				name: folder.name,
+			},
+		});
+		expect(response.body.data.shared).toBeUndefined();
+	});
+
+	test('create workflow without parent folder if no folder is provided', async () => {
+		//
+		// ARRANGE
+		//
+		const personalProject = await projectRepository.getPersonalProjectForUserOrFail(owner.id);
+		const workflow = makeWorkflow();
+
+		//
+		// ACT
+		//
+		const response = await authOwnerAgent
+			.post('/workflows')
+			.send({ ...workflow })
+			.expect(200);
+
+		//
+		// ASSERT
+		//
+
+		expect(response.body.data).toMatchObject({
+			active: false,
+			id: expect.any(String),
+			name: workflow.name,
+			sharedWithProjects: [],
+			usedCredentials: [],
+			homeProject: {
+				id: personalProject.id,
+				name: personalProject.name,
+				type: personalProject.type,
+			},
+			parentFolder: null,
+		});
+		expect(response.body.data.shared).toBeUndefined();
+	});
+
+	test('create workflow without parent is provided folder does not exist in the project', async () => {
+		//
+		// ARRANGE
+		//
+		const personalProject = await projectRepository.getPersonalProjectForUserOrFail(owner.id);
+		const workflow = makeWorkflow();
+
+		//
+		// ACT
+		//
+		const response = await authOwnerAgent
+			.post('/workflows')
+			.send({ ...workflow, parentFolderId: 'non-existing-folder-id' })
+			.expect(200);
+
+		//
+		// ASSERT
+		//
+
+		expect(response.body.data).toMatchObject({
+			active: false,
+			id: expect.any(String),
+			name: workflow.name,
+			sharedWithProjects: [],
+			usedCredentials: [],
+			homeProject: {
+				id: personalProject.id,
+				name: personalProject.name,
+				type: personalProject.type,
+			},
+			parentFolder: null,
+		});
+		expect(response.body.data.shared).toBeUndefined();
+	});
 });
 
 describe('GET /workflows/:workflowId', () => {
@@ -1210,7 +1319,7 @@ describe('GET /workflows?includeFolders=true', () => {
 						type: ownerPersonalProject.type,
 					},
 					parentFolder: null,
-					workflowsCount: 0,
+					workflowCount: 0,
 				}),
 			]),
 		});
