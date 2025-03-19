@@ -406,28 +406,4 @@ export class License {
 	disableAutoRenewals() {
 		this.manager?.disableAutoRenewals();
 	}
-
-	/**
-	 * Ensures that the instance is licensed for multi-main setup if multi-main mode is enabled
-	 */
-	private checkIsLicensedForMultiMain(features: TFeatures) {
-		const isMultiMainEnabled =
-			config.getEnv('executions.mode') === 'queue' && this.globalConfig.multiMainSetup.enabled;
-		if (!isMultiMainEnabled) {
-			return;
-		}
-
-		const isMultiMainLicensed =
-			(features[LICENSE_FEATURES.MULTIPLE_MAIN_INSTANCES] as boolean | undefined) ?? false;
-
-		this.instanceSettings.setMultiMainLicensed(isMultiMainLicensed);
-
-		if (!isMultiMainLicensed) {
-			this.logger
-				.scoped(['scaling', 'multi-main-setup', 'license'])
-				.debug(
-					'License changed with no support for multi-main setup - no new followers will be allowed to init. To restore multi-main setup, please upgrade to a license that supports this feature.',
-				);
-		}
-	}
 }

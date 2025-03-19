@@ -15,7 +15,6 @@ import { useWorkflowsStore } from '@/stores/workflows.store';
 import { useTestDefinitionStore } from '@/stores/testDefinition.store.ee';
 import { getResourcePermissions } from '@/permissions';
 import { useSettingsStore } from '@/stores/settings.store';
-import type { ButtonType } from 'n8n-design-system';
 import type { ButtonType } from '@n8n/design-system';
 import { useExecutionsStore } from '@/stores/executions.store';
 import ProjectCreateResource from '@/components/Projects/ProjectCreateResource.vue';
