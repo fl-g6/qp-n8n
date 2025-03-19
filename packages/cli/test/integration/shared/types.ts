@@ -44,6 +44,7 @@ type EndpointGroup =
 	| 'apiKeys'
 	| 'evaluation'
 	| 'ai'
+	| 'folder'
 	| 'quickplay';
 
 export interface SetupProps {
