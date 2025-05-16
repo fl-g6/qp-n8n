@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { User } from '@n8n/db';
 import { Service } from '@n8n/di';
 import get from 'lodash/get';
 import {
@@ -32,10 +33,9 @@ import type {
 	IDataObject,
 	IExecuteData,
 } from 'n8n-workflow';
-import { VersionedNodeType, NodeHelpers, Workflow, ApplicationError } from 'n8n-workflow';
+import { VersionedNodeType, NodeHelpers, Workflow, UnexpectedError } from 'n8n-workflow';
 
 import { CredentialTypes } from '@/credential-types';
-import type { User } from '@/databases/entities/user';
 import { NodeTypes } from '@/node-types';
 import * as WorkflowExecuteAdditionalData from '@/workflow-execute-additional-data';
 
@@ -62,7 +62,7 @@ const mockNodeTypes: INodeTypes = {
 	},
 	getByNameAndVersion(nodeType: string, version?: number): INodeType {
 		if (!mockNodesData[nodeType]) {
-			throw new ApplicationError(RESPONSE_ERROR_MESSAGES.NO_NODE, {
+			throw new UnexpectedError(RESPONSE_ERROR_MESSAGES.NO_NODE, {
 				tags: { nodeType },
 			});
 		}
@@ -187,14 +187,14 @@ export class CredentialsTester {
 		if (credentialsDecrypted.data) {
 			try {
 				const additionalData = await WorkflowExecuteAdditionalData.getBase(userId);
-				credentialsDecrypted.data = this.credentialsHelper.applyDefaultsAndOverwrites(
+				credentialsDecrypted.data = await this.credentialsHelper.applyDefaultsAndOverwrites(
 					additionalData,
 					credentialsDecrypted.data,
+					credentialsDecrypted,
 					credentialType,
 					'internal' as WorkflowExecuteMode,
 					undefined,
 					undefined,
-					await this.credentialsHelper.credentialCanUseExternalSecrets(credentialsDecrypted),
 				);
 			} catch (error) {
 				this.logger.debug('Credential test failed', error);

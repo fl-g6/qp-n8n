@@ -22,6 +22,7 @@ export declare namespace WorkflowRequest {
 		hash: string;
 		meta: Record<string, unknown>;
 		projectId: string;
+		parentFolderId?: string;
 	}>;
 
 	type ManualRunPayload = {
@@ -44,7 +45,11 @@ export declare namespace WorkflowRequest {
 		{},
 		{},
 		{},
-		ListQuery.Params & { includeScopes?: string; includeFolders?: string }
+		ListQuery.Params & {
+			includeScopes?: string;
+			includeFolders?: string;
+			onlySharedWithMe?: string;
+		}
 	> & {
 		listQueryOptions: ListQuery.Options;
 	};

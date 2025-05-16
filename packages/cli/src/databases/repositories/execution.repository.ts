@@ -1,4 +1,22 @@
 import { GlobalConfig } from '@n8n/config';
+import type {
+	CreateExecutionPayload,
+	IExecutionFlattedDb,
+	IExecutionBase,
+	IExecutionResponse,
+	ExecutionSummaries,
+} from '@n8n/db';
+import {
+	separate,
+	SharedWorkflow,
+	WorkflowEntity,
+	AnnotationTagEntity,
+	AnnotationTagMapping,
+	ExecutionData,
+	ExecutionEntity,
+	ExecutionAnnotation,
+	ExecutionMetadata,
+} from '@n8n/db';
 import { Service } from '@n8n/di';
 import type {
 	FindManyOptions,
@@ -23,7 +41,7 @@ import { DateUtils } from '@n8n/typeorm/util/DateUtils';
 import { parse, stringify } from 'flatted';
 import pick from 'lodash/pick';
 import { BinaryDataService, ErrorReporter, Logger } from 'n8n-core';
-import { ExecutionCancelledError, ApplicationError } from 'n8n-workflow';
+import { ExecutionCancelledError, UnexpectedError } from 'n8n-workflow';
 import type {
 	AnnotationVote,
 	ExecutionStatus,
@@ -31,25 +49,9 @@ import type {
 	IRunExecutionData,
 } from 'n8n-workflow';
 
-import { AnnotationTagEntity } from '@/databases/entities/annotation-tag-entity.ee';
-import { AnnotationTagMapping } from '@/databases/entities/annotation-tag-mapping.ee';
-import { ExecutionAnnotation } from '@/databases/entities/execution-annotation.ee';
 import { PostgresLiveRowsRetrievalError } from '@/errors/postgres-live-rows-retrieval.error';
-import type { ExecutionSummaries } from '@/executions/execution.types';
-import type {
-	CreateExecutionPayload,
-	IExecutionBase,
-	IExecutionFlattedDb,
-	IExecutionResponse,
-} from '@/interfaces';
-import { separate } from '@/utils';
 
 import { ExecutionDataRepository } from './execution-data.repository';
-import { ExecutionData } from '../entities/execution-data';
-import { ExecutionEntity } from '../entities/execution-entity';
-import { ExecutionMetadata } from '../entities/execution-metadata';
-import { SharedWorkflow } from '../entities/shared-workflow';
-import { WorkflowEntity } from '../entities/workflow-entity';
 
 export interface IGetExecutionsQueryFilter {
 	id?: FindOperator<string> | string;
@@ -206,7 +208,7 @@ export class ExecutionRepository extends Repository<ExecutionEntity> {
 		if (executions.length === 0) return;
 
 		this.errorReporter.error(
-			new ApplicationError('Found executions without executionData', {
+			new UnexpectedError('Found executions without executionData', {
 				extra: { executionIds: executions.map(({ id }) => id) },
 			}),
 		);
@@ -434,7 +436,7 @@ export class ExecutionRepository extends Repository<ExecutionEntity> {
 		},
 	) {
 		if (!deleteConditions?.deleteBefore && !deleteConditions?.ids) {
-			throw new ApplicationError(
+			throw new UnexpectedError(
 				'Either "deleteBefore" or "ids" must be present in the request body',
 			);
 		}
@@ -836,7 +838,7 @@ export class ExecutionRepository extends Repository<ExecutionEntity> {
 
 	async findManyByRangeQuery(query: ExecutionSummaries.RangeQuery): Promise<ExecutionSummary[]> {
 		if (query?.accessibleWorkflowIds?.length === 0) {
-			throw new ApplicationError('Expected accessible workflow IDs');
+			throw new UnexpectedError('Expected accessible workflow IDs');
 		}
 
 		// Due to performance reasons, we use custom query builder with raw SQL.

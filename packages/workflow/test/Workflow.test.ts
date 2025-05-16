@@ -1,7 +1,7 @@
 import { mock } from 'jest-mock-extended';
 
-import { NodeConnectionType } from '@/interfaces';
-import type { IConnection } from '@/interfaces';
+import { NodeConnectionTypes } from '@/Interfaces';
+import type { IConnection } from '@/Interfaces';
 import type {
 	IBinaryKeyData,
 	IConnections,
@@ -9,7 +9,6 @@ import type {
 	INode,
 	INodeExecutionData,
 	INodeParameters,
-	INodeTypes,
 	IRunExecutionData,
 	NodeParameterValueType,
 } from '@/interfaces';
@@ -65,7 +64,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -76,7 +75,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set1',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -135,21 +134,21 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set1',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
 					[
 						{
 							node: 'Set',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
 					[
 						{
 							node: 'Set',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -160,7 +159,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set2',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -171,7 +170,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set2',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -235,7 +234,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -243,7 +242,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Switch',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -254,7 +253,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set1',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -265,12 +264,12 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set1',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 						{
 							node: 'Switch',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -281,7 +280,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set1',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -324,7 +323,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'AINode',
-							type: NodeConnectionType.AiAgent,
+							type: NodeConnectionTypes.AiAgent,
 							index: 0,
 						},
 					],
@@ -335,7 +334,7 @@ describe('Workflow', () => {
 					[
 						{
 							node: 'Set1',
-							type: NodeConnectionType.Main,
+							type: NodeConnectionTypes.Main,
 							index: 0,
 						},
 					],
@@ -343,6 +342,10 @@ describe('Workflow', () => {
 			},
 		},
 		active: false,
+	});
+
+	beforeEach(() => {
+		jest.restoreAllMocks();
 	});
 
 	describe('renameNodeInParameterValue', () => {
@@ -704,7 +707,7 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node2',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -735,7 +738,7 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node2',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -771,7 +774,7 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node2',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -802,7 +805,7 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node2New',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -859,7 +862,7 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node3',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -870,12 +873,12 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node3',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 									{
 										node: 'Node5',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -886,12 +889,12 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node4',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 									{
 										node: 'Node5',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -943,7 +946,7 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node3New',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -954,12 +957,12 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node3New',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 									{
 										node: 'Node5',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -970,12 +973,12 @@ describe('Workflow', () => {
 								[
 									{
 										node: 'Node4',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 									{
 										node: 'Node5',
-										type: NodeConnectionType.Main,
+										type: NodeConnectionTypes.Main,
 										index: 0,
 									},
 								],
@@ -1555,7 +1558,7 @@ describe('Workflow', () => {
 							[
 								{
 									node: 'Node2',
-									type: NodeConnectionType.Main,
+									type: NodeConnectionTypes.Main,
 									index: 0,
 								},
 							],
@@ -1566,7 +1569,7 @@ describe('Workflow', () => {
 							[
 								{
 									node: 'Node3',
-									type: NodeConnectionType.Main,
+									type: NodeConnectionTypes.Main,
 									index: 0,
 								},
 							],
@@ -1577,7 +1580,7 @@ describe('Workflow', () => {
 							[
 								{
 									node: 'Node2',
-									type: NodeConnectionType.Main,
+									type: NodeConnectionTypes.Main,
 									index: 0,
 								},
 							],
@@ -1600,6 +1603,7 @@ describe('Workflow', () => {
 									],
 									startTime: 1,
 									executionTime: 1,
+									executionIndex: 0,
 									data: {
 										main: [
 											[
@@ -1678,6 +1682,7 @@ describe('Workflow', () => {
 							{
 								startTime: 1,
 								executionTime: 1,
+								executionIndex: 0,
 								data: {
 									main: [
 										[
@@ -1871,16 +1876,9 @@ describe('Workflow', () => {
 		});
 	});
 
-	describe('__getConnectionsByDestination', () => {
+	describe('getConnectionsByDestination', () => {
 		it('should return empty object when there are no connections', () => {
-			const workflow = new Workflow({
-				nodes: [],
-				connections: {},
-				active: false,
-				nodeTypes: mock<INodeTypes>(),
-			});
-
-			const result = workflow.__getConnectionsByDestination({});
+			const result = Workflow.getConnectionsByDestination({});
 
 			expect(result).toEqual({});
 		});
@@ -1888,29 +1886,25 @@ describe('Workflow', () => {
 		it('should return connections by destination node', () => {
 			const connections: IConnections = {
 				Node1: {
-					[NodeConnectionType.Main]: [
+					[NodeConnectionTypes.Main]: [
 						[
-							{ node: 'Node2', type: NodeConnectionType.Main, index: 0 },
-							{ node: 'Node3', type: NodeConnectionType.Main, index: 1 },
+							{ node: 'Node2', type: NodeConnectionTypes.Main, index: 0 },
+							{ node: 'Node3', type: NodeConnectionTypes.Main, index: 1 },
 						],
 					],
 				},
 			};
-			const workflow = new Workflow({
-				nodes: [],
-				connections,
-				active: false,
-				nodeTypes: mock<INodeTypes>(),
-			});
-			const result = workflow.__getConnectionsByDestination(connections);
+			const result = Workflow.getConnectionsByDestination(connections);
 			expect(result).toEqual({
 				Node2: {
-					[NodeConnectionType.Main]: [[{ node: 'Node1', type: NodeConnectionType.Main, index: 0 }]],
+					[NodeConnectionTypes.Main]: [
+						[{ node: 'Node1', type: NodeConnectionTypes.Main, index: 0 }],
+					],
 				},
 				Node3: {
-					[NodeConnectionType.Main]: [
+					[NodeConnectionTypes.Main]: [
 						[],
-						[{ node: 'Node1', type: NodeConnectionType.Main, index: 0 }],
+						[{ node: 'Node1', type: NodeConnectionTypes.Main, index: 0 }],
 					],
 				},
 			});
@@ -1919,48 +1913,45 @@ describe('Workflow', () => {
 		it('should handle multiple connection types', () => {
 			const connections: IConnections = {
 				Node1: {
-					[NodeConnectionType.Main]: [[{ node: 'Node2', type: NodeConnectionType.Main, index: 0 }]],
-					[NodeConnectionType.AiAgent]: [
-						[{ node: 'Node3', type: NodeConnectionType.AiAgent, index: 0 }],
+					[NodeConnectionTypes.Main]: [
+						[{ node: 'Node2', type: NodeConnectionTypes.Main, index: 0 }],
+					],
+					[NodeConnectionTypes.AiAgent]: [
+						[{ node: 'Node3', type: NodeConnectionTypes.AiAgent, index: 0 }],
 					],
 				},
 			};
 
-			const workflow = new Workflow({
-				nodes: [],
-				connections,
-				active: false,
-				nodeTypes: mock<INodeTypes>(),
-			});
-
-			const result = workflow.__getConnectionsByDestination(connections);
+			const result = Workflow.getConnectionsByDestination(connections);
 			expect(result).toEqual({
 				Node2: {
-					[NodeConnectionType.Main]: [[{ node: 'Node1', type: NodeConnectionType.Main, index: 0 }]],
+					[NodeConnectionTypes.Main]: [
+						[{ node: 'Node1', type: NodeConnectionTypes.Main, index: 0 }],
+					],
 				},
 				Node3: {
-					[NodeConnectionType.AiAgent]: [
-						[{ node: 'Node1', type: NodeConnectionType.AiAgent, index: 0 }],
+					[NodeConnectionTypes.AiAgent]: [
+						[{ node: 'Node1', type: NodeConnectionTypes.AiAgent, index: 0 }],
 					],
 				},
 			});
+
+			const result = workflow.getHighestNode(targetNode.name);
+			expect(result).toEqual([targetNode.name]);
 		});
 
-		it('should handle nodes with no connections', () => {
-			const connections: IConnections = {
+		test('should handle specified connection index', () => {
+			const node1 = createNode('Node1');
+			const node2 = createNode('Node2');
+			const targetNode = createNode('TargetNode');
+
+			const connections = {
 				Node1: {
-					[NodeConnectionType.Main]: [[]],
+					[NodeConnectionTypes.Main]: [[]],
 				},
 			};
 
-			const workflow = new Workflow({
-				nodes: [],
-				connections,
-				active: false,
-				nodeTypes: mock<INodeTypes>(),
-			});
-
-			const result = workflow.__getConnectionsByDestination(connections);
+			const result = Workflow.getConnectionsByDestination(connections);
 			expect(result).toEqual({});
 		});
 
@@ -1968,52 +1959,279 @@ describe('Workflow', () => {
 		it('should handle nodes with null connections', () => {
 			const connections: IConnections = {
 				Node1: {
-					[NodeConnectionType.Main]: [
+					[NodeConnectionTypes.Main]: [
 						null as unknown as IConnection[],
-						[{ node: 'Node2', type: NodeConnectionType.Main, index: 0 }],
+						[{ node: 'Node2', type: NodeConnectionTypes.Main, index: 0 }],
+					],
+				},
+			};
+
+			const result = Workflow.getConnectionsByDestination(connections);
+			expect(result).toEqual({
+				sourceIndex: 0,
+				destinationIndex: 0,
+			});
+		});
+
+		test('should return correct connection indexes for multi-step connections', () => {
+			const result = SIMPLE_WORKFLOW.getNodeConnectionIndexes('Set1', 'Start');
+			expect(result).toEqual({
+				sourceIndex: 0,
+				destinationIndex: 0,
+			});
+		});
+
+		test('should return undefined when depth is 0', () => {
+			const result = SIMPLE_WORKFLOW.getNodeConnectionIndexes(
+				'Set',
+				'Start',
+				NodeConnectionTypes.Main,
+				0,
+			);
+			expect(result).toBeUndefined();
+		});
+
+		test('should handle workflows with multiple connection indexes', () => {
+			const result = WORKFLOW_WITH_SWITCH.getNodeConnectionIndexes('Set', 'Switch');
+			expect(result).toEqual({
+				sourceIndex: 1,
+				destinationIndex: 0,
+			});
+		});
+	});
+
+	describe('getStartNode', () => {
+		const manualTriggerNode = mock<INode>({
+			name: 'ManualTrigger',
+			type: 'n8n-nodes-base.manualTrigger',
+		});
+		const scheduleTriggerNode = mock<INode>({
+			name: 'ScheduleTrigger',
+			type: 'n8n-nodes-base.scheduleTrigger',
+		});
+		const httpRequestNode = mock<INode>({
+			name: 'HTTP Request',
+			type: 'n8n-nodes-base.httpRequest',
+		});
+		const set1Node = mock<INode>({
+			name: 'Set1',
+			type: 'n8n-nodes-base.set',
+		});
+		const disabledSetNode = mock<INode>({
+			name: 'Set Disabled',
+			type: 'n8n-nodes-base.set',
+			disabled: true,
+		});
+
+		test('returns first trigger node when multiple start nodes exist', () => {
+			const workflow = new Workflow({
+				nodes: [manualTriggerNode, scheduleTriggerNode],
+				connections: {},
+				active: false,
+				nodeTypes,
+			});
+
+			expect(workflow.getStartNode()).toBe(scheduleTriggerNode);
+		});
+
+		test('returns first starting node type when no trigger nodes are present', () => {
+			const workflow = new Workflow({
+				nodes: [httpRequestNode, set1Node],
+				connections: {},
+				active: false,
+				nodeTypes,
+			});
+
+			expect(workflow.getStartNode()).toBe(httpRequestNode);
+		});
+
+		test('returns undefined when all nodes are disabled', () => {
+			const workflow = new Workflow({
+				nodes: [disabledSetNode],
+				connections: {},
+				active: false,
+				nodeTypes,
+			});
+
+			expect(workflow.getStartNode()).toBeUndefined();
+		});
+	});
+
+	describe('getNode', () => {
+		test('should return the node with the given name if it exists', () => {
+			const workflow = SIMPLE_WORKFLOW;
+			const node = workflow.getNode('Start');
+			expect(node).not.toBeNull();
+			expect(node?.name).toBe('Start');
+			expect(node?.type).toBe('test.set');
+			expect(node?.id).toBe('uuid-1');
+		});
+
+		test('should return null if the node does not exist', () => {
+			const nonExistentNode = SIMPLE_WORKFLOW.getNode('NonExistentNode');
+			expect(nonExistentNode).toBeNull();
+		});
+	});
+
+	describe('getNodes', () => {
+		test('should return all requested nodes that exist', () => {
+			const nodes = SIMPLE_WORKFLOW.getNodes(['Start', 'Set', 'Set1']);
+			expect(nodes).toHaveLength(3);
+			expect(nodes[0].name).toBe('Start');
+			expect(nodes[1].name).toBe('Set');
+			expect(nodes[2].name).toBe('Set1');
+		});
+
+		test('should return nodes in the order they were requested', () => {
+			const nodes = SIMPLE_WORKFLOW.getNodes(['Set1', 'Start', 'Set']);
+			expect(nodes).toHaveLength(3);
+			expect(nodes[0].name).toBe('Set1');
+			expect(nodes[1].name).toBe('Start');
+			expect(nodes[2].name).toBe('Set');
+		});
+
+		test('should skip nodes that do not exist and log a warning', () => {
+			// Spy on console.warn
+			const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+			const nodes = SIMPLE_WORKFLOW.getNodes(['Start', 'NonExistentNode', 'Set1']);
+			expect(nodes).toHaveLength(2);
+			expect(nodes[0].name).toBe('Start');
+			expect(nodes[1].name).toBe('Set1');
+			expect(consoleWarnSpy).toHaveBeenCalledWith(
+				expect.stringContaining('Could not find a node with the name NonExistentNode'),
+			);
+		});
+
+		test('should return an empty array if none of the requested nodes exist', () => {
+			// Spy on console.warn
+			const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+			const nodes = SIMPLE_WORKFLOW.getNodes(['NonExistentNode1', 'NonExistentNode2']);
+			expect(nodes).toHaveLength(0);
+			expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+		});
+
+		test('should handle an empty array of node names', () => {
+			const nodes = SIMPLE_WORKFLOW.getNodes([]);
+			expect(nodes).toHaveLength(0);
+		});
+	});
+
+	describe('getHighestNode', () => {
+		const createNode = (name: string, disabled = false) =>
+			({
+				name,
+				type: 'test.set',
+				typeVersion: 1,
+				disabled,
+				position: [0, 0],
+				parameters: {},
+			}) as INode;
+
+		test('should return node name if node is not disabled', () => {
+			const node = createNode('Node1');
+			const workflow = new Workflow({
+				id: 'test',
+				nodes: [node],
+				connections: {},
+				active: false,
+				nodeTypes,
+			});
+
+			const result = workflow.getHighestNode(node.name);
+			expect(result).toEqual([node.name]);
+		});
+
+		test('should return empty array if node is disabled', () => {
+			const node = createNode('Node1', true);
+			const workflow = new Workflow({
+				id: 'test',
+				nodes: [node],
+				connections: {},
+				active: false,
+				nodeTypes,
+			});
+
+			const result = workflow.getHighestNode(node.name);
+			expect(result).toEqual([]);
+		});
+
+		test('should return highest nodes when multiple parent nodes exist', () => {
+			const node1 = createNode('Node1');
+			const node2 = createNode('Node2');
+			const node3 = createNode('Node3');
+			const targetNode = createNode('TargetNode');
+
+			const connections = {
+				Node1: {
+					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+				},
+				Node2: {
+					[NodeConnectionTypes.Main]: [
+						[{ node: 'Node1', type: NodeConnectionTypes.Main, index: 1 }],
 					],
 				},
 			};
 
 			const workflow = new Workflow({
-				nodes: [],
+				id: 'test',
+				nodes: [node1, node2, node3, targetNode],
 				connections,
 				active: false,
-				nodeTypes: mock<INodeTypes>(),
+				nodeTypes,
 			});
 
-			const result = workflow.__getConnectionsByDestination(connections);
-			expect(result).toEqual({
-				Node2: {
-					[NodeConnectionType.Main]: [[{ node: 'Node1', type: NodeConnectionType.Main, index: 1 }]],
-				},
-			});
+			const result = workflow.getHighestNode(targetNode.name);
+			expect(result).toEqual([node1.name, node2.name]);
 		});
 
-		it('should handle nodes with multiple input connections', () => {
-			const connections: IConnections = {
+		test('should ignore disabled parent nodes', () => {
+			const node1 = createNode('Node1', true);
+			const node2 = createNode('Node2');
+			const targetNode = createNode('TargetNode');
+
+			const connections = {
 				Node1: {
-					[NodeConnectionType.Main]: [[{ node: 'Node2', type: NodeConnectionType.Main, index: 0 }]],
-				},
-				Node3: {
-					[NodeConnectionType.Main]: [[{ node: 'Node2', type: NodeConnectionType.Main, index: 0 }]],
+					[NodeConnectionTypes.Main]: [
+						[{ node: 'Node2', type: NodeConnectionTypes.Main, index: 0 }],
+					],
 				},
 			};
 
 			const workflow = new Workflow({
-				nodes: [],
+				id: 'test',
+				nodes: [node1, node2, targetNode],
 				connections,
 				active: false,
-				nodeTypes: mock<INodeTypes>(),
+				nodeTypes,
 			});
 
-			const result = workflow.__getConnectionsByDestination(connections);
+			const result = workflow.getHighestNode(targetNode.name);
+			expect(result).toEqual([node2.name]);
+		});
+
+		test('should handle nested connections', () => {
+			const node1 = createNode('Node1');
+			const node2 = createNode('Node2');
+			const node3 = createNode('Node3');
+			const targetNode = createNode('TargetNode');
+
+			const connections = {
+				Node3: {
+					[NodeConnectionTypes.Main]: [
+						[{ node: 'Node2', type: NodeConnectionTypes.Main, index: 0 }],
+					],
+				},
+			};
+
+			const result = Workflow.getConnectionsByDestination(connections);
 			expect(result).toEqual({
 				Node2: {
-					[NodeConnectionType.Main]: [
+					[NodeConnectionTypes.Main]: [
 						[
-							{ node: 'Node1', type: NodeConnectionType.Main, index: 0 },
-							{ node: 'Node3', type: NodeConnectionType.Main, index: 0 },
+							{ node: 'Node1', type: NodeConnectionTypes.Main, index: 0 },
+							{ node: 'Node3', type: NodeConnectionTypes.Main, index: 0 },
 						],
 					],
 				},
@@ -2068,10 +2286,10 @@ describe('Workflow', () => {
 
 			const connections = {
 				Node1: {
-					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 				Node2: {
-					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 			};
 
@@ -2094,10 +2312,10 @@ describe('Workflow', () => {
 
 			const connections = {
 				Node1: {
-					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 				Node2: {
-					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 			};
 
@@ -2122,12 +2340,12 @@ describe('Workflow', () => {
 			const connections = {
 				Node3: {
 					main: [
-						[{ node: 'Node1', type: NodeConnectionType.Main, index: 0 }],
-						[{ node: 'Node2', type: NodeConnectionType.Main, index: 0 }],
+						[{ node: 'Node1', type: NodeConnectionTypes.Main, index: 0 }],
+						[{ node: 'Node2', type: NodeConnectionTypes.Main, index: 0 }],
 					],
 				},
 				TargetNode: {
-					main: [[{ node: 'Node3', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'Node3', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 			};
 
@@ -2150,10 +2368,10 @@ describe('Workflow', () => {
 
 			const connections = {
 				Node1: {
-					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 				Node2: {
-					main: [[], [{ node: 'TargetNode', type: NodeConnectionType.Main, index: 1 }]],
+					main: [[], [{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 1 }]],
 				},
 			};
 
@@ -2179,13 +2397,13 @@ describe('Workflow', () => {
 
 			const connections = {
 				Node1: {
-					main: [[{ node: 'Node2', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'Node2', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 				Node2: {
-					main: [[{ node: 'Node1', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'Node1', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 				TargetNode: {
-					main: [[{ node: 'Node1', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'Node1', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 			};
 
@@ -2207,10 +2425,10 @@ describe('Workflow', () => {
 
 			const connections = {
 				Node1: {
-					main: [[{ node: 'NonExistentNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'NonExistentNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 				TargetNode: {
-					main: [[{ node: 'NonExistentNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'NonExistentNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 			};
 
@@ -2233,10 +2451,10 @@ describe('Workflow', () => {
 
 			const connections = {
 				Node1: {
-					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 				NonExistentNode: {
-					main: [[{ node: 'TargetNode', type: NodeConnectionType.Main, index: 0 }]],
+					main: [[{ node: 'TargetNode', type: NodeConnectionTypes.Main, index: 0 }]],
 				},
 			};
 
@@ -2310,7 +2528,7 @@ describe('Workflow', () => {
 			const result = SIMPLE_WORKFLOW.getNodeConnectionIndexes(
 				'Set',
 				'Start',
-				NodeConnectionType.Main,
+				NodeConnectionTypes.Main,
 				0,
 			);
 			expect(result).toBeUndefined();
@@ -2379,6 +2597,67 @@ describe('Workflow', () => {
 			});
 
 			expect(workflow.getStartNode()).toBeUndefined();
+		});
+	});
+
+	describe('getNode', () => {
+		test('should return the node with the given name if it exists', () => {
+			const workflow = SIMPLE_WORKFLOW;
+			const node = workflow.getNode('Start');
+			expect(node).not.toBeNull();
+			expect(node?.name).toBe('Start');
+			expect(node?.type).toBe('test.set');
+			expect(node?.id).toBe('uuid-1');
+		});
+
+		test('should return null if the node does not exist', () => {
+			const nonExistentNode = SIMPLE_WORKFLOW.getNode('NonExistentNode');
+			expect(nonExistentNode).toBeNull();
+		});
+	});
+
+	describe('getNodes', () => {
+		test('should return all requested nodes that exist', () => {
+			const nodes = SIMPLE_WORKFLOW.getNodes(['Start', 'Set', 'Set1']);
+			expect(nodes).toHaveLength(3);
+			expect(nodes[0].name).toBe('Start');
+			expect(nodes[1].name).toBe('Set');
+			expect(nodes[2].name).toBe('Set1');
+		});
+
+		test('should return nodes in the order they were requested', () => {
+			const nodes = SIMPLE_WORKFLOW.getNodes(['Set1', 'Start', 'Set']);
+			expect(nodes).toHaveLength(3);
+			expect(nodes[0].name).toBe('Set1');
+			expect(nodes[1].name).toBe('Start');
+			expect(nodes[2].name).toBe('Set');
+		});
+
+		test('should skip nodes that do not exist and log a warning', () => {
+			// Spy on console.warn
+			const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+			const nodes = SIMPLE_WORKFLOW.getNodes(['Start', 'NonExistentNode', 'Set1']);
+			expect(nodes).toHaveLength(2);
+			expect(nodes[0].name).toBe('Start');
+			expect(nodes[1].name).toBe('Set1');
+			expect(consoleWarnSpy).toHaveBeenCalledWith(
+				expect.stringContaining('Could not find a node with the name NonExistentNode'),
+			);
+		});
+
+		test('should return an empty array if none of the requested nodes exist', () => {
+			// Spy on console.warn
+			const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+			const nodes = SIMPLE_WORKFLOW.getNodes(['NonExistentNode1', 'NonExistentNode2']);
+			expect(nodes).toHaveLength(0);
+			expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+		});
+
+		test('should handle an empty array of node names', () => {
+			const nodes = SIMPLE_WORKFLOW.getNodes([]);
+			expect(nodes).toHaveLength(0);
 		});
 	});
 });

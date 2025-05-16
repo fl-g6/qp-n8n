@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { WorkflowsConfig } from '@n8n/config';
+import type { WorkflowEntity, IWorkflowDb } from '@n8n/db';
+import { OnLeaderStepdown, OnLeaderTakeover, OnShutdown } from '@n8n/decorators';
 import { Service } from '@n8n/di';
 import { chunk } from 'lodash';
 import {
@@ -30,7 +32,7 @@ import {
 	Workflow,
 	WorkflowActivationError,
 	WebhookPathTakenError,
-	ApplicationError,
+	UnexpectedError,
 } from 'n8n-workflow';
 
 import { ActivationErrorsService } from '@/activation-errors.service';
@@ -42,7 +44,6 @@ import {
 } from '@/constants';
 import type { WorkflowEntity } from '@/databases/entities/workflow-entity';
 import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
-import { OnShutdown } from '@/decorators/on-shutdown';
 import { executeErrorWorkflow } from '@/execution-lifecycle/execute-error-workflow';
 import { ExecutionService } from '@/executions/execution.service';
 import { ExternalHooks } from '@/external-hooks';
@@ -238,7 +239,7 @@ export class ActiveWorkflowManager {
 		});
 
 		if (workflowData === null) {
-			throw new ApplicationError('Could not find workflow', { extra: { workflowId } });
+			throw new UnexpectedError('Could not find workflow', { extra: { workflowId } });
 		}
 
 		const workflow = new Workflow({
@@ -433,7 +434,7 @@ export class ActiveWorkflowManager {
 			await Promise.all(activationPromises);
 		}
 
-		this.logger.debug('Finished activating workflows (startup)');
+		this.logger.debug('Activated all trigger- and poller-based workflows');
 	}
 
 	private async activateWorkflow(
@@ -487,16 +488,14 @@ export class ActiveWorkflowManager {
 		await this.activationErrorsService.clearAll();
 	}
 
+	@OnLeaderTakeover()
 	async addAllTriggerAndPollerBasedWorkflows() {
-		this.logger.debug('Adding all trigger- and poller-based workflows');
-
 		await this.addActiveWorkflows('leadershipChange');
 	}
 
+	@OnLeaderStepdown()
 	@OnShutdown()
 	async removeAllTriggerAndPollerBasedWorkflows() {
-		this.logger.debug('Removing all trigger- and poller-based workflows');
-
 		await this.activeWorkflows.removeAllTriggerAndPollerBasedWorkflows();
 	}
 
@@ -673,10 +672,23 @@ export class ActiveWorkflowManager {
 		const triggerFilter = (nodeType: INodeType) =>
 			!!nodeType.trigger && !nodeType.description.name.includes('manualTrigger');
 
+		// Retrieve unique webhooks as some nodes have multiple webhooks
+		const workflowWebhooks = WebhookHelpers.getWorkflowWebhooks(
+			workflow,
+			additionalData,
+			undefined,
+			true,
+		);
+
+		const uniqueWebhooks = workflowWebhooks.reduce<Set<string>>((acc, webhook) => {
+			acc.add(webhook.node);
+			return acc;
+		}, new Set());
+
 		return (
 			workflow.queryNodes(triggerFilter).length +
 			workflow.getPollNodes().length +
-			WebhookHelpers.getWorkflowWebhooks(workflow, additionalData, undefined, true).length
+			uniqueWebhooks.size
 		);
 	}
 

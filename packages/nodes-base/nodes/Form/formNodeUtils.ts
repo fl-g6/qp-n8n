@@ -19,18 +19,12 @@ export const renderFormNode = async (
 		formTitle: string;
 		formDescription: string;
 		buttonLabel: string;
+		customCss?: string;
 	};
 
 	let title = options.formTitle;
 	if (!title) {
 		title = context.evaluateExpression(`{{ $('${trigger?.name}').params.formTitle }}`) as string;
-	}
-
-	let description = options.formDescription;
-	if (!description) {
-		description = context.evaluateExpression(
-			`{{ $('${trigger?.name}').params.formDescription }}`,
-		) as string;
 	}
 
 	let buttonLabel = options.buttonLabel;
@@ -41,12 +35,6 @@ export const renderFormNode = async (
 			) as string) || 'Submit';
 	}
 
-	for (const field of fields) {
-		if (field.fieldType === 'html') {
-			field.html = sanitizeHtml(field.html as string);
-		}
-	}
-
 	const appendAttribution = context.evaluateExpression(
 		`{{ $('${trigger?.name}').params.options?.appendAttribution === false ? false : true }}`,
 	) as boolean;
@@ -55,13 +43,14 @@ export const renderFormNode = async (
 		context,
 		res,
 		formTitle: title,
-		formDescription: description,
+		formDescription: options.formDescription,
 		formFields: fields,
 		responseMode: 'responseNode',
 		mode,
 		redirectUrl: undefined,
 		appendAttribution,
 		buttonLabel,
+		customCss: options.customCss,
 	});
 
 	return {
