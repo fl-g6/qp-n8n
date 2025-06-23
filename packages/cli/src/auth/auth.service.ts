@@ -1,6 +1,6 @@
 import { GlobalConfig } from '@n8n/config';
 import type { User } from '@n8n/db';
-import { Service } from '@n8n/di';
+import { Container, Service } from '@n8n/di';
 import { createHash } from 'crypto';
 import type { NextFunction, Response } from 'express';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
@@ -20,6 +20,7 @@ import { JwtService } from '@/services/jwt.service';
 import { UrlService } from '@/services/url.service';
 
 import { QPAuthService } from './qpauth.service';
+import { contains } from 'class-validator';
 
 interface AuthJwtPayload {
 	/** User Id */

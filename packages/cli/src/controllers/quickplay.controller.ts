@@ -3,12 +3,12 @@ import { ApplicationError } from 'n8n-workflow';
 
 import { issueCookie, resolveJwt } from '@/auth/jwt';
 import { AUTH_COOKIE_NAME, UM_FIX_INSTRUCTION } from '@/constants';
-import type { User } from '@/databases/entities/user';
+import type { User } from '@n8n/db';
 import { ProjectRepository } from '@/databases/repositories/project.repository';
 import { UserRepository } from '@/databases/repositories/user.repository';
-import { Get, Post, RestController } from '@/decorators';
+import { Get, Post, RestController } from '@n8n/decorators';
 import { AuthError } from '@/errors/response-errors/auth.error';
-import type { PublicUser } from '@/interfaces';
+import type { PublicUser } from '@n8n/db';
 import { QpJwtRequest } from '@/middlewares/external-jwt-auth';
 import { UserService } from '@/services/user.service';
 

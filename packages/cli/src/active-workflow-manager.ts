@@ -42,12 +42,10 @@ import {
 	WORKFLOW_REACTIVATE_INITIAL_TIMEOUT,
 	WORKFLOW_REACTIVATE_MAX_TIMEOUT,
 } from '@/constants';
-import type { WorkflowEntity } from '@/databases/entities/workflow-entity';
 import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
 import { executeErrorWorkflow } from '@/execution-lifecycle/execute-error-workflow';
 import { ExecutionService } from '@/executions/execution.service';
 import { ExternalHooks } from '@/external-hooks';
-import type { IWorkflowDb } from '@/interfaces';
 import { NodeTypes } from '@/node-types';
 import { Publisher } from '@/scaling/pubsub/publisher.service';
 import { ActiveWorkflowsService } from '@/services/active-workflows.service';
