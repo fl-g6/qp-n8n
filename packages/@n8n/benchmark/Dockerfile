@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20.16.0 AS base
+FROM node:20.19.6 AS base
 
 # Install required dependencies
 RUN apt-get update && apt-get install -y gnupg2 curl
