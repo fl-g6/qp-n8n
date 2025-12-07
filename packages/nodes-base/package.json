@@ -899,7 +899,7 @@
     "n8n-workflow": "workspace:*",
     "node-html-markdown": "1.2.0",
     "node-ssh": "13.2.0",
-    "nodemailer": "6.9.9",
+    "nodemailer": "7.0.11",
     "otpauth": "9.1.1",
     "pdfjs-dist": "2.16.105",
     "pg-promise": "11.9.1",
