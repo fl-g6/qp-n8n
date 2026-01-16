@@ -160,7 +160,7 @@
     "@n8n/typeorm": "0.3.20-12",
     "@n8n/vm2": "3.9.25",
     "@pinecone-database/pinecone": "4.0.0",
-    "@qdrant/js-client-rest": "1.11.0",
+    "@qdrant/js-client-rest": "1.14.1",
     "@supabase/supabase-js": "2.45.4",
     "@xata.io/client": "0.28.4",
     "basic-auth": "catalog:",
